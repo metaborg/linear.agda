@@ -15,9 +15,6 @@ record _✴_ {ℓ₁ ℓ₂} (P : Pred Res ℓ₁) (Q : Pred Res ℓ₂) Φ : Se
   field
     {Φₗ Φᵣ} : Res
 
-    -- the separation
+    p   : P Φₗ
     sep : (Interleaving on proj) Φₗ Φᵣ (proj Φ)
-
-    -- the product fields
-    p     : P Φₗ
-    q     : Q Φᵣ
+    q   : Q Φᵣ
