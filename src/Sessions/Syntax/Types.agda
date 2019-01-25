@@ -18,39 +18,40 @@ open import Relation.Nullary.Decidable as DecM
 open import Relation.Nullary.Product
 open import Relation.Binary.PropositionalEquality hiding ([_])
 
-{- P. Wadler's variation on Gay & Vasconcelos's GV -}
-mutual
-  data UType : Size → Set where
-    unit  : ∀[ UType ] 
-    _⟶_  : ∀[ Type ⇒ Type ⇒ UType ]
-    prod  : ∀[ UType ⇒ UType ⇒ UType ]
+{- Unrestricted-, Session- and Expression types-}
+module _ where
+  mutual
+    data UType : Size → Set where
+      unit  : ∀[ UType ] 
+      _⟶_  : ∀[ Type ⇒ Type ⇒ UType ]
+      prod  : ∀[ UType ⇒ UType ⇒ UType ]
 
-  data Type : Size → Set where
-    unit  : ∀[ Type ] 
-    _⟶_  : ∀[ Type ⇒ Type ⇒ Type ]
-    chan  : ∀[ SType ⇒ Type ]
-    prod  : ∀[ Type ⇒ Type ⇒ Type ]
-    _⊸_   : ∀[ Type ⇒ Type ⇒ Type ]
+    -- channel types
+    data SType : Size →  Set where
+      -- input and output
+      -- a ⊗ α : output a and continue as α
+      -- a ⅋ α : input a and continue as α
+      _⊗_ _⅋_ : ∀[ Type ⇒ Thunk SType ⇒ SType ]
 
-  -- channel types
-  data SType : Size →  Set where
-    -- input and output
-    -- a ⊗ α : output a and continue as α
-    -- a ⅋ α : input a and continue as α
-    _⊗_ _⅋_ : ∀[ Type ⇒ Thunk SType ⇒ SType ]
+      -- selection and choice
+      -- a ⊕ b : select from a and b
+      -- a ⅋ b : offer choice of a and b
+      _⊕_ _&_ : ∀[ Type ⇒ Thunk SType ⇒ SType ]
 
-    -- selection and choice
-    -- a ⊕ b : select from a and b
-    -- a ⅋ b : offer choice of a and b
-    _⊕_ _&_ : ∀[ Type ⇒ Thunk SType ⇒ SType ]
+      -- terminate
+      end! end? : ∀[ SType ]
 
-    -- terminate
-    end! end? : ∀[ SType ]
+    data Type : Size → Set where
+      unit  : ∀[ Type ] 
+      _⟶_  : ∀[ Type ⇒ Type ⇒ Type ]
+      chan  : ∀[ SType ⇒ Type ]
+      prod  : ∀[ Type ⇒ Type ⇒ Type ]
+      _⊸_   : ∀[ Type ⇒ Type ⇒ Type ]
 
--- contexts
-ICtx = List (UType ∞) -- intuitionistic
-LCtx = List (Type ∞)  -- linear
--- SCtx = List (Maybe (SType ∞))
+{- Contexts -}
+module _ where
+  ICtx = List (UType ∞) -- intuitionistic
+  LCtx = List (Type ∞)  -- linear
 
 Ctx : Set
 Ctx = ICtx × LCtx
