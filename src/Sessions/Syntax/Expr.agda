@@ -15,14 +15,14 @@ open import Relation.Binary.PropositionalEquality hiding ([_])
 
 open import Sessions.Syntax.Types
 
-open import Relation.Unary.Separation Ctx proj₁
+open import Relation.Unary.Separation
 
 data Var : Type ∞ → Ctx → Set where
   -- choose from the unrestricted context
   -- provided that the linear context is empty
-  ivar : ∀[ Emp    ⇒ (u ∈ᵢ_)    ⇒ Var (li u) ] 
+  ivar : ∀[ Emp    ⇒ (u ∈ᵢ_) ⇒ Var (li u) ] 
   -- pick the only element from the linear context
-  lvar : ∀[ Only a              ⇒ Var a      ]
+  lvar : ∀[ Exactly a        ⇒ Var a      ]
 
 data Exp : Type ∞ → Ctx → Set where
 
@@ -33,8 +33,8 @@ data Exp : Type ∞ → Ctx → Set where
   unit : ∀[ Emp ⇒ Exp unit ]
 
   -- linear function introduction and elimination
-  λₗ   : (a : Type ∞) → ∀[ a ◂ id ⊢ Exp b ⇒ Exp (a ⊸ b) ]
-  _·_  :                ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
+  λₗ   : ∀ a → ∀[ a ◂ id ⊢ Exp b ⇒ Exp (a ⊸ b) ]
+  _·_  :       ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
 
   -- product introduction and elimination
   pair    : ∀[ Exp a ✴ Exp b ⇒ Exp (prod a b) ]
