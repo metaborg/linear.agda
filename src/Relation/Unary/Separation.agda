@@ -12,9 +12,33 @@ open import Data.List.Relation.Binary.Equality.Propositional
 
 open import Relation.Unary
 open import Relation.Binary hiding (_⇒_)
+open import Relation.Binary.PropositionalEquality as P using (_≡_)
 
 open import Algebra
 open import Algebra.FunctionProperties.Core
+
+record RawSeparation {a} (Carrier : Set a) : Set (suc a) where
+
+  SPred : (ℓ : Level) → Set _
+  SPred ℓ = Pred Carrier ℓ
+
+  field
+    ε     : Carrier
+    _⊎_≣_ : (Φ₁ Φ₂ : Carrier) → SPred a
+
+  -- we can see the three point relation as a predicate on the carrier
+  _⊎_ = _⊎_≣_
+
+record IsSeparation {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (sep : RawSeparation {ℓ₁} A) : Set (ℓ₁ ⊔ ℓ₂) where
+  open RawSeparation sep
+
+  field
+    ⊎-functional   : ∀ {Φ₁ Φ₂ Φ Φ'}   → Φ₁ ⊎ Φ₂ ≣ Φ → Φ₁ ⊎ Φ₂ ≣ Φ' → Φ ≈ Φ'
+    ⊎-cancellative : ∀ {Φ₁ Φ₁' Φ₂}    → ∀[ Φ₁ ⊎ Φ₂ ⇒ Φ₁' ⊎ Φ₂ ⇒ (λ _ → Φ₁ ≈ Φ₁') ]
+    ⊎-comm         : ∀ {Φ₁ Φ₂}        → ∀[ Φ₁ ⊎ Φ₂ ⇒ Φ₂ ⊎ Φ₁ ]
+    ⊎-assoc        : ∀ {Φ₁ Φ₂ Φ₃ Φ Ψ} → Φ₁ ⊎ Φ₂ ≣ Φ → Φ ⊎ Φ₃ ≣ Ψ →
+                                        ∃ λ Φ₄ → Φ₂ ⊎ Φ₃ ≣ Φ₄ × Φ₁ ⊎ Φ₄ ≣ Ψ
+    ⊎-identityˡ    : ∀ {Φ}            → ∀[ (Φ ≡_) ⇒ (ε ⊎ Φ) ]
 
 -- A separation algebra.
 -- Axiomatized as in 
@@ -25,26 +49,14 @@ record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
 
   open Setoid set public 
 
-  SPred : (ℓ : Level) → Set _
-  SPred ℓ = Pred Carrier ℓ
-
-  -- disjoint splitting
   field
-    ε     : Carrier
-    _⊎_≣_ : (Φ₁ Φ₂ : Carrier) → SPred ℓ₁
+    raw          : RawSeparation Carrier
+    isSeparation : IsSeparation _≈_ raw
 
-  -- we can see the three point relation as a predicate on the carrier
-  _⊎_ = _⊎_≣_
+  open RawSeparation raw public
+  open IsSeparation isSeparation public
 
-  field
-    ⊎-functional   : ∀ {Φ₁ Φ₂ Φ Φ'}   → Φ₁ ⊎ Φ₂ ≣ Φ → Φ₁ ⊎ Φ₂ ≣ Φ' → Φ ≈ Φ'
-    ⊎-cancellative : ∀ {Φ₁ Φ₁' Φ₂}    → ∀[ Φ₁ ⊎ Φ₂ ⇒ Φ₁' ⊎ Φ₂ ⇒ (λ _ → Φ₁ ≈ Φ₁') ]
-    ⊎-comm         : ∀ {Φ₁ Φ₂}        → ∀[ Φ₁ ⊎ Φ₂ ⇒ Φ₂ ⊎ Φ₁ ]
-    ⊎-assoc        : ∀ {Φ₁ Φ₂ Φ₃ Φ Ψ} → Φ₁ ⊎ Φ₂ ≣ Φ → Φ ⊎ Φ₃ ≣ Ψ →
-                                        ∃ λ Φ₄ → Φ₂ ⊎ Φ₃ ≣ Φ₄ × Φ₁ ⊎ Φ₄ ≣ Ψ
-    ⊎-identityˡ    : ∀ {Φ}            → ∀[ (Φ ≈_) ⇒ (ε ⊎ Φ) ]
-
-  ⊎-identityʳ : ∀ {Φ} → ∀[ (Φ ≈_) ⇒ (Φ ⊎ ε) ]
+  ⊎-identityʳ : ∀ {Φ} → ∀[ (Φ ≡_) ⇒ (Φ ⊎ ε) ]
   ⊎-identityʳ = ⊎-comm ∘ ⊎-identityˡ
 
   variable
@@ -74,16 +86,16 @@ record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
     _≤_ : Carrier → Carrier → Set _
     Φ₁ ≤ Φ = ∃ λ Φ₂ → (Φ₁ ⊎ Φ₂) Φ
 
-    ≤-reflexive : Φ₁ ≈ Φ₂ → Φ₁ ≤ Φ₂
+    ≤-reflexive : Φ₁ ≡ Φ₂ → Φ₁ ≤ Φ₂
     ≤-reflexive p = ε , ⊎-identityʳ p
 
     ≤-trans : Φ₁ ≤ Φ₂ → Φ₂ ≤ Φ₃ → Φ₁ ≤ Φ₃
     ≤-trans (τ₁ , Φ₁⊎τ₁=Φ₂) (τ₂ , Φ₂⊎τ₂=Φ₃) =
       let τ₃ , p , q = ⊎-assoc Φ₁⊎τ₁=Φ₂ Φ₂⊎τ₂=Φ₃ in τ₃ , q
 
-    ≤-isPreorder : IsPreorder _≈_ _≤_
+    ≤-isPreorder : IsPreorder _≡_ _≤_
     ≤-isPreorder = record
-      { isEquivalence = isEquivalence
+      { isEquivalence = P.isEquivalence
       ; reflexive = ≤-reflexive
       ; trans = ≤-trans }
 
@@ -100,7 +112,7 @@ record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
     module ↑-Monadic {ℓ} {P : SPred ℓ} where
 
       return : ∀[ P ⇒ P ↑ ]
-      return p = p ×⟨ ⊎-identityʳ refl ⟩ tt
+      return p = p ×⟨ ⊎-identityʳ P.refl ⟩ tt
 
       join : ∀[ (P ↑) ↑ ⇒ P ↑ ]
       join ((p ×⟨ σ₁ ⟩ tt) ×⟨ σ₂ ⟩ tt) = 
