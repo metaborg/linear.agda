@@ -63,22 +63,31 @@ record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
     Φ₁ Φ₂ Φ₃ Φ : Carrier
 
   -- separating conjunction
-  module _ where
-    infixr 9 _✴_
-    record _✴_ {p q} (P : SPred p) (Q : SPred q) Φ : Set (p ⊔ q ⊔ ℓ₁ ⊔ ℓ₂) where
-      constructor _×⟨_⟩_
-      field
-        {Φₗ Φᵣ} : Carrier
+  infixr 9 _✴_
+  record _✴_ {p q} (P : SPred p) (Q : SPred q) Φ : Set (p ⊔ q ⊔ ℓ₁) where
+    inductive
+    constructor _×⟨_⟩_
+    field
+      {Φₗ Φᵣ} : Carrier
 
-        px  : P Φₗ
-        sep : (Φₗ ⊎ Φᵣ) Φ
-        qx  : Q Φᵣ
+      px  : P Φₗ
+      sep : (Φₗ ⊎ Φᵣ) Φ
+      qx  : Q Φᵣ
 
   {- Emptyness -}
   module _ where
 
     data Emp : SPred 0ℓ where
       emp : Emp ε
+
+
+  {- Big seperating conjunction over an SPred -}
+  module _ where
+
+    data Allstar {ℓ} (P : SPred ℓ) : SPred (ℓ ⊔ ℓ₁) where
+      emp  : ∀[ Emp ⇒ Allstar P ]
+      star : ∀[ P ✴ Allstar P ⇒ Allstar P ]
+
 
   {- A free preorder -}
   module _ where
@@ -130,15 +139,8 @@ record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   -- In : A → SPred _
   -- In a = Any (_≡_ a)
 
-  -- {- Big seperating conjunction over an SPred -}
-  -- module _ {ℓ} (P : SPred ℓ) where
-
-  --   data Allstar : SPred (a ⊔ ℓ) where
-  --     emp  : ∀[ Emp ⇒ Allstar ]
-  --     star : ∀[ P ✴ Allstar ⇒ Allstar ]
-
-  --   -- find : ∀ {q a} {Q : APred q} → ∀[ In a ⇒ Allstar ⇒ P ↑ ]
-  --   -- find (here _)    (emp ())
-  --   -- find (here _)    (star (p ×⟨ σ ⟩ q)) = {!p!}
-  --   -- find (there sp r) (emp ())
-  --   -- find (there sp r) (star (p ×⟨ σ ⟩ q)) = {!find ? q!}
+    -- find : ∀ {q a} {Q : APred q} → ∀[ In a ⇒ Allstar ⇒ P ↑ ]
+    -- find (here _)    (emp ())
+    -- find (here _)    (star (p ×⟨ σ ⟩ q)) = {!p!}
+    -- find (there sp r) (emp ())
+    -- find (there sp r) (star (p ×⟨ σ ⟩ q)) = {!find ? q!}
