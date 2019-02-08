@@ -1,5 +1,6 @@
-open import Data.List
-
+-- A separation algebra.
+-- Axiomatization based on
+-- "A fresh look at Separation Algebras and Share Accounting" (Dockins et al)
 module Relation.Unary.Separation where
 
 open import Function
@@ -17,20 +18,19 @@ open import Relation.Binary.PropositionalEquality as P using (_≡_)
 open import Algebra
 open import Algebra.FunctionProperties.Core
 
-record RawSeparation {a} (Carrier : Set a) : Set (suc a) where
+record RawSep {a} (Carrier : Set a) : Set (suc a) where
 
   SPred : (ℓ : Level) → Set _
   SPred ℓ = Pred Carrier ℓ
 
   field
-    ε     : Carrier
     _⊎_≣_ : (Φ₁ Φ₂ : Carrier) → SPred a
 
   -- we can see the three point relation as a predicate on the carrier
   _⊎_ = _⊎_≣_
 
-record IsSeparation {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (sep : RawSeparation {ℓ₁} A) : Set (ℓ₁ ⊔ ℓ₂) where
-  open RawSeparation sep
+record IsSep {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (s : RawSep {ℓ₁} A) : Set (ℓ₁ ⊔ ℓ₂) where
+  open RawSep s
 
   field
     ⊎-functional   : ∀ {Φ₁ Φ₂ Φ Φ'}   → Φ₁ ⊎ Φ₂ ≣ Φ → Φ₁ ⊎ Φ₂ ≣ Φ' → Φ ≈ Φ'
@@ -38,29 +38,9 @@ record IsSeparation {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (sep 
     ⊎-comm         : ∀ {Φ₁ Φ₂}        → ∀[ Φ₁ ⊎ Φ₂ ⇒ Φ₂ ⊎ Φ₁ ]
     ⊎-assoc        : ∀ {Φ₁ Φ₂ Φ₃ Φ Ψ} → Φ₁ ⊎ Φ₂ ≣ Φ → Φ ⊎ Φ₃ ≣ Ψ →
                                         ∃ λ Φ₄ → Φ₂ ⊎ Φ₃ ≣ Φ₄ × Φ₁ ⊎ Φ₄ ≣ Ψ
-    ⊎-identityˡ    : ∀ {Φ}            → ∀[ (Φ ≡_) ⇒ (ε ⊎ Φ) ]
-
--- A separation algebra.
--- Axiomatized as in 
--- "A fresh look at Separation Algebras and Share Accounting" (Dockins et al)
-record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
-  field
-    set : Setoid ℓ₁ ℓ₂
-
-  open Setoid set public 
-
-  field
-    raw          : RawSeparation Carrier
-    isSeparation : IsSeparation _≈_ raw
-
-  open RawSeparation raw public
-  open IsSeparation isSeparation public
-
-  ⊎-identityʳ : ∀ {Φ} → ∀[ (Φ ≡_) ⇒ (Φ ⊎ ε) ]
-  ⊎-identityʳ = ⊎-comm ∘ ⊎-identityˡ
 
   variable
-    Φ₁ Φ₂ Φ₃ Φ : Carrier
+    Φ₁ Φ₂ Φ₃ Φ : A
 
   -- separating conjunction
   infixr 9 _✴_
@@ -68,31 +48,56 @@ record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
     inductive
     constructor _×⟨_⟩_
     field
-      {Φₗ Φᵣ} : Carrier
+      {Φₗ Φᵣ} : A
 
       px  : P Φₗ
       sep : (Φₗ ⊎ Φᵣ) Φ
       qx  : Q Φᵣ
 
+record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
+  field
+    set : Setoid ℓ₁ ℓ₂
+
+  open Setoid set public 
+
+  field
+    raw          : RawSep Carrier
+    isSep : IsSep _≈_ raw
+
+  open RawSep raw public
+  open IsSep isSep public
+
+record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e)(sep : RawSep C) : Set (c ⊔ e) where
+  field
+    isSep : IsSep _≈_ sep
+    ε     : C
+
+  open RawSep sep public
+
+  field
+    ⊎-identityˡ    : ∀ {Φ}            → ∀[ (Φ ≡_) ⇒ (ε ⊎ Φ) ]
+
+  open IsSep isSep public
+
   {- Emptyness -}
   module _ where
+    ⊎-identityʳ : ∀ {Φ} → ∀[ (Φ ≡_) ⇒ (Φ ⊎ ε) ]
+    ⊎-identityʳ = ⊎-comm ∘ ⊎-identityˡ
 
     data Emp : SPred 0ℓ where
       emp : Emp ε
 
-
   {- Big seperating conjunction over an SPred -}
   module _ where
 
-    data Allstar {ℓ} (P : SPred ℓ) : SPred (ℓ ⊔ ℓ₁) where
+    data Allstar {ℓ} (P : SPred ℓ) : SPred (ℓ ⊔ c) where
       emp  : ∀[ Emp ⇒ Allstar P ]
       star : ∀[ P ✴ Allstar P ⇒ Allstar P ]
 
-
   {- A free preorder -}
   module _ where
-    -- embedding
-    _≤_ : Carrier → Carrier → Set _
+
+    _≤_ : Rel C _
     Φ₁ ≤ Φ = ∃ λ Φ₂ → (Φ₁ ⊎ Φ₂) Φ
 
     ≤-reflexive : Φ₁ ≡ Φ₂ → Φ₁ ≤ Φ₂
@@ -126,21 +131,3 @@ record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
       join : ∀[ (P ↑) ↑ ⇒ P ↑ ]
       join ((p ×⟨ σ₁ ⟩ tt) ×⟨ σ₂ ⟩ tt) = 
         let _ , σ₃ = ≤-trans (-, σ₁) (-, σ₂) in p ×⟨ σ₃ ⟩ tt
-
-  -- {- Pointer to a single element -}
-  -- module _ {ℓ} (P : APred ℓ) where
-
-  --   Any : SPred _
-  --   Any = (Only P) ↑
-
-  --   pattern here  p    = single p ×⟨ consˡ _ ⟩ _
-  --   pattern there sp r = single _ ×⟨ consʳ sp ⟩ r
-
-  -- In : A → SPred _
-  -- In a = Any (_≡_ a)
-
-    -- find : ∀ {q a} {Q : APred q} → ∀[ In a ⇒ Allstar ⇒ P ↑ ]
-    -- find (here _)    (emp ())
-    -- find (here _)    (star (p ×⟨ σ ⟩ q)) = {!p!}
-    -- find (there sp r) (emp ())
-    -- find (there sp r) (star (p ×⟨ σ ⟩ q)) = {!find ? q!}
