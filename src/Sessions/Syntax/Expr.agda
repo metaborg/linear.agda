@@ -21,7 +21,7 @@ open UnitalSep ⦃...⦄
 
 data Exp : Type ∞ → LCtx → Set where
 
-  var  : ∀[ Exactly a ⇒ Exp a ]
+  var  : ∀[ Just a ⇒ Exp a ]
 
   -- value constructors
   unit : ∀[ Emp ⇒ Exp unit ]

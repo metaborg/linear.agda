@@ -60,7 +60,6 @@ module _ where
 {- Contexts -}
 module _ where
 
-  ICtx = List (UType ∞)  -- intuitionistic
   LCtx = List (Type ∞)   -- linear
   SCtx = List (SType ∞)  -- sessions
 
@@ -85,12 +84,22 @@ module _ {t} {T : Set t} where
   LPred : (p : Level) → Set (t ⊔ Level.suc p)
   LPred p = Ctx → Set p
 
+  {- Linearly a Singleton  -}
+  module _ {p} (P : Pred T p) where
+
+    data Only : LPred p where
+      only : ∀ {a} → P a → Only (a ∷ ε)
+
+  module _ where
+
+    Just : T → LPred t
+    Just t = Exactly (t ∷ ε)
+
 {- Some conventions -}
 variable
   u v w   : UType ∞
   a b c   : Type ∞
   α β γ   : SType ∞
-  Γ Γ₁ Γ₂ : ICtx
 
 {- Duality -}
 module _ where
@@ -150,17 +159,6 @@ module _ where
   infixr 20 _◂_
   _◂_ : Type ∞ → CtxTf → CtxTf
   (a ◂ f) Δ = a ∷ f Δ
-
-{- Linearly a Singleton  -}
-module _ {p} (P : Pred (Type ∞) p) where
-
-  data Only : LPred p where
-    only : ∀ {a} → P a → Only (a ∷ ε)
-
-module _ where
-
-  Singleton : Type ∞ → LPred 0ℓ
-  Singleton = Only ∘ _≡_
 
 {- membership -}
 -- module _ where
