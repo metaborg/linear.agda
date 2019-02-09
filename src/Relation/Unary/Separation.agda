@@ -117,6 +117,8 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e)(sep : RawSep C) : Set (c 
     _↑ : ∀ {ℓ} → SPred ℓ → SPred _
     P ↑ = P ✴ U
 
+    pattern _⇑_ p sep = p IsSep.×⟨ sep ⟩ tt
+
     module ↑-Monadic {ℓ} {P : SPred ℓ} where
 
       return : ∀[ P ⇒ P ↑ ]
@@ -125,6 +127,12 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e)(sep : RawSep C) : Set (c 
       join : ∀[ (P ↑) ↑ ⇒ P ↑ ]
       join ((p ×⟨ σ₁ ⟩ tt) ×⟨ σ₂ ⟩ tt) = 
         let _ , σ₃ = ≤-trans (-, σ₁) (-, σ₂) in p ×⟨ σ₃ ⟩ tt
+
+    π₁ : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ (P ✴ Q) ⇒ P ↑ ]
+    π₁ (px ×⟨ sep ⟩ _) = px ⇑ sep
+
+    π₂ : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ (P ✴ Q) ⇒ Q ↑ ]
+    π₂ (_ ×⟨ sep ⟩ qx) = qx ⇑ ⊎-comm sep
 
 record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   field
