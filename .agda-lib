@@ -1,0 +1,4 @@
+name: session-types
+include:
+  ./src/
+  ./lib/stdlib.agda/src/
