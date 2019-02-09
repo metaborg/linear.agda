@@ -54,19 +54,6 @@ record IsSep {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (s : RawSep 
       sep : (Φₗ ⊎ Φᵣ) Φ
       qx  : Q Φᵣ
 
-record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
-  field
-    set : Setoid ℓ₁ ℓ₂
-
-  open Setoid set public 
-
-  field
-    raw          : RawSep Carrier
-    isSep : IsSep _≈_ raw
-
-  open RawSep raw public
-  open IsSep isSep public
-
 record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e)(sep : RawSep C) : Set (c ⊔ e) where
   field
     isSep : IsSep _≈_ sep
@@ -79,13 +66,20 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e)(sep : RawSep C) : Set (c 
 
   open IsSep isSep public
 
+  ⊎-identityʳ : ∀ {Φ} → ∀[ (Φ ≡_) ⇒ (Φ ⊎ ε) ]
+  ⊎-identityʳ = ⊎-comm ∘ ⊎-identityˡ
+
+  {- Exactness -}
+  module _ where
+
+    Exactly : C → SPred c
+    Exactly = flip _≡_
+
   {- Emptyness -}
   module _ where
-    ⊎-identityʳ : ∀ {Φ} → ∀[ (Φ ≡_) ⇒ (Φ ⊎ ε) ]
-    ⊎-identityʳ = ⊎-comm ∘ ⊎-identityˡ
 
-    data Emp : SPred 0ℓ where
-      emp : Emp ε
+    Emp : SPred c
+    Emp = Exactly ε
 
   {- Big seperating conjunction over an SPred -}
   module _ where
@@ -131,3 +125,28 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e)(sep : RawSep C) : Set (c 
       join : ∀[ (P ↑) ↑ ⇒ P ↑ ]
       join ((p ×⟨ σ₁ ⟩ tt) ×⟨ σ₂ ⟩ tt) = 
         let _ , σ₃ = ≤-trans (-, σ₁) (-, σ₂) in p ×⟨ σ₃ ⟩ tt
+
+record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
+  field
+    set : Setoid ℓ₁ ℓ₂
+
+  open Setoid set public 
+
+  field
+    raw          : RawSep Carrier
+    isSep : IsSep _≈_ raw
+
+  open RawSep raw public
+  open IsSep isSep public
+
+record UnitalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
+  field
+    set : Setoid ℓ₁ ℓ₂
+
+  open Setoid set public 
+
+  field
+    raw         : RawSep Carrier
+    isUnitalSep : IsUnitalSep _≈_ raw
+
+  open IsUnitalSep isUnitalSep public

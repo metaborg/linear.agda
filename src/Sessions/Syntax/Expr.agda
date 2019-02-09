@@ -16,18 +16,12 @@ open import Relation.Binary.PropositionalEquality hiding ([_])
 open import Sessions.Syntax.Types
 
 open import Relation.Unary.Separation
+open UnitalSep ⦃...⦄
 
-data Var : Type ∞ → Ctx → Set where
-  -- choose from the unrestricted context
-  -- provided that the linear context is empty
-  ivar : ∀[ Emp    ⇒ (u ∈ᵢ_) ⇒ Var (li u) ] 
-  -- pick the only element from the linear context
-  lvar : ∀[ Exactly a        ⇒ Var a      ]
 
-data Exp : Type ∞ → Ctx → Set where
+data Exp : Type ∞ → LCtx → Set where
 
-  -- variables (linear and intuitionistic)
-  var  : ∀[ Var a ⇒ Exp a ]
+  var  : ∀[ Exactly a ⇒ Exp a ]
 
   -- value constructors
   unit : ∀[ Emp ⇒ Exp unit ]
