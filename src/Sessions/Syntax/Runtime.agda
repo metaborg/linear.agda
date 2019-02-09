@@ -39,6 +39,18 @@ data Buffer : Pred (SCtx × SCtx) 0ℓ where
 data Thread : Pred SCtx 0ℓ where
   ⟨_,_⟩ : ∀ {a Δ} → Exp a Δ → ∀[ Env Δ ⇒ Thread ]
 
+
+Buffers : SCtx → Pred SCtx 0ℓ
+Buffers ends Δ = Allstar Buffer (Δ , ends)
+
+Threads : Pred SCtx 0ℓ
+Threads = Allstar Thread
+
+record Runtime : Set where
+  field
+    {ends} : List (SType ∞)
+    pool   : (Buffers ends ✴ Threads) ends
+
 module QueueExamples where
   private
     -- empty queue

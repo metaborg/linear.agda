@@ -95,6 +95,10 @@ module _ {t} {T : Set t} where
     Just : T → LPred t
     Just t = Exactly (t ∷ ε)
 
+  instance
+    ctx²-instance : UnitalSep _ _
+    ctx²-instance = ctx-resource ×-ε-separation ctx-resource
+
 {- Some conventions -}
 variable
   u v w   : UType ∞

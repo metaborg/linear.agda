@@ -1,5 +1,6 @@
 module Relation.Unary.Separation.Construct.Product where
 
+open import Level
 open import Data.Product
 
 open import Relation.Unary.Separation
