@@ -57,10 +57,15 @@ module _ where
   extend  : Val → Env → Env
   extend = _∷_
 
-  resolve : Var → Env → Val
-  resolve _ [] = willneverhappenipromise
-  resolve zero (x ∷ xs)    = x
-  resolve (suc n) (x ∷ xs) = resolve n xs
+  unsafeLookup : ∀ {a} → ℕ → List a → a
+  unsafeLookup _ [] = willneverhappenipromise
+  unsafeLookup zero (x ∷ xs)    = x
+  unsafeLookup (suc n) (x ∷ xs) = unsafeLookup n xs
+
+  unsafeUpdate : ∀ {a} → ℕ → List a → a → List a
+  unsafeUpdate n [] a = willneverhappenipromise
+  unsafeUpdate zero (x ∷ xs) a = x ∷ xs
+  unsafeUpdate (suc n) (x ∷ xs) a = x ∷ unsafeUpdate n xs a
 
   -- Ideally this should be two different dispatch sets
   data Comm : Set where
@@ -112,7 +117,7 @@ module _ where
     {-# NON_TERMINATING #-}
     eval : Exp → m Val
     eval (var x) = do
-      asks (resolve x) 
+      asks (unsafeLookup x) 
     eval (ƛ e) = do
       asks (clos ∘ ⟨_⊢ e ⟩)
     eval (f · e) = do

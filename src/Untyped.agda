@@ -88,22 +88,28 @@ instance
 newChan : SchedM (Chan × Chan)
 newChan = do
   c ← gets ServerState.maxChan
-  modify λ st → record st { maxChan = c + 2 }
-  return (c + 1 , c + 2)
-
-newThread : Thread ⊤ → SchedM ⊤
-newThread th = do
-  modify λ st → record st { threads = ServerState.threads st ∷ʳ th }
+  let left  = c + 1
+  let right = c + 2
+  modify (λ st → record st
+    { maxChan = c + 2
+    ; links   = ServerState.links st ++ (right ∷ left ∷ [])
+    ; queues  = ServerState.queues st ++ ([] ∷ [] ∷ []) })
+  return (left , right)
 
 instance
   s-comm : MonadComm SchedM? ℕ Val
   s-comm = record
     { recv  = λ ch → do
-                {!!}
+                (x ∷ xs) ← gets (unsafeLookup ch ∘ ServerState.queues)
+                  where [] → throw blocked
+                return x
     ; send  = λ ch v → do
-                {!!}
+                queue ← gets (unsafeLookup ch ∘ ServerState.queues)
+                modify λ st →
+                  record st { queues = unsafeUpdate ch (ServerState.queues st) (queue ∷ʳ v) }
+                return tt
     ; close = λ ch → do
-                {!!}
+                return tt
     }
 
   s-res : MonadResumption SchedM? Closure Chan
@@ -113,7 +119,7 @@ instance
       ⟨ env ⊢ e ⟩ → do
         (l , r) ← newChan
         let thread = eval ⦃ m-monad ⦄ e (extend (chan l) env) >>= λ _ → return tt
-        newThread thread
+        schedule [ thread ]
         return r }
 
 handler : (c : Cmd) → Cont Cmd ⟦_⟧ c ⊤ → SchedM ⊤
