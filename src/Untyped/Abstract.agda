@@ -2,10 +2,12 @@ module Untyped.Abstract where
 
 open import Function
 
+open import Data.Nat
 open import Data.Unit
 open import Data.Product
 open import Data.List
 open import Data.Sum
+open import Data.Maybe
 
 open import Category.Monad
 
@@ -13,25 +15,17 @@ open import Untyped.Monads
 
 postulate willneverhappenipromise : ∀ {a : Set} → a
 
-data Free c (r : c → Set) a : Set where
-  pure   : a → Free c r a
-  impure : (cmd : c) → (r cmd → Free c r a) → Free c r a
+module _ where
 
-record Sessions : Set₁ where
-  field
-    Chan : Set
-    Var  : Set
-
-module WithSessions (S : Sessions) where
-  open Sessions S
+  Var  = ℕ
+  Chan = ℕ
 
   mutual
     record Closure : Set where
       inductive
-      constructor ⟨_;_⊢_⟩
+      constructor ⟨_⊢_⟩
       field
         env  : Env
-        bind : Var
         body : Exp
 
     data Val : Set where
@@ -40,17 +34,17 @@ module WithSessions (S : Sessions) where
       ⟨_,_⟩ : Val → Val → Val -- pairs
       clos  : Closure → Val -- closures
 
-    Env = Var → Val
+    Env = List Val
 
     data Exp : Set where
       -- the functional core
       var     : Var → Exp
-      ƛ       : Var → Exp → Exp
+      ƛ       : Exp → Exp
       _·_     : Exp → Exp → Exp
 
       -- products
       pair    : Exp → Exp → Exp
-      letp    : Var → Var → Exp → Exp → Exp
+      letp    : Exp → Exp → Exp
 
       -- communication
       close   : Exp → Exp
@@ -60,11 +54,13 @@ module WithSessions (S : Sessions) where
       -- threading
       fork    : Exp → Exp
 
-  resolve : Var → Env → Val
-  resolve x f = f x
+  extend  : Val → Env → Env
+  extend = _∷_
 
-  postulate
-    extend : Var → Val → Env → Env
+  resolve : Var → Env → Val
+  resolve _ [] = willneverhappenipromise
+  resolve zero (x ∷ xs)    = x
+  resolve (suc n) (x ∷ xs) = resolve n xs
 
   -- Ideally this should be two different dispatch sets
   data Comm : Set where
@@ -106,7 +102,7 @@ module WithSessions (S : Sessions) where
   {- Free an expression from its earthly -}
   module _ {m}
     ⦃ m-monad : RawMonad m ⦄
-    ⦃ m-read  : MonadReader m (Var → Val) ⦄
+    ⦃ m-read  : MonadReader m Env ⦄
     ⦃ m-res   : MonadResumption m Closure ⦄
     ⦃ m-comm  : MonadComm m Chan Val ⦄
     where
@@ -117,13 +113,13 @@ module WithSessions (S : Sessions) where
     eval : Exp → m Val
     eval (var x) = do
       asks (resolve x) 
-    eval (ƛ x e) = do
-      asks (clos ∘ ⟨_; x ⊢ e ⟩)
+    eval (ƛ e) = do
+      asks (clos ∘ ⟨_⊢ e ⟩)
     eval (f · e) = do
-      clos ⟨ env ; x ⊢ body ⟩ ← eval f
+      clos ⟨ env ⊢ body ⟩ ← eval f
         where _ → willneverhappenipromise
       v ← eval e
-      local (extend x v) (eval body)
+      local (extend v) (eval body)
 
     -- products
     eval (pair e₁ e₂) = do
@@ -131,10 +127,10 @@ module WithSessions (S : Sessions) where
       v₂ ← eval e₂
       return ⟨ v₁ , v₂ ⟩
       
-    eval (letp x y b e) = do
+    eval (letp b e) = do
       ⟨ v₁ , v₂ ⟩ ← eval b
         where _ → willneverhappenipromise
-      local (extend y v₁ ∘ extend x v₁) $ eval e
+      local (extend v₂ ∘ extend v₁) $ eval e
 
     -- communication
     eval (close e) = do
