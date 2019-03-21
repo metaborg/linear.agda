@@ -6,7 +6,7 @@ open import Data.Nat
 open import Data.Unit
 open import Data.Product
 open import Data.List
-open import Data.Sum
+open import Data.Sum as Sum
 open import Data.Maybe
 
 open import Category.Monad
@@ -82,7 +82,7 @@ module _ where
   ⟦ recv x ⟧-comm = Val
 
   ⟦_⟧-thr : Threading → Set
-  ⟦ fork x ⟧-thr = ⊤
+  ⟦ fork x ⟧-thr = Chan
   ⟦ yield ⟧-thr  = ⊤
 
   ⟦_⟧ : Cmd → Set
@@ -103,7 +103,7 @@ module _ where
   module _ {m}
     ⦃ m-monad : RawMonad m ⦄
     ⦃ m-read  : MonadReader m Env ⦄
-    ⦃ m-res   : MonadResumption m Closure ⦄
+    ⦃ m-res   : MonadResumption m Closure Chan ⦄
     ⦃ m-comm  : MonadComm m Chan Val ⦄
     where
 
@@ -158,7 +158,6 @@ module _ where
 
   {- Interpreting communication commands -}
   module _ {com}
-    ⦃ com-monad : RawMonad com ⦄
     ⦃ com-comm  : MonadComm com Chan Val ⦄ where
 
     communicate : (cmd : Comm) → com ⟦ cmd ⟧-comm
@@ -168,41 +167,33 @@ module _ where
 
   {- Interpreting threading commands -}
   module _ {thr}
-    ⦃ thr-res   : MonadResumption thr Closure ⦄ where
+    ⦃ thr-res   : MonadResumption thr Closure Chan ⦄ where
 
     threading : (cmd : Threading) → thr ⟦ cmd ⟧-thr
     threading (Threading.fork cl) = M.fork cl
     threading Threading.yield     = M.yield
 
-  {- Convert a command tree into a -}
-  module _ {cmd : Set} {m}
-    (interp : cmd → Set)
+  module _ {cmd}
+    ⦃ cmd-comm  : MonadComm cmd Chan Val ⦄
+    ⦃ cmd-res   : MonadResumption cmd Closure Chan ⦄ where
 
-    ⦃ monad : RawMonad m ⦄
-    ⦃ write : MonadWriter m (List (Free cmd interp ⊤)) ⦄
-
-    (handle : (cmd : cmd) → m (interp cmd)) where
-    open M
-
-    par : Free cmd interp ⊤ → m ⊤
-    par (pure x)       = return x
-    par (impure cmd k) = do
-      r ← handle cmd
-      schedule [ k r ] 
+    handle : (c : Cmd) → cmd ⟦ c ⟧
+    handle = Sum.[ communicate , threading ]
 
   {- Round robin scheduling -}
   module _ {w : Set} {m}
 
-    ⦃ s-monad : RawMonad m ⦄
-    ⦃ s-read  : MonadReader m (List w) ⦄
+    ⦃ monad : RawMonad m ⦄
+    ⦃ read  : MonadState m (List w) ⦄
 
-    (atomic : w → List w) where
+    (atomic : w → m ⊤) where
 
     open M
 
     {-# NON_TERMINATING #-}
     robin : m ⊤
     robin = do
-      (h ∷ tl) ← ask
+      (h ∷ tl) ← get
         where [] → return tt
-      local (_++ atomic h) robin
+      atomic h
+      robin
