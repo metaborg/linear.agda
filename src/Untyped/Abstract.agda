@@ -2,18 +2,24 @@ module Untyped.Abstract where
 
 open import Function
 
+open import Data.String
 open import Data.Nat
 open import Data.Unit
 open import Data.Product
 open import Data.List
 open import Data.Sum as Sum
 open import Data.Maybe
+open import Strict
 
+open import Debug.Trace
 open import Category.Monad
 
 open import Untyped.Monads
 
-postulate willneverhappenipromise : ∀ {a : Set} → a
+postulate fail : ∀ {a : Set} → a
+
+willneverhappenipromise : ∀ {a : Set} → String → a
+willneverhappenipromise m = trace m fail
 
 module _ where
 
@@ -30,6 +36,7 @@ module _ where
 
     data Val : Set where
       tt    : Val
+      nat   : ℕ → Val
       chan  : Chan → Val
       ⟨_,_⟩ : Val → Val → Val -- pairs
       clos  : Closure → Val -- closures
@@ -38,6 +45,7 @@ module _ where
 
     data Exp : Set where
       -- the functional core
+      nat     : ℕ → Exp
       var     : Var → Exp
       ƛ       : Exp → Exp
       _·_     : Exp → Exp → Exp
@@ -49,7 +57,7 @@ module _ where
       -- communication
       close   : Exp → Exp
       receive : Exp → Exp
-      send    : Exp → Exp → Exp
+      send    : (ch : Exp) → (v : Exp) → Exp
 
       -- threading
       fork    : Exp → Exp
@@ -58,13 +66,13 @@ module _ where
   extend = _∷_
 
   unsafeLookup : ∀ {a} → ℕ → List a → a
-  unsafeLookup _ [] = willneverhappenipromise
+  unsafeLookup _ [] = willneverhappenipromise "lookup fail"
   unsafeLookup zero (x ∷ xs)    = x
   unsafeLookup (suc n) (x ∷ xs) = unsafeLookup n xs
 
   unsafeUpdate : ∀ {a} → ℕ → List a → a → List a
-  unsafeUpdate n [] a = willneverhappenipromise
-  unsafeUpdate zero (x ∷ xs) a = x ∷ xs
+  unsafeUpdate n [] a = willneverhappenipromise "update fail"
+  unsafeUpdate zero (x ∷ xs) a = a ∷ xs
   unsafeUpdate (suc n) (x ∷ xs) a = x ∷ unsafeUpdate n xs a
 
   -- Ideally this should be two different dispatch sets
@@ -94,10 +102,10 @@ module _ where
   ⟦ inj₁ x ⟧ = ⟦ x ⟧-comm
   ⟦ inj₂ y ⟧ = ⟦ y ⟧-thr
 
-  Thread : Set → Set
-  Thread a = Free Cmd ⟦_⟧ a
+  data Thread : Set where
+    thread : Free Cmd ⟦_⟧ Val → Thread
 
-  ThreadPool = List (Thread ⊤)
+  ThreadPool = List Thread
 
   Links  = Chan → Chan
 
@@ -116,15 +124,17 @@ module _ where
 
     {-# NON_TERMINATING #-}
     eval : Exp → m Val
+    eval (nat n) = do
+      return (nat n)
     eval (var x) = do
-      asks (unsafeLookup x) 
+      asks (unsafeLookup (trace "resolve var" x)) 
     eval (ƛ e) = do
       asks (clos ∘ ⟨_⊢ e ⟩)
     eval (f · e) = do
       clos ⟨ env ⊢ body ⟩ ← eval f
-        where _ → willneverhappenipromise
+        where _ → willneverhappenipromise "not a closure"
       v ← eval e
-      local (extend v) (eval body)
+      local (λ _ → extend v env) (eval body)
 
     -- products
     eval (pair e₁ e₂) = do
@@ -134,22 +144,22 @@ module _ where
       
     eval (letp b e) = do
       ⟨ v₁ , v₂ ⟩ ← eval b
-        where _ → willneverhappenipromise
+        where _ → willneverhappenipromise "not a pair"
       local (extend v₂ ∘ extend v₁) $ eval e
 
     -- communication
     eval (close e) = do
       chan c ← eval e
-        where _ → willneverhappenipromise
+        where _ → willneverhappenipromise "not a channel to close"
       M.close c
       return tt
     eval (receive e) = do
       chan c ← eval e
-        where _ → willneverhappenipromise
+        where _ → willneverhappenipromise "not a channel to receive on"
       M.recv c
     eval (send e₁ e₂) = do
       chan c ← eval e₁
-        where _ → willneverhappenipromise
+        where _ → willneverhappenipromise "not a channel to send on"
       v ← eval e₂
       M.send c v
       return tt
@@ -157,26 +167,26 @@ module _ where
     -- threading
     eval (fork e) = do
       clos cl ← eval e
-        where _ → willneverhappenipromise
-      M.fork cl
-      return tt
+        where _ → willneverhappenipromise "not a closure to fork"
+      c ← M.fork cl
+      return (chan c)
 
   {- Interpreting communication commands -}
   module _ {com}
     ⦃ com-comm  : MonadComm com Chan Val ⦄ where
 
     communicate : (cmd : Comm) → com ⟦ cmd ⟧-comm
-    communicate (Comm.send c v) = M.send c v
-    communicate (Comm.recv x)   = M.recv x
-    communicate (clos x)        = M.close x
+    communicate (Comm.send c v) = trace "sending" $ M.send c v
+    communicate (Comm.recv x)   = trace "receiving" $ M.recv x
+    communicate (clos x)        = trace "closing" $ M.close x
 
   {- Interpreting threading commands -}
   module _ {thr}
     ⦃ thr-res   : MonadResumption thr Closure Chan ⦄ where
 
     threading : (cmd : Threading) → thr ⟦ cmd ⟧-thr
-    threading (Threading.fork cl) = M.fork cl
-    threading Threading.yield     = M.yield
+    threading (Threading.fork cl) = trace "forking" $ M.fork cl
+    threading Threading.yield     = trace "yielding" $ M.yield
 
   module _ {cmd}
     ⦃ cmd-comm  : MonadComm cmd Chan Val ⦄
@@ -200,5 +210,6 @@ module _ where
     robin = do
       (h ∷ tl) ← get
         where [] → return tt
-      atomic h
-      robin
+      put tl
+      trace "atomics ↓" $ atomic h
+      trace "--------- next round ----------" robin

@@ -1,4 +1,4 @@
-module Untyped where
+module Main where
 
 open import Function
 
@@ -7,8 +7,10 @@ open import Data.Unit
 open import Data.Product
 open import Data.List
 open import Data.Sum
-
 open import Category.Monad
+
+open import Debug.Trace
+open import Strict
 
 open import Untyped.Monads
 open import Untyped.Abstract
@@ -24,14 +26,15 @@ M : Set → Set
 M = ReaderT Env (Free Cmd ⟦_⟧)
 
 record ServerState : Set where
+  constructor server
   field
     threads : ThreadPool
-    maxChan : ℕ
+    nextChan : ℕ
     links   : List ℕ
     queues  : List (List Val)
 
 empty : ServerState
-empty = record { threads = []; links = []; queues = []; maxChan = 0 }
+empty = record { threads = []; links = []; queues = []; nextChan = 0 }
 
 SchedM : Set → Set
 SchedM = StateT ServerState id
@@ -77,7 +80,11 @@ instance
     s-state
 
   s-writer : MonadWriter SchedM ThreadPool
-  s-writer = state-monad-writer s-thread-state
+  s-writer = record
+    { write = λ pool → do
+            modify λ st → record st { threads = ServerState.threads st ++ pool }
+            return tt
+    }
 
   s?-monad : RawMonad SchedM?
   s?-monad = except-monad
@@ -87,11 +94,11 @@ instance
 
 newChan : SchedM (Chan × Chan)
 newChan = do
-  c ← gets ServerState.maxChan
-  let left  = c + 1
-  let right = c + 2
+  c ← gets ServerState.nextChan
+  let left  = c
+  let right = c + 1
   modify (λ st → record st
-    { maxChan = c + 2
+    { nextChan = c + 2
     ; links   = ServerState.links st ++ (right ∷ left ∷ [])
     ; queues  = ServerState.queues st ++ ([] ∷ [] ∷ []) })
   return (left , right)
@@ -100,14 +107,20 @@ instance
   s-comm : MonadComm SchedM? ℕ Val
   s-comm = record
     { recv  = λ ch → do
-                (x ∷ xs) ← gets (unsafeLookup ch ∘ ServerState.queues)
-                  where [] → throw blocked
-                return x
-    ; send  = λ ch v → do
                 queue ← gets (unsafeLookup ch ∘ ServerState.queues)
+                case queue of λ where
+                  []       → trace "blocked" $ throw blocked
+                  (x ∷ xs) → do
+                    modify λ st →
+                      (trace "popped" $
+                        record st { queues = unsafeUpdate ch (ServerState.queues st) xs})
+                    trace "did receive" $ return x
+    ; send  = λ ch v → do
+                ch⁻¹  ← gets (unsafeLookup ch ∘ ServerState.links)
+                queue ← gets (unsafeLookup ch⁻¹ ∘ ServerState.queues)
                 modify λ st →
-                  record st { queues = unsafeUpdate ch (ServerState.queues st) (queue ∷ʳ v) }
-                return tt
+                  record st { queues = unsafeUpdate ch⁻¹ (ServerState.queues st) (queue ∷ʳ v) }
+                trace "did send" $ return tt
     ; close = λ ch → do
                 return tt
     }
@@ -116,26 +129,46 @@ instance
   s-res = record
     { yield = return tt
     ; fork  = λ where
-      ⟨ env ⊢ e ⟩ → do
-        (l , r) ← newChan
-        let thread = eval ⦃ m-monad ⦄ e (extend (chan l) env) >>= λ _ → return tt
-        schedule [ thread ]
-        return r }
+      ⟨ env ⊢ e ⟩ →
+        do
+          (l , r) ← trace "created new channel" $ newChan
+          schedule [ thread $ eval ⦃ m-monad ⦄ e (extend (chan l) env) ]
+          return (trace "forked" r)
+    }
 
-handler : (c : Cmd) → Cont Cmd ⟦_⟧ c ⊤ → SchedM ⊤
+handler : (c : Cmd) → Cont Cmd ⟦_⟧ c Val → SchedM ⊤
 handler c k s =
   let (s' , r) = handle {SchedM?} c s in
-  case r of λ where
-    (exc e) → schedule [ impure c k ] s' -- reschedule
-    (✓ v)   → schedule [ k v ] s'
+  trace "handling" (case r of λ where
+    (exc e) → trace "reschedule" $ schedule [ thread (impure c k) ] s' -- reschedule
+    (✓ v)   → trace "schedule continuation" $ schedule [ thread (k v) ] s')
 
-atomic : Thread ⊤ → SchedM ⊤
-atomic (Free.pure x)  = return x
-atomic (impure cmd x) = handler cmd x
+atomic : Thread → SchedM ⊤
+atomic (thread (Free.pure x))  = return tt
+atomic (thread (impure cmd x)) = handler cmd x
 
-run : Exp → ⊤
+run : Exp → ℕ
 run e =
   let
-    tree    = eval e []
-    (s , v) = robin ⦃ s-monad ⦄ atomic empty
-  in v
+    main = trace "created main" $ thread $ eval e []
+    (s , v) = robin ⦃ s-monad ⦄ atomic (record empty { threads = [ main ]})
+  in case (ServerState.threads s) of λ where
+    [] → 0
+    _  → 1
+    
+
+example : Exp
+example =
+  let
+    slave  = ƛ (Exp.send (var 0) (nat 3))
+    master = Exp.receive (Exp.fork slave) 
+  in master
+
+import IO
+
+main = do
+  let val = trace "starting!" $ run example 
+  case val of λ where
+    0 → IO.run (IO.putStrLn "done!")
+    _ → IO.run (IO.putStrLn "?!")
+
