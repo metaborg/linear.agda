@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 module Sessions.Syntax.Types where
 
 open import Level
@@ -10,13 +11,16 @@ open import Data.List.All
 open import Data.List.Membership.Propositional
 open import Data.List.Relation.Binary.Permutation.Inductive
 open import Data.List.Relation.Ternary.Interleaving.Propositional
+open import Data.List.Relation.Ternary.Interleaving.Properties
+open import Data.List.Relation.Binary.Equality.Propositional
 open import Data.Product
 open import Data.Product.Relation.Binary.Pointwise.NonDependent
-open import Codata.Thunk
+open import Codata.Thunk as Thunk
 
 open import Algebra
+open import Algebra.FunctionProperties
 
-open import Relation.Unary hiding (_∈_)
+open import Relation.Unary hiding (_∈_; _⊢_)
 open import Relation.Nullary
 open import Relation.Nullary.Decidable as DecM
 open import Relation.Nullary.Product
@@ -24,7 +28,9 @@ open import Relation.Binary.PropositionalEquality as P hiding ([_])
 
 open import Relation.Unary.Separation
 open import Relation.Unary.Separation.Construct.Product
-open UnitalSep ⦃...⦄ hiding (isSep; isEquivalence; SPred)
+
+open MonoidalSep ⦃...⦄ hiding (isSep; isEquivalence; SPred)
+open Unital ⦃...⦄
 
 {- Unrestricted-, Session- and Expression types-}
 module _ where
@@ -48,7 +54,7 @@ module _ where
       _⊕_ _&_ : ∀[ Type ⇒ Thunk SType ⇒ SType ]
 
       -- terminate
-      end! end? : ∀[ SType ]
+      end : ∀[ SType ]
 
     data Type : Size → Set where
       unit  : ∀[ Type ] 
@@ -57,11 +63,37 @@ module _ where
       prod  : ∀[ Type ⇒ Type ⇒ Type ]
       _⊸_   : ∀[ Type ⇒ Type ⇒ Type ]
 
+{- Type Bisimilarity -}
+module _ where
+
+  data _⊢_≈ₛ_ (i : Size) : SType ∞ → SType ∞ → Set where
+    -⊗_ : ∀ {a α α'} → Thunk^R _⊢_≈ₛ_ i α α' → i ⊢ (a ⊗ α) ≈ₛ (a ⊗ α')
+    -⅋_ : ∀ {a α α'} → Thunk^R _⊢_≈ₛ_ i α α' → i ⊢ (a ⅋ α) ≈ₛ (a ⅋ α')
+    -⊕_ : ∀ {a α α'} → Thunk^R _⊢_≈ₛ_ i α α' → i ⊢ (a ⊕ α) ≈ₛ (a ⊕ α')
+    -&_ : ∀ {a α α'} → Thunk^R _⊢_≈ₛ_ i α α' → i ⊢ (a & α) ≈ₛ (a & α')
+
+    end : i ⊢ end ≈ₛ end
+
+  data _⊢_≈_ (i : Size) : Type ∞ → Type ∞ → Set where
+    unit : i ⊢ unit ≈ unit
+    chan : ∀ {α α'} → i ⊢ α ≈ₛ α' → i ⊢ chan α ≈ chan α'
+    prod : ∀ {a a' b b'} → i ⊢ a ≈ a' → i ⊢ b ≈ b' → i ⊢ prod a b ≈ prod a' b'
+    _⊸_ : ∀ {a a' b b'} → i ⊢ a ≈ a' → i ⊢ b ≈ b' → i ⊢ (a ⊸ b) ≈ (a' ⊸ b')
+
+  -- types quotiented by weak bisimilarity on session types
+  -- open import Cubical.HITs.SetQuotients
+
+  -- 𝕋 : Set
+  -- 𝕋 = (Type ∞) / (∞ ⊢_≈_)
+  
 {- Contexts -}
 module _ where
 
   LCtx = List (Type ∞)   -- linear
   SCtx = List (SType ∞)  -- sessions
+
+  variable
+    Γ Γ' Γ₁ Γ₂ Γ₃ Γ₄ : LCtx
 
 {- Separation of contexts -}
 module _ {t} {T : Set t} where
@@ -73,13 +105,22 @@ module _ {t} {T : Set t} where
   separation : RawSep Ctx
   separation = record { _⊎_≣_ = Interleaving }
 
-  postulate ctx-hasUnitalSep  : IsUnitalSep _↭_ separation
+  instance unital' : Unital Ctx
+  unital' = record { ε = [] }
 
-  instance
-    ctx-resource : UnitalSep _ _
-    ctx-resource = record
-      { set = record { isEquivalence = ↭-isEquivalence }
-      ; isUnitalSep = ctx-hasUnitalSep }
+  ctx-hasUnitalSep : IsUnitalSep _↭_ separation
+  ctx-hasUnitalSep = record { isSep = {!!} ; unital = unital' ; ⊎-identityˡ = {!!} ; ⊎-identity⁻ˡ = {!!} }
+
+  ctx-concattative : IsConcattative separation _++_
+  ctx-concattative = record
+    { ⊎-∙ = λ {Φₗ} {Φᵣ} → ++-disjoint (left (≡⇒≋ P.refl)) (right (≡⇒≋ P.refl))
+    }
+
+  instance ctx-resource : MonoidalSep _ _
+  ctx-resource = record
+    { set         = record { isEquivalence = ↭-isEquivalence }
+    ; isUnitalSep = ctx-hasUnitalSep
+    ; isConcat    = ctx-concattative }
 
   LPred : (p : Level) → Set (t ⊔ Level.suc p)
   LPred p = Ctx → Set p
@@ -87,17 +128,13 @@ module _ {t} {T : Set t} where
   {- Linearly a Singleton  -}
   module _ {p} (P : Pred T p) where
 
-    data Only : LPred p where
+    data Only : LPred (t ⊔ Level.suc p) where
       only : ∀ {a} → P a → Only (a ∷ ε)
 
   module _ where
 
     Just : T → LPred t
     Just t = Exactly (t ∷ ε)
-
-  instance
-    ctx²-instance : UnitalSep _ _
-    ctx²-instance = ctx-resource ×-ε-separation ctx-resource
 
 {- Some conventions -}
 variable
@@ -114,8 +151,15 @@ module _ where
   (a ⅋ β) ⁻¹ = a ⊗ λ where .force → (force β) ⁻¹
   (a ⊕ β) ⁻¹ = a & λ where .force → (force β) ⁻¹
   (a & β) ⁻¹ = a ⊕ λ where .force → (force β) ⁻¹
-  end! ⁻¹    = end?
-  end? ⁻¹    = end!
+  end ⁻¹     = end
+
+  -- dual-involutive : ∀ {i} → Involutive _⊢_≈_ _⁻¹
+  -- dual-involutive (x ⊗ y) = cong (x ⊗_) {!!}
+  -- dual-involutive (x ⅋ x₁) = {!!}
+  -- dual-involutive (x ⊕ x₁) = {!!}
+  -- dual-involutive (x & x₁) = {!!}
+  -- dual-involutive end! = {!!}
+  -- dual-involutive end? = {!!}
 
 {- Derivative of a session type -}
 module _ where
