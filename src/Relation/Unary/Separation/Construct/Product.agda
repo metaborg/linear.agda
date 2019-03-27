@@ -1,3 +1,5 @@
+{-# OPTIONS --without-K #-}
+
 module Relation.Unary.Separation.Construct.Product where
 
 open import Level
