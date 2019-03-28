@@ -1,4 +1,4 @@
-module Sessions.Semantics.Expr where
+module Sessions.Semantics.Expr-01 where
 
 open import Prelude
 open import Data.Fin
@@ -9,21 +9,12 @@ open import Sessions.Syntax.Types
 open import Sessions.Syntax.Values
 open import Sessions.Syntax.Expr
 
--- (A ─✴ B) Σ = ∀ Σ' → Σ ◆ Σ' → A Σ' → B (Σ ∙ Σ')
--- (A ─◆ B) Σ = A Σ → B Σ' × Σ' ◆ Σ
---   ▻ Or, perhaps (all state extensions are disjoint): (A ─◆ B) Σ = A Σ → ∃ B 
-
 -- The command structure is the justification of changes made to the session context.
 data Cmd : SCtx → Set where
   send    : ∀ {a α}   → ∀[ (Chan (a ⅋ α) ✴ Val a) ⇒ Cmd ]
   receive : ∀ {a α}   → ∀[ Chan (a ⊗ α) ⇒ Cmd ]
   close   :             ∀[ Chan end ⇒ Cmd ]
   fork    : ∀ {α b}   → ∀[ Closure (chan α) b ⇒ Cmd ]
-
--- D : ∀ {Φ} → Cmd Φ → SCtx
--- D {Φ} (send {a} {α} _)        = α .force ∷ [] 
--- D {Φ} (receive {a} {α} {b} x) = {!α .force ∷ b ∷ !}
--- D {Φ} (close x) = {!!}
 
 δ : ∀ {Δ} → Cmd Δ → Pred SCtx 0ℓ
 δ (send {α = α} _)    = Chan (α .force)
@@ -60,6 +51,9 @@ module Free where
       sop : Φk ⊎ Φu ≣ Φk'
       sop = proj₁ prf
 
+  -- put the arguments in the right order
+  syntax f-bind f p s = p split s bind f
+
   send! : ∀ {α} → ∀[ Chan (a ⅋ α) ✴ Val a ⇒ F (Chan (α .force)) ]
   send! args =
     impure (send args ×⟨ ⊎-identityʳ refl ⟩ λ v s →
@@ -80,8 +74,6 @@ module Free where
     impure (fork args ×⟨ ⊎-identityʳ refl ⟩ λ v s →
       subst (F _) (⊎-identity⁻ˡ s) (pure v))
 
-  syntax f-bind f p s = p split s bind f
-
   {-# TERMINATING #-}
   eval : Exp a Γ → ∀[ Env Γ ⇒ F (Val a) ]
   eval (var refl) (cons (px ×⟨ sep ⟩ [] refl))
@@ -96,26 +88,18 @@ module Free where
   eval (app (f ×⟨ Γ≺ ⟩ e)) env =
     -- split the environment in two (disjoint) parts according to the Γ separation
     let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
-    f-bind (λ where
+    eval f E₁ split (⊎-comm E≺) bind λ where
       (clos (closure body closure-env)) clo◆E₂ →
-        f-bind (λ where
+        eval e E₂ split (⊎-comm clo◆E₂) bind λ where
           v v◆E₂ →
             let closure' = cons (v ×⟨ ⊎-comm v◆E₂ ⟩ closure-env)
-            in eval body closure')
-          (eval e E₂)
-          (⊎-comm clo◆E₂))
-      (eval f E₁)
-      (⊎-comm E≺)
+            in eval body closure'
 
   eval (pair (px ×⟨ Γ≺ ⟩ qx)) env =
     let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
-    f-bind (λ v v◆E₁ →
-      f-bind (λ w dj →
-        f-return (pair (v ×⟨ dj ⟩ w)))
-        (eval qx E₂)
-        (⊎-comm v◆E₁))
-      (eval px E₁)
-      (⊎-comm E≺)
+    eval px E₁ split (⊎-comm E≺) bind λ v v◆E₁ →
+      eval qx E₂ split (⊎-comm v◆E₁) bind λ w dj →
+        f-return (pair (v ×⟨ dj ⟩ w))
 
   eval (letpair (p IsSep.×⟨ Γ≺ ⟩ k)) env =
     let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
