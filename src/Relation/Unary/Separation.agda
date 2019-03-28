@@ -14,6 +14,7 @@ open import Data.List.Relation.Ternary.Interleaving.Propositional hiding (map)
 open import Data.List.Relation.Binary.Equality.Propositional
 
 open import Relation.Unary
+open import Relation.Unary.PredicateTransformer using (Pt)
 open import Relation.Binary hiding (_⇒_)
 open import Relation.Binary.PropositionalEquality as P using (_≡_)
 
@@ -66,8 +67,8 @@ record IsSep {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (s : RawSep 
   module _ {p q p' q'}
     {P : SPred p} {Q : SPred q} {P' : SPred p'} {Q' : SPred q'} where
 
-    ⟨_✴_⟩ : (P ⊆ P') → (Q ⊆ Q') → P ✴ Q ⊆ P' ✴ Q'
-    ⟨_✴_⟩ f g (px ×⟨ sep ⟩ qx) = (f px) ×⟨ sep ⟩ (g qx)
+    ⟨_⟨✴⟩_⟩ : (P ⊆ P') → (Q ⊆ Q') → P ✴ Q ⊆ P' ✴ Q'
+    ⟨_⟨✴⟩_⟩ f g (px ×⟨ sep ⟩ qx) = (f px) ×⟨ sep ⟩ (g qx)
 
   -- separating implication or 'magic wand'
   infixr 8 _─✴_
@@ -143,6 +144,10 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e)(sep : RawSep C) : Set (c 
 
     Emp : SPred c
     Emp = Exactly ε
+
+    ε⊎ε : ∀[ ε ⊎ ε ⇒ Emp ]
+    ε⊎ε p with ⊎-identity⁻ˡ p
+    ... | P.refl = P.refl
 
   {- Big seperating conjunction over an SPred -}
   module _ where

@@ -1,4 +1,4 @@
-module Sessions.Semantics.LinearState where
+module Sessions.Semantics.Expr where
 
 open import Prelude
 open import Data.Fin
@@ -18,6 +18,7 @@ data Cmd : SCtx → Set where
   send    : ∀ {a α}   → ∀[ (Chan (a ⅋ α) ✴ Val a) ⇒ Cmd ]
   receive : ∀ {a α}   → ∀[ Chan (a ⊗ α) ⇒ Cmd ]
   close   :             ∀[ Chan end ⇒ Cmd ]
+  fork    : ∀ {α b}   → ∀[ Closure (chan α) b ⇒ Cmd ]
 
 -- D : ∀ {Φ} → Cmd Φ → SCtx
 -- D {Φ} (send {a} {α} _)        = α .force ∷ [] 
@@ -27,18 +28,12 @@ data Cmd : SCtx → Set where
 δ : ∀ {Δ} → Cmd Δ → Pred SCtx 0ℓ
 δ (send {α = α} _)    = Chan (α .force)
 δ (receive {a} {α} _) = Chan (α .force) ✴ Val a 
-δ (close _)           = U
+δ (close _)           = Emp
+δ (fork {α} _)        = Chan (α ⁻¹)
 
 data F : Pt SCtx 0ℓ where
   pure   : ∀ {P}   → ∀[ P ⇒ F P ] 
   impure : ∀ {P}   → ∀[ ∃[ Cmd ]✴ (λ c → δ c ─✴ F P) ⇒ F P ]
-
-send! : ∀ {α} → ∀[ Chan (a ⅋ α) ✴ Val a ⇒ F (Chan (α .force)) ]
-send! args =
-  impure ((send args) ×⟨ ⊎-identityʳ refl ⟩ λ v s → subst (F _) (⊎-identity⁻ˡ s) (pure v))
-
-■_ : ∀ {ℓ} → Pt SCtx ℓ
-■ P = λ i → ∀ {j} → P j
 
 module Free where
 
@@ -65,6 +60,28 @@ module Free where
       sop : Φk ⊎ Φu ≣ Φk'
       sop = proj₁ prf
 
+  send! : ∀ {α} → ∀[ Chan (a ⅋ α) ✴ Val a ⇒ F (Chan (α .force)) ]
+  send! args =
+    impure (send args ×⟨ ⊎-identityʳ refl ⟩ λ v s →
+      subst (F _) (⊎-identity⁻ˡ s) (pure v))
+
+  receive! : ∀ {α} → ∀[ Chan (a ⊗ α) ⇒ F (Chan (α .force) ✴ Val a) ]
+  receive! args =
+    impure (receive args ×⟨ ⊎-identityʳ refl ⟩ λ v s →
+      subst (F _) (⊎-identity⁻ˡ s) (pure v))
+
+  close! : ∀[ Chan end ⇒ F Emp ]
+  close! args =
+    impure (close args ×⟨ ⊎-identityʳ refl ⟩ λ v s →
+      subst (F _) (⊎-identity⁻ˡ s) (pure v))
+
+  fork! : ∀[ Closure (chan α) b ⇒ F (Chan (α ⁻¹)) ]
+  fork! args =
+    impure (fork args ×⟨ ⊎-identityʳ refl ⟩ λ v s →
+      subst (F _) (⊎-identity⁻ˡ s) (pure v))
+
+  syntax f-bind f p s = p split s bind f
+
   {-# TERMINATING #-}
   eval : Exp a Γ → ∀[ Env Γ ⇒ F (Val a) ]
   eval (var refl) (cons (px ×⟨ sep ⟩ [] refl))
@@ -74,16 +91,16 @@ module Free where
     f-return (tt refl)
 
   eval (λₗ a x) env =
-    f-return (clos x env)
+    f-return (clos (closure x env))
 
   eval (app (f ×⟨ Γ≺ ⟩ e)) env =
     -- split the environment in two (disjoint) parts according to the Γ separation
     let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
     f-bind (λ where
-      (clos body closure) clo◆E₂ →
+      (clos (closure body closure-env)) clo◆E₂ →
         f-bind (λ where
           v v◆E₂ →
-            let closure' = cons (v ×⟨ ⊎-comm v◆E₂ ⟩ closure)
+            let closure' = cons (v ×⟨ ⊎-comm v◆E₂ ⟩ closure-env)
             in eval body closure')
           (eval e E₂)
           (⊎-comm clo◆E₂))
@@ -102,32 +119,33 @@ module Free where
 
   eval (letpair (p IsSep.×⟨ Γ≺ ⟩ k)) env =
     let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
-    f-bind (λ where
-        (pair (v ×⟨ v◆w ⟩ w)) pr◆E₂ →
-          let
-            -- extend the environment with the two values
+    (eval p E₁) split (⊎-comm E≺) bind λ where
+      (pair (v ×⟨ v◆w ⟩ w)) pr◆E₂ →
+        let -- extend the environment with the two values
             (Φ , sip , sop) = ⊎-assoc v◆w (⊎-comm pr◆E₂)
-            Eₖ = cons (v IsSep.×⟨ sop ⟩ (cons (w IsSep.×⟨ sip ⟩ E₂)))
-          in eval k Eₖ)
-      (eval p E₁)
-      (⊎-comm E≺)
+            Eₖ = cons (v ×⟨ sop ⟩ (cons (w ×⟨ sip ⟩ E₂)))
+        in eval k Eₖ
 
   eval (send (e IsSep.×⟨ Γ≺ ⟩ ch)) env =
     let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
-    f-bind (λ where
-      (chan φ) φ◆E₁ →
-        f-bind (λ v φ◆v →
-          f-bind (λ ch s →
-            f-return (chan (subst (Chan _) (⊎-identity⁻ˡ s) ch)))
-            (send! (φ IsSep.×⟨ φ◆v ⟩ v))
-            (⊎-identityˡ refl))
-          (eval e E₁)
-          (⊎-comm φ◆E₁))
-      (eval ch E₂)
-      E≺
+    (eval ch E₂) split E≺ bind λ where
+    (chan φ) φ◆E₁ →
+      (eval e E₁) split (⊎-comm φ◆E₁) bind λ v φ◆v →
+      (send! (φ ×⟨ φ◆v ⟩ v)) split (⊎-identityˡ refl) bind λ ch s →
+      f-return (chan (subst (Chan _) (⊎-identity⁻ˡ s) ch))
 
-  eval (recv e) = {!!}
+  eval (recv e) env =
+    (eval e env) split ⊎-identityˡ refl bind λ where
+      (chan ch) ε◆ch → receive! ch split ε◆ch bind λ a×b s →
+        f-return $ subst (Val _) (⊎-identity⁻ˡ s) $
+          pair (⟨ chan ⟨✴⟩ id ⟩ a×b)  
 
-  eval (fork e) = {!!}
+  eval (fork e) env =
+    eval e env split ⊎-identityˡ refl bind λ where
+      (clos clo) s → fork! clo split s bind λ φ s →
+        f-return $ subst (Val _) (⊎-identity⁻ˡ s) (chan φ)
 
-  eval (terminate e) = {!!}
+  eval (terminate e) env =
+    eval e env split ⊎-identityˡ refl bind λ where
+      (chan ch) ε◆sh → close! ch split ε◆sh bind λ where
+        refl → f-return ∘ tt ∘ ε⊎ε

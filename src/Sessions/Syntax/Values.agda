@@ -12,11 +12,14 @@ Chan : SType ∞ → Pred SCtx 0ℓ
 Chan = Just
 
 mutual
+  data Closure : Type ∞ → Type ∞ → Pred SCtx 0ℓ where
+    closure : ∀ {a} → Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Closure a b ]
+
   data Val : Type ∞ → Pred SCtx 0ℓ where
     tt   : ∀[ Emp           ⇒ Val unit       ]
     chan : ∀[ Chan α        ⇒ Val (chan α)   ]
     pair : ∀[ Val a ✴ Val b ⇒ Val (prod a b) ]
-    clos : ∀ {Γ} → Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Val (a ⊸ b) ]
+    clos : ∀[ Closure a b   ⇒ Val (a ⊸ b) ]
 
   data Env : List (Type ∞) → Pred SCtx 0ℓ where
     []   :          ∀[ Emp            ⇒ Env []       ]
@@ -33,6 +36,3 @@ env-split (refl ∷ˡ s) (px :⟨ ◆ ⟩: sx) with env-split s sx
 env-split (refl ∷ʳ s) (px :⟨ ◆ ⟩: sx) with env-split s sx
 ... | l ×⟨ ◆' ⟩ r with ⊎-assoc ◆' (⊎-comm ◆)
 ... | (Δ , p , q) = l ×⟨ q ⟩ (px :⟨ ⊎-comm p ⟩: r)
-
-data Closed : Type ∞ → Pred SCtx 0ℓ where
-  closed : ∀ {a} → Exp a Γ → ∀[ Env Γ ⇒ Closed a ]

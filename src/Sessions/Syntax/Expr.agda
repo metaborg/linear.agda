@@ -22,10 +22,10 @@ data Exp : Type ∞ → LCtx → Set where
 
   -- communication
   send : ∀ {b} → ∀[ Exp a ✴ Exp (chan (a ⅋ b)) ⇒ Exp (chan (b .force)) ]
-  recv : ∀ {b} → ∀[ Exp (chan (a ⊗ b)) ⇒ Exp (prod a (chan (b .force))) ]
+  recv : ∀ {b} → ∀[ Exp (chan (a ⊗ b)) ⇒ Exp (prod (chan (b .force)) a) ]
 
   -- fork
-  fork : ∀[ Exp (chan α ⊸ b) ⇒ Exp b ]
+  fork : ∀[ Exp (chan α ⊸ b) ⇒ Exp (chan (α ⁻¹)) ]
 
   -- termination
   terminate : ∀[ Exp (chan end) ⇒ Exp unit ]
