@@ -239,6 +239,9 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e)(sep : RawSep C) : Set (c 
     _◇_ : SPred ℓ → C → SPred (c ⊔ ℓ)
     _◇_ = flip frame_out_
 
+    _⇒′_ : ∀ {A ℓ₁ ℓ₂} → (P : Pred A ℓ₁) → (∀ {a} → P a → Pred A ℓ₂) → Pred A _
+    P ⇒′ Q = λ x → (p : x ∈ P) → x ∈ Q p
+
     π₁ : ∀ {P Q : SPred ℓ} → ∀[ (P ✴ Q) ⇒′ (P ◇_ ∘ Conj.Φᵣ) ]
     π₁ (px ×⟨ σ ⟩ qx) = P.refl ×⟨ ⊎-comm σ ⟩ px
 
