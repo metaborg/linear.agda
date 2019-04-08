@@ -14,6 +14,6 @@ open import Relation.Binary.PropositionalEquality hiding ([_]) public
 
 open import Relation.Unary.Separation public
 
-open MonoidalSep ⦃...⦄ hiding (isEquivalence; isPreorder; preorder; map; refl; sym; trans) public
+open MonoidalSep ⦃...⦄ hiding (isEquivalence; isPreorder; preorder; refl; sym; trans) public
 open Unital      ⦃...⦄ public
 

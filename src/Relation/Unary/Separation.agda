@@ -32,6 +32,32 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
   -- we can see the three point relation as a predicate on the carrier
   _⊎_ = _⊎_≣_
 
+  -- separating conjunction
+  record Conj {p q} (P : SPred p) (Q : ∀ {Φ} → P Φ → SPred q) Φ : Set (p ⊔ q ⊔ a) where
+    inductive
+    constructor _×⟨_⟩_
+    field
+      {Φₗ Φᵣ} : Carrier
+
+      px  : P Φₗ
+      sep : (Φₗ ⊎ Φᵣ) Φ
+      qx  : Q px Φᵣ
+
+  infixr 9 ∃[_]✴_
+  ∃[_]✴_ = Conj
+
+  infixr 9 _✴_
+  _✴_ : ∀ {p q} → SPred p → SPred q → SPred (p ⊔ q ⊔ a)
+  P ✴ Q = ∃[ P ]✴ const Q
+
+  -- separating implication or 'magic wand'
+  infixr 8 _─✴_
+  _─✴_ : ∀ {p q} (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
+  P ─✴ Q = λ Φᵢ → ∀ {Φₚ} → P Φₚ → ∀[ Φᵢ ⊎ Φₚ ⇒ Q ]
+
+  _─✴′_ : ∀ {p q} (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
+  P ─✴′ Q = λ Φᵢ → ∀ {Φₚ Φ} → (P Φₚ × Φᵢ ⊎ Φₚ ≣ Φ) → Q Φ
+
 record IsSep {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (s : RawSep {ℓ₁} A) : Set (ℓ₁ ⊔ ℓ₂) where
   open RawSep s
 
@@ -45,24 +71,6 @@ record IsSep {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (s : RawSep 
   variable
     Φ₁ Φ₂ Φ₃ Φ : A
 
-  -- separating conjunction
-  record Conj {p q} (P : SPred p) (Q : ∀ {Φ} → P Φ → SPred q) Φ : Set (p ⊔ q ⊔ ℓ₁) where
-    inductive
-    constructor _×⟨_⟩_
-    field
-      {Φₗ Φᵣ} : A
-
-      px  : P Φₗ
-      sep : (Φₗ ⊎ Φᵣ) Φ
-      qx  : Q px Φᵣ
-
-  infixr 9 ∃[_]✴_
-  ∃[_]✴_ = Conj
-
-  infixr 9 _✴_
-  _✴_ : ∀ {p q} → SPred p → SPred q → SPred (p ⊔ q ⊔ ℓ₁)
-  P ✴ Q = ∃[ P ]✴ const Q
-
   -- mapping
   module _ {p q p' q'}
     {P : SPred p} {Q : SPred q} {P' : SPred p'} {Q' : SPred q'} where
@@ -70,13 +78,10 @@ record IsSep {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (s : RawSep 
     ⟨_⟨✴⟩_⟩ : (P ⊆ P') → (Q ⊆ Q') → P ✴ Q ⊆ P' ✴ Q'
     ⟨_⟨✴⟩_⟩ f g (px ×⟨ sep ⟩ qx) = (f px) ×⟨ sep ⟩ (g qx)
 
-  -- separating implication or 'magic wand'
-  infixr 8 _─✴_
-  _─✴_ : ∀ {p q} (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ ℓ₁)
-  P ─✴ Q = λ Φᵢ → ∀ {Φₚ} → P Φₚ → ∀[ Φᵢ ⊎ Φₚ ⇒ Q ]
-
-  _─✴′_ : ∀ {p q} (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ ℓ₁)
-  P ─✴′ Q = λ Φᵢ → ∀ {Φₚ Φ} → (P Φₚ × Φᵢ ⊎ Φₚ ≣ Φ) → Q Φ
+    -- ✴✴-map : ∀[ (P ─✴ P') ✴ (Q ─✴ Q') ⇒ P ✴ Q ─✴ P' ✴ Q' ]
+    -- ✴✴-map (f ×⟨ sep₁ ⟩ g) (px ×⟨ sep₂ ⟩ qx) s =
+    --   let _ , eq₁ , eq₂ = ⊎-assoc (⊎-comm sep₂) (⊎-comm s) in
+    --   (f px {!!}) ×⟨ {!!} ⟩ (g qx {!!} )
 
   module _ {p q} {P : SPred p} {Q : SPred q} where
     apply : ∀[ (P ─✴ Q) ✴ P ⇒ Q ]
@@ -92,7 +97,15 @@ record IsSep {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (s : RawSep 
     --       g = apply (f ×⟨ σ ⟩ px)
     --     in apply (g ×⟨ ⊎-comm σ' ⟩ qx))
 
-    ✴-uncurry : ∀[ (P ✴ Q) ─✴ R ] → ∀[ P ─✴ (Q ─✴ R) ]
+    wand : ∀[ P ✴ Q ⇒ R ] → ∀[ P ⇒ Q ─✴ R ]
+    wand f px qx s = f (px ×⟨ s ⟩ qx)
+
+    com : ∀[ (P ─✴ Q) ✴ (Q ─✴ R) ⇒ (P ─✴ R) ]
+    com (f ×⟨ s ⟩ g) px s' =
+      let _ , eq₁ , eq₂ = ⊎-assoc (⊎-comm s) s' in
+      g (f px eq₁) eq₂ 
+
+    ✴-uncurry : ∀[ P ✴ Q ─✴ R ] → ∀[ P ─✴ (Q ─✴ R) ]
     ✴-uncurry f =
       λ px sep →
         λ qx sep' →
@@ -149,6 +162,9 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e)(sep : RawSep C) : Set (c 
     ε⊎ε p with ⊎-identity⁻ˡ p
     ... | P.refl = P.refl
 
+    ⋆-identityʳ : ∀ {P : SPred 0ℓ} → ∀[ P ⇒ P ✴ Emp ]
+    ⋆-identityʳ px = px ×⟨ ⊎-identityʳ P.refl ⟩ P.refl
+
   {- Big seperating conjunction over an SPred -}
   module _ where
 
@@ -178,48 +194,59 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e)(sep : RawSep C) : Set (c 
     ≤-preorder : Preorder _ _ _
     ≤-preorder = record { isPreorder = ≤-isPreorder }
 
-  {- Framing -}
-  module _ where
+  {- Framing where we forget the actual resource owned -}
+  module ↑-Frames where
 
     infixl 1000 _↑
     _↑ : ∀ {ℓ} → SPred ℓ → SPred _
     P ↑ = P ✴ U
 
-    frame_out_ : ∀ {ℓ} → C → SPred ℓ → SPred _
-    frame j out P = (Exactly j) ✴ P
+    pattern _⇑_ p sep = p ×⟨ sep ⟩ tt
 
-    _▣_ : ∀ {ℓ} → SPred ℓ → C → SPred _
-    _▣_ = flip frame_out_
+    module _ {ℓ} {P : SPred ℓ} where
 
-    pattern _⇑_ p sep = p IsSep.×⟨ sep ⟩ tt
+      return : ∀[ P ⇒ P ↑ ]
+      return p = p ×⟨ ⊎-identityʳ P.refl ⟩ tt
 
-  module ↑-Monadic {ℓ} {P : SPred ℓ} where
+      join : ∀[ (P ↑) ↑ ⇒ P ↑ ]
+      join ((p ×⟨ σ₁ ⟩ tt) ×⟨ σ₂ ⟩ tt) = 
+        let _ , σ₃ = ≤-trans (-, σ₁) (-, σ₂) in p ×⟨ σ₃ ⟩ tt
 
-    return : ∀[ P ⇒ P ↑ ]
-    return p = p ×⟨ ⊎-identityʳ P.refl ⟩ tt
+    module _ {ℓ₁ ℓ₂} {P : SPred ℓ₁} {Q : SPred ℓ₂} where
 
-    join : ∀[ (P ↑) ↑ ⇒ P ↑ ]
-    join ((p ×⟨ σ₁ ⟩ tt) ×⟨ σ₂ ⟩ tt) = 
-      let _ , σ₃ = ≤-trans (-, σ₁) (-, σ₂) in p ×⟨ σ₃ ⟩ tt
+      map : ∀[ P ⇒ Q ] → ∀[ P ↑ ⇒ Q ↑ ]
+      map f (px ⇑ sep) = f px ⇑ sep
 
-  module _ {ℓ₁ ℓ₂} {P : SPred ℓ₁} {Q : SPred ℓ₂} where
+    module _ {ℓ₁ ℓ₂} {P : SPred ℓ₁} {Q : SPred ℓ₂} where
 
-    map : ∀[ P ⇒ Q ] → ∀[ P ↑ ⇒ Q ↑ ]
-    map f (px ⇑ sep) = f px ⇑ sep
+      ↑-bind : ∀[ P ⇒ Q ↑ ] → ∀[ P ↑ ⇒ Q ↑ ]
+      ↑-bind f px = join (map f px)
 
-  module _ {ℓ₁ ℓ₂} {P : SPred ℓ₁} {Q : SPred ℓ₂} where
+    {- Projections out of separating conjunction using framing -}
+    module _ where
 
-    ↑-bind : ∀[ P ⇒ Q ↑ ] → ∀[ P ↑ ⇒ Q ↑ ]
-    ↑-bind f px = ↑-Monadic.join (map f px)
+      π₁ : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ (P ✴ Q) ⇒ P ↑ ]
+      π₁ (px ×⟨ sep ⟩ _) = px ⇑ sep
 
-  {- Projections out of separating conjunction using framing -}
-  module _ where
+      π₂ : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ (P ✴ Q) ⇒ Q ↑ ]
+      π₂ (_ ×⟨ sep ⟩ qx) = qx ⇑ ⊎-comm sep
 
-    π₁ : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ (P ✴ Q) ⇒ P ↑ ]
-    π₁ (px ×⟨ sep ⟩ _) = px ⇑ sep
+  module ▣-Frames {ℓ} where
 
-    π₂ : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ (P ✴ Q) ⇒ Q ↑ ]
-    π₂ (_ ×⟨ sep ⟩ qx) = qx ⇑ ⊎-comm sep
+    frame_out_ : C → SPred ℓ → SPred (c ⊔ ℓ)
+    frame Φ out P = (Exactly Φ) ✴ P
+
+    _◇_ : SPred ℓ → C → SPred (c ⊔ ℓ)
+    _◇_ = flip frame_out_
+
+    π₁ : ∀ {P Q : SPred ℓ} → ∀[ (P ✴ Q) ⇒′ (P ◇_ ∘ Conj.Φᵣ) ]
+    π₁ (px ×⟨ σ ⟩ qx) = P.refl ×⟨ ⊎-comm σ ⟩ px
+
+    π₂ : ∀ {P Q : SPred ℓ} → ∀[ (P ✴ Q) ⇒′ (Q ◇_ ∘ Conj.Φₗ) ]
+    π₂ (px ×⟨ σ ⟩ qx) = P.refl ×⟨ σ ⟩ qx
+
+    -- _─⟨_⟩_ : (P : SPred ℓ₁) → Carrier → (Q : SPred ℓ₂)  → SPred _
+    -- P ─⟨ j ⟩ Q = P ⇒ Q ▣ j 
 
 
 record IsConcattative {c} {C : Set c} (sep : RawSep C) (_∙_ : C → C → C) : Set c where
@@ -268,23 +295,27 @@ record MonoidalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   open IsUnitalSep isUnitalSep public
   open IsConcattative isConcat public
 
-  {- Disjoint extension -}
   module _ {ℓ₁ ℓ₂} where
+    _─✫_ : (P : SPred ℓ₁) (Q : SPred ℓ₂)  → SPred _
+    P ─✫ Q = λ Φ₁ → ∀ {Φ₂} → P Φ₂ → Q (Φ₁ ∙ Φ₂)
 
-    infixr 8 _─◆′_
-    _─◆′_ : (P : SPred ℓ₁) (Q : ∀ {i} → P i → SPred ℓ₂)  → SPred _
-    P ─◆′ Q = λ i → (p : P i) → ∃ (Q p)
+    ✫─✴ : ∀ {P Q} → ∀[ (P ─✴ Q) ⇒ (P ─✫ Q) ]
+    ✫─✴ f = λ px → f px ⊎-∙
 
-    infixr 8 _─◆_
-    _─◆_ : (P : SPred ℓ₁) (Q : SPred ℓ₂)  → SPred _
-    P ─◆ Q = P ─◆′ (const Q)
+  {- Disjoint extension -}
+  -- module _ {ℓ₁ ℓ₂} where
 
-    _─⟨_⟩_ : (P : SPred ℓ₁) → Carrier → (Q : SPred ℓ₂)  → SPred _
-    P ─⟨ j ⟩ Q = P ⇒ Q ▣ j 
+    -- infixr 8 _─◆′_
+    -- _─◆′_ : (P : SPred ℓ₁) (Q : ∀ {i} → P i → SPred ℓ₂)  → SPred _
+    -- P ─◆′ Q = λ i → (p : P i) → ∃ (Q p)
 
-  {- Framing is functorial -}
-  module _ where
+    -- infixr 8 _─◆_
+    -- _─◆_ : (P : SPred ℓ₁) (Q : SPred ℓ₂)  → SPred _
+    -- P ─◆ Q = P ─◆′ (const Q)
 
-    ▣-map : ∀ {j} {P : SPred ℓ₁} {Q : SPred ℓ₂} → ∀[ P ─◆ Q ] → ∀[ P ▣ j ─◆ Q ▣ j ]
-    ▣-map f (px ×⟨ ◆ ⟩ qx) with f qx
-    ... | ext , rx = -, px ×⟨ ⊎-∙ ⟩ rx
+  -- {- Framing is functorial -}
+  -- module _ where
+
+  --   ▣-map : ∀ {j} {P : SPred ℓ₁} {Q : SPred ℓ₂} → ∀[ P ─◆ Q ] → ∀[ P ▣ j ─◆ Q ▣ j ]
+  --   ▣-map f (px ×⟨ ◆ ⟩ qx) with f qx
+  --   ... | ext , rx = -, px ×⟨ ⊎-∙ ⟩ rx

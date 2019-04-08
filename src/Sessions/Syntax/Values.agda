@@ -25,7 +25,17 @@ mutual
     []   :          ∀[ Emp            ⇒ Env []       ]
     cons : ∀ {as} → ∀[ Val a ✴ Env as ⇒ Env (a ∷ as) ]
 
+infixr 5 _:⟨_⟩:_
 pattern _:⟨_⟩:_ x p xs = cons (x ×⟨ p ⟩ xs)
+
+single : ∀[ Val a ⇒ Env [ a ] ]
+single v = v :⟨ ⊎-identityʳ refl ⟩: ([] refl)
+
+env-∙ : ∀[ Env Γ₁ ✴ Env Γ₂ ⇒ Env (Γ₁ ∙ Γ₂) ] 
+env-∙ ([] refl ×⟨ s ⟩ env₂) rewrite ⊎-identity⁻ˡ s = env₂
+env-∙ (cons (v ×⟨ s ⟩ env₁) ×⟨ s' ⟩ env₂) =
+  let _ , eq₁ , eq₂ = ⊎-assoc s s' in
+  cons (v ×⟨ eq₂ ⟩ (env-∙ (env₁ ×⟨ eq₁ ⟩ env₂)))
 
 -- Environments can be split along context splittings
 env-split : Γ₁ ⊎ Γ₂ ≣ Γ → ∀[ Env Γ ⇒ Env Γ₁ ✴ Env Γ₂ ] 

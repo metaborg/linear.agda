@@ -1,3 +1,8 @@
+-- | In this interpreter for expressions we interpret communication and threading in the free monad.
+-- The interpretation is well-typed-by-construction in the sense that computed values
+-- match the expression typ *and* linear usage of the session context is *enforced*.
+--
+-- We do not bother trying to hide splitting in the implementations here.
 module Sessions.Semantics.Expr-01 where
 
 open import Prelude
@@ -31,25 +36,20 @@ module Free where
   f-return : ∀ {P} → ∀[ P ⇒ F P ]
   f-return = pure
 
-  -- There is some intuition here, but it is hard to find...
-  -- consider: ∀[ (f : P ─✴ F Q) ⇒ (g : F P ─✴ F Q) ]
-  -- Then the resource typing says that you need as much resource to construct F Q from F P,
-  -- as you need to construct F Q from P.
+  f-map : ∀ {P Q} → ∀[ (P ─✴ Q) ⇒ (F P ─✴ F Q) ]
+  f-map f (pure x) σ                  = pure (f x σ)
+  f-map f (impure (cmd ×⟨ σ₁ ⟩ κ)) σ₂ =
+    let (Φ , eq₁ , eq₂) = ⊎-assoc σ₁ (⊎-comm σ₂) in
+    impure (cmd ×⟨ eq₂ ⟩ (λ r σ₃ →
+      let (Φ' , eq₃ , eq₄) = ⊎-assoc (⊎-comm eq₁) σ₃ in
+      f-map f (κ r eq₃) eq₄))
+
+  f-join : ∀ {P} → ∀[ F (F P) ⇒ F P ]
+  f-join (pure fp)  = fp
+  f-join (impure (cmd ×⟨ σ ⟩ κ)) = impure (cmd ×⟨ σ ⟩ λ r σ' → f-join (κ r σ'))
+
   f-bind : ∀ {P Q} → ∀[ (P ─✴ F Q) ⇒ (F P ─✴ F Q) ]
-  f-bind f (pure x)     = f x
-  f-bind {P} {Q} {Φu} f {Φₚ} (impure (_×⟨_⟩_ {Φcmd} {Φk} cmd dj k)) {Φ} s =
-    impure (cmd ×⟨ sep ⟩ λ {u'} r → λ {Ψ} sup →
-      let (Φ? , sip , sap) = ⊎-assoc (⊎-comm sop) sup in
-      f-bind f (k r sip) sap  )
-    where
-      Φk' = proj₁ $ ⊎-assoc dj (⊎-comm s)
-      prf = proj₂ $ ⊎-assoc dj (⊎-comm s)
-
-      sep : Φcmd ⊎ Φk' ≣ Φ
-      sep = proj₂ prf
-
-      sop : Φk ⊎ Φu ≣ Φk'
-      sop = proj₁ prf
+  f-bind f fp = f-join ∘ f-map f fp
 
   -- put the arguments in the right order
   syntax f-bind f p s = p split s bind f
@@ -101,7 +101,7 @@ module Free where
       eval qx E₂ split (⊎-comm v◆E₁) bind λ w dj →
         f-return (pair (v ×⟨ dj ⟩ w))
 
-  eval (letpair (p IsSep.×⟨ Γ≺ ⟩ k)) env =
+  eval (letpair (p ×⟨ Γ≺ ⟩ k)) env =
     let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
     (eval p E₁) split (⊎-comm E≺) bind λ where
       (pair (v ×⟨ v◆w ⟩ w)) pr◆E₂ →
@@ -110,7 +110,7 @@ module Free where
             Eₖ = cons (v ×⟨ sop ⟩ (cons (w ×⟨ sip ⟩ E₂)))
         in eval k Eₖ
 
-  eval (send (e IsSep.×⟨ Γ≺ ⟩ ch)) env =
+  eval (send (e ×⟨ Γ≺ ⟩ ch)) env =
     let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
     (eval ch E₂) split E≺ bind λ where
     (chan φ) φ◆E₁ →
