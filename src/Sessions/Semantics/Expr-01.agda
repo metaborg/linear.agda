@@ -15,7 +15,7 @@ open import Sessions.Syntax.Values
 open import Sessions.Syntax.Expr
 
 -- The command structure is the justification of changes made to the session context.
-data Cmd : SCtx → Set where
+data Cmd : Pred SCtx 0ℓ where
   send    : ∀ {a α}   → ∀[ (Chan (a ⅋ α) ✴ Val a) ⇒ Cmd ]
   receive : ∀ {a α}   → ∀[ Chan (a ⊗ α) ⇒ Cmd ]
   close   :             ∀[ Chan end ⇒ Cmd ]
@@ -27,9 +27,13 @@ data Cmd : SCtx → Set where
 δ (close _)           = Emp
 δ (fork {α} _)        = Chan (α ⁻¹)
 
-data F : Pt SCtx 0ℓ where
-  pure   : ∀ {P}   → ∀[ P ⇒ F P ] 
-  impure : ∀ {P}   → ∀[ ∃[ Cmd ]✴ (λ c → δ c ─✴ F P) ⇒ F P ]
+mutual
+  Cont : ∀ {Δ} → Cmd Δ → Pred SCtx 0ℓ → Pred SCtx 0ℓ
+  Cont c P = δ c ─✴ F P
+
+  data F : Pt SCtx 0ℓ where
+    pure   : ∀ {P}   → ∀[ P ⇒ F P ] 
+    impure : ∀ {P}   → ∀[ ∃[ Cmd ]✴ (λ c → Cont c P) ⇒ F P ]
 
 module Free where
 
@@ -76,10 +80,10 @@ module Free where
 
   {-# TERMINATING #-}
   eval : Exp a Γ → ∀[ Env Γ ⇒ F (Val a) ]
-  eval (var refl) (cons (px ×⟨ sep ⟩ [] refl))
+  eval (var refl) (cons (px ×⟨ sep ⟩ nil refl))
     rewrite ⊎-identity⁻ʳ sep = f-return px
 
-  eval (unit x) ([] refl) =
+  eval (unit x) (nil refl) =
     f-return (tt refl)
 
   eval (λₗ a x) env =

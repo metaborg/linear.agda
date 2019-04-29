@@ -21,28 +21,21 @@ mutual
     pair : ∀[ Val a ✴ Val b ⇒ Val (prod a b) ]
     clos : ∀[ Closure a b   ⇒ Val (a ⊸ b) ]
 
-  data Env : List (Type ∞) → Pred SCtx 0ℓ where
-    []   :          ∀[ Emp            ⇒ Env []       ]
-    cons : ∀ {as} → ∀[ Val a ✴ Env as ⇒ Env (a ∷ as) ]
-
-infixr 5 _:⟨_⟩:_
-pattern _:⟨_⟩:_ x p xs = cons (x ×⟨ p ⟩ xs)
-
-single : ∀[ Val a ⇒ Env [ a ] ]
-single v = v :⟨ ⊎-identityʳ refl ⟩: ([] refl)
+  Env : List (Type ∞) → Pred SCtx 0ℓ
+  Env = Allstar Val
 
 env-∙ : ∀[ Env Γ₁ ✴ Env Γ₂ ⇒ Env (Γ₁ ∙ Γ₂) ] 
-env-∙ ([] refl ×⟨ s ⟩ env₂) rewrite ⊎-identity⁻ˡ s = env₂
+env-∙ (nil refl ×⟨ s ⟩ env₂) rewrite ⊎-identity⁻ˡ s = env₂
 env-∙ (cons (v ×⟨ s ⟩ env₁) ×⟨ s' ⟩ env₂) =
   let _ , eq₁ , eq₂ = ⊎-assoc s s' in
   cons (v ×⟨ eq₂ ⟩ (env-∙ (env₁ ×⟨ eq₁ ⟩ env₂)))
 
 -- Environments can be split along context splittings
 env-split : Γ₁ ⊎ Γ₂ ≣ Γ → ∀[ Env Γ ⇒ Env Γ₁ ✴ Env Γ₂ ] 
-env-split [] ([] refl) = ([] refl) ×⟨ ⊎-identityˡ refl ⟩ ([] refl)
+env-split [] (nil refl) = (nil refl) ×⟨ ⊎-identityˡ refl ⟩ (nil refl)
 env-split (refl ∷ˡ s) (px :⟨ ◆ ⟩: sx) with env-split s sx
 ... | l ×⟨ ◆' ⟩ r with ⊎-assoc (⊎-comm ◆') (⊎-comm ◆)
-... | (Δ , p , q) = (px :⟨ ⊎-comm p ⟩: l) ×⟨ ⊎-comm q ⟩ r
+... | (Δ , p , q) = cons (px ×⟨ ⊎-comm p ⟩ l) ×⟨ ⊎-comm q ⟩ r
 env-split (refl ∷ʳ s) (px :⟨ ◆ ⟩: sx) with env-split s sx
 ... | l ×⟨ ◆' ⟩ r with ⊎-assoc ◆' (⊎-comm ◆)
-... | (Δ , p , q) = l ×⟨ q ⟩ (px :⟨ ⊎-comm p ⟩: r)
+... | (Δ , p , q) = l ×⟨ q ⟩ (cons (px ×⟨ ⊎-comm p ⟩ r))

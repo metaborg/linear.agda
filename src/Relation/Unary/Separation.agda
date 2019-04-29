@@ -33,6 +33,7 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
   _⊎_ = _⊎_≣_
 
   -- separating conjunction
+  infixr 10 _×⟨_⟩_
   record Conj {p q} (P : SPred p) (Q : ∀ {Φ} → P Φ → SPred q) Φ : Set (p ⊔ q ⊔ a) where
     inductive
     constructor _×⟨_⟩_
@@ -50,13 +51,23 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
   _✴_ : ∀ {p q} → SPred p → SPred q → SPred (p ⊔ q ⊔ a)
   P ✴ Q = ∃[ P ]✴ const Q
 
-  -- separating implication or 'magic wand'
+  -- | Separating implication / magic wand is what you want
+
   infixr 8 _─✴_
   _─✴_ : ∀ {p q} (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
   P ─✴ Q = λ Φᵢ → ∀ {Φₚ} → P Φₚ → ∀[ Φᵢ ⊎ Φₚ ⇒ Q ]
 
   _─✴′_ : ∀ {p q} (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
   P ─✴′ Q = λ Φᵢ → ∀ {Φₚ Φ} → (P Φₚ × Φᵢ ⊎ Φₚ ≣ Φ) → Q Φ
+
+  -- | The update modality
+
+  ⤇ : ∀ {p} → SPred p → SPred (a ⊔ p)
+  ⤇ P Φᵢ = ∀ {Φⱼ Φₖ} → Φᵢ ⊎ Φⱼ ≣ Φₖ → ∃₂ λ Φₗ Φ → Φₗ ⊎ Φⱼ ≣ Φ × P Φₗ
+
+  infixr 8 _==✴_
+  _==✴_ : ∀ {p q} → (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
+  P ==✴ Q = P ─✴ (⤇ Q)
 
 record IsSep {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (s : RawSep {ℓ₁} A) : Set (ℓ₁ ⊔ ℓ₂) where
   open RawSep s
@@ -112,20 +123,62 @@ record IsSep {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (s : RawSep 
           let Φ , σ , σ' = ⊎-assoc sep sep'
           in  apply (f  ×⟨ σ' ⟩ (px ×⟨ σ ⟩ qx))
 
-record Unital {c} (C : Set c) : Set c where
+record RawUnitalSep {c} (C : Set c) : Set (suc c) where
   field
-    ε     : C
+    ε   : C
+    sep : RawSep C
+
+  open RawSep sep
+
+  -- buy one, get a preorder for free
+  _≤_ : Rel C _
+  Φ₁ ≤ Φ = ∃ λ Φ₂ → (Φ₁ ⊎ Φ₂) Φ
 
   ε[_] : ∀ {ℓ} → Pred C ℓ → Set ℓ
   ε[ P ] = P ε
 
-record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e)(sep : RawSep C) : Set (c ⊔ e) where
+  {- Exactness -}
+  module _ where
+
+    Exactly : C → SPred c
+    Exactly = flip _≡_
+
+    _◆_ : C → C → SPred c
+    Φₗ ◆ Φᵣ = Exactly Φₗ ✴ Exactly Φᵣ
+
+  {- Emptyness -}
+  module _ where
+
+    Emp : SPred c
+    Emp = Exactly ε
+
+  {- Big seperating conjunction over an SPred -}
+  module _ where
+
+    data Bigstar {ℓ} (P : SPred ℓ) : SPred (ℓ ⊔ c) where
+      emp  : ∀[ Emp ⇒ Bigstar P ]
+      cons : ∀[ P ✴ Bigstar P ⇒ Bigstar P ]
+
+  module _ {i ℓ} {I : Set i} where
+    open import Data.List
+    data Allstar (P : I → SPred ℓ) : List I → SPred (ℓ ⊔ c ⊔ i) where
+      nil  :            ∀[ Emp ⇒ Allstar P [] ]
+      cons : ∀ {x xs} → ∀[ P x ✴ Allstar P xs ⇒ Allstar P (x ∷ xs) ]
+
+    -- not typed well..
+    infixr 5 _:⟨_⟩:_
+    pattern _:⟨_⟩:_ x p xs = cons (x ×⟨ p ⟩ xs)
+
+record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e) : Set (suc c ⊔ e) where
+  field
+    unital : RawUnitalSep C
+
+  open RawUnitalSep unital
+
   field
     isSep  : IsSep _≈_ sep
-    unital : Unital C
 
-  open Unital unital
-  open RawSep sep public
+  open RawSep sep
 
   field
     ⊎-identityˡ    : ∀ {Φ} → ∀[ (Φ ≡_) ⇒ (ε ⊎ Φ) ]
@@ -143,21 +196,7 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e)(sep : RawSep C) : Set (c 
   ε-separateʳ : ∀ {Φₗ} → ∀[ (Φₗ ⊎_≣ ε) ⇒ (_≡ ε) ]
   ε-separateʳ = ε-separateˡ ∘ ⊎-comm
 
-  {- Exactness -}
   module _ where
-
-    Exactly : C → SPred c
-    Exactly = flip _≡_
-
-    _◆_ : C → C → SPred c
-    Φₗ ◆ Φᵣ = Exactly Φₗ ✴ Exactly Φᵣ
-
-  {- Emptyness -}
-  module _ where
-
-    Emp : SPred c
-    Emp = Exactly ε
-
     ε⊎ε : ∀[ ε ⊎ ε ⇒ Emp ]
     ε⊎ε p with ⊎-identity⁻ˡ p
     ... | P.refl = P.refl
@@ -165,18 +204,13 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e)(sep : RawSep C) : Set (c 
     ⋆-identityʳ : ∀ {P : SPred 0ℓ} → ∀[ P ⇒ P ✴ Emp ]
     ⋆-identityʳ px = px ×⟨ ⊎-identityʳ P.refl ⟩ P.refl
 
-  {- Big seperating conjunction over an SPred -}
-  module _ where
-
-    data Allstar {ℓ} (P : SPred ℓ) : SPred (ℓ ⊔ c) where
-      emp  : ∀[ Emp ⇒ Allstar P ]
-      star : ∀[ P ✴ Allstar P ⇒ Allstar P ]
+  module _ {i ℓ} {I : Set i} {P : I → SPred ℓ} where
+    open import Data.List
+    singleton : ∀ {x} → ∀[ P x ⇒ Allstar P [ x ] ]
+    singleton v = cons (v ×⟨ ⊎-identityʳ P.refl ⟩ (nil P.refl))
 
   {- A free preorder -}
   module _ where
-
-    _≤_ : Rel C _
-    Φ₁ ≤ Φ = ∃ λ Φ₂ → (Φ₁ ⊎ Φ₂) Φ
 
     ≤-reflexive : Φ₁ ≡ Φ₂ → Φ₁ ≤ Φ₂
     ≤-reflexive p = ε , ⊎-identityʳ p
@@ -268,7 +302,7 @@ record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
     raw          : RawSep Carrier
     isSep : IsSep _≈_ raw
 
-  open RawSep raw public
+  open RawSep raw
   open IsSep isSep public
 
 record UnitalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
@@ -278,8 +312,7 @@ record UnitalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   open Setoid set public 
 
   field
-    raw         : RawSep Carrier
-    isUnitalSep : IsUnitalSep _≈_ raw
+    isUnitalSep : IsUnitalSep _≈_
 
   open IsUnitalSep isUnitalSep public
 
@@ -290,12 +323,16 @@ record MonoidalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   open Setoid set public 
 
   field
-    raw         : RawSep Carrier
     _∙_         : Carrier → Carrier → Carrier
-    isUnitalSep : IsUnitalSep _≈_ raw
-    isConcat    : IsConcattative raw _∙_
+    isUnitalSep : IsUnitalSep _≈_
 
-  open IsUnitalSep isUnitalSep public
+  open IsUnitalSep isUnitalSep
+  open RawUnitalSep unital
+  open RawSep sep
+
+  field
+    isConcat    : IsConcattative sep _∙_
+
   open IsConcattative isConcat public
 
   module _ {ℓ₁ ℓ₂} where

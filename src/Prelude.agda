@@ -5,6 +5,7 @@ open import Size public
 open import Function public
 
 open import Data.Nat using (ℕ; suc; zero; _+_) public
+open import Data.Sum using (inj₁; inj₂) renaming (_⊎_ to _⊕_)public
 open import Data.Product public hiding (map; zip)
 open import Data.List public hiding (map; zip)
 open import Codata.Thunk public
@@ -15,5 +16,7 @@ open import Relation.Binary.PropositionalEquality hiding ([_]) public
 open import Relation.Unary.Separation public
 
 open MonoidalSep ⦃...⦄ hiding (isEquivalence; isPreorder; preorder; refl; sym; trans) public
-open Unital      ⦃...⦄ public
+open RawUnitalSep ⦃...⦄ public
+open RawSep ⦃...⦄ public
+open IsUnitalSep ⦃...⦄ public
 

@@ -11,7 +11,7 @@ open import Sessions.Syntax.Types
 open import Sessions.Syntax.Values
 open import Sessions.Syntax.Expr
 
-open import Sessions.Semantics.Expr-01 using (Cmd; F; module Free; pure; impure)
+open import Sessions.Semantics.Expr-01 using (Cmd; F; module Free; pure; impure; Cont) public
 
 module M where
 
@@ -32,7 +32,7 @@ module M where
         in f px (⊎-comm σ₇) env (⊎-comm σ₈)) f[e✴px] σ₄
 
   lift-f : ∀ {P} → ∀[ F P ⇒ M ε ε P ]
-  lift-f px ([] refl) σ = Free.f-map (λ px σ' → ([] refl) ×⟨ σ' ⟩ px) px (⊎-comm σ)
+  lift-f px (nil refl) σ = Free.f-map (λ px σ' → (nil refl) ×⟨ σ' ⟩ px) px (⊎-comm σ)
 
   -- syntax m-bind f p s = p split s bind f
   syntax m-bind f p s = p ⟪ s ⟫= f
@@ -43,13 +43,13 @@ module M where
       (E₁ ×⟨ E≺ ⟩ E₂) = env-split sep env
       (Φ , eq₁ , eq₂) = ⊎-assoc E≺ (⊎-comm s)
     in m-bind
-      (λ px s' → λ where ([] refl) s'' → pure $ E₂ ×⟨ subst (_ ⊎ _ ≣_) (⊎-identity⁻ʳ s'') s' ⟩ px)
+      (λ px s' → λ where (nil refl) s'' → pure $ E₂ ×⟨ subst (_ ⊎ _ ≣_) (⊎-identity⁻ʳ s'') s' ⟩ px)
       c eq₁ E₁ (⊎-comm eq₂)
 
   asks : ∀ {P} → ∀[ (Env Γ ─✴ P) ⇒ M Γ ε P ]
   asks f env σ =
     let px = f env σ
-    in pure ([] refl ×⟨ ⊎-identityˡ refl ⟩ px)
+    in pure (nil refl ×⟨ ⊎-identityˡ refl ⟩ px)
 
   prepend : ∀[ Env Γ₁ ⇒ M Γ₂ (Γ₁ ∙ Γ₂) Emp ]
   prepend env₁ env₂ s = pure $ env-∙ (env₁ ×⟨ s ⟩ env₂) ×⟨ ⊎-identityʳ refl ⟩ refl
@@ -63,7 +63,7 @@ module _ where
   {-# TERMINATING #-}
   eval : Exp a Γ → M Γ ε (Val a) ε
   eval (var refl) = asks (λ where
-    (cons (px ×⟨ σ₁ ⟩ [] refl)) σ₂ →
+    (cons (px ×⟨ σ₁ ⟩ nil refl)) σ₂ →
       subst (Val _) (trans (⊎-identity⁻ʳ σ₁) (⊎-identity⁻ˡ σ₂)) px)
 
   eval (unit refl) =
@@ -74,9 +74,9 @@ module _ where
       clos (closure e (subst (Env _) (⊎-identity⁻ˡ σ) env))
 
   eval (app (f ×⟨ Γ≺ ⟩ e)) =
-    frame Γ≺ (eval f) ⟪ ⊎-identityˡ refl ⟫= λ where
+    frame Γ≺ (eval f) ⟪ ⊎-identityʳ refl ⟫= λ where
       (clos (closure body closure-env)) s → eval e ⟪ ⊎-comm s ⟫= λ where
-        v σ₁ → append (single v) ⟪ σ₁ ⟫= λ where
+        v σ₁ → append (singleton v) ⟪ σ₁ ⟫= λ where
           refl σ₂ → append closure-env ⟪ ⊎-comm σ₂ ⟫= λ where
             refl σ₃ → subst (M _ _ _) (⊎-identity⁻ˡ σ₃) (eval body)
 
@@ -88,7 +88,7 @@ module _ where
   eval (letpair (e ×⟨ Γ≺ ⟩ body)) =
     frame Γ≺ (eval e) ⟪ ⊎-identityˡ refl ⟫= λ where
       (pair (px ×⟨ σ₁ ⟩ qx)) σ₂ →
-        let env' = px :⟨ σ₁ ⟩: single qx 
+        let env' = cons (px ×⟨ σ₁ ⟩ singleton qx)
         in prepend env' ⟪ σ₂ ⟫= λ where
         refl σ₃ → subst (M _ _ _) (⊎-identity⁻ˡ σ₃) (eval body)
 

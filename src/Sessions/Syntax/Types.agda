@@ -29,8 +29,8 @@ open import Relation.Binary.PropositionalEquality as P hiding ([_])
 open import Relation.Unary.Separation
 open import Relation.Unary.Separation.Construct.Product
 
-open MonoidalSep ⦃...⦄ hiding (isSep; isEquivalence; SPred)
-open Unital ⦃...⦄
+open MonoidalSep ⦃...⦄ hiding (isEquivalence)
+open RawUnitalSep ⦃...⦄
 
 {- Unrestricted-, Session- and Expression types-}
 module _ where
@@ -102,13 +102,13 @@ module _ {t} {T : Set t} where
     Ctx : Set t
     Ctx = List T
 
-  separation : RawSep Ctx
+  instance separation : RawSep Ctx
   separation = record { _⊎_≣_ = Interleaving }
 
-  instance unital' : Unital Ctx
-  unital' = record { ε = [] }
+  instance unital' : RawUnitalSep Ctx
+  unital' = record { ε = [] ; sep = separation }
 
-  ctx-hasUnitalSep : IsUnitalSep _↭_ separation
+  instance ctx-hasUnitalSep : IsUnitalSep _↭_
   ctx-hasUnitalSep = record { isSep = {!!} ; unital = unital' ; ⊎-identityˡ = {!!} ; ⊎-identity⁻ˡ = {!!} }
 
   ctx-concattative : IsConcattative separation _++_
@@ -130,6 +130,10 @@ module _ {t} {T : Set t} where
 
     data Only : LPred (t ⊔ Level.suc p) where
       only : ∀ {a} → P a → Only (a ∷ ε)
+
+    data Select : List T → LPred (t ⊔ p) where
+      this : ∀ {c cs}   → P c → Select (c ∷ cs) (c ∷ ε) 
+      that : ∀ {c cs Φ} → Select cs Φ → Select (c ∷ cs) Φ
 
   module _ where
 

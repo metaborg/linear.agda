@@ -21,6 +21,11 @@ module _ {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂} where
         (proj₁ Φ₁) R₁.⊎ (proj₁ Φ₂) ≣ proj₁ Φ
       × (proj₂ Φ₁) R₂.⊎ (proj₂ Φ₂) ≣ proj₂ Φ }
 
+  instance ×-rawsep : ⦃ _ : RawSep C₁ ⦄ ⦃ _ : RawSep C₂ ⦄ → RawSep (C₁ × C₂)
+  ×-rawsep ⦃ R₁ ⦄ ⦃ R₂ ⦄ = R₁ ×-⊎ R₂
+
+  postulate instance ×-rawunitalsep : ⦃ _ : RawUnitalSep C₁ ⦄ ⦃ _ : RawUnitalSep C₂ ⦄ → RawUnitalSep (C₁ × C₂)
+
 module _
   {ℓ₁ ℓ₂ e₁ e₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂}
   {_≈₁_ : Rel C₁ e₁} {_≈₂_ : Rel C₂ e₂}
@@ -33,11 +38,10 @@ module _
 module _
   {ℓ₁ ℓ₂ e₁ e₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂}
   {_≈₁_ : Rel C₁ e₁} {_≈₂_ : Rel C₂ e₂}
-  {R₁ : RawSep C₁} {R₂ : RawSep C₂}
-  (s₁ : IsUnitalSep _≈₁_ R₁) (s₂ : IsUnitalSep _≈₂_ R₂)
+  (s₁ : IsUnitalSep _≈₁_) (s₂ : IsUnitalSep _≈₂_)
   where
 
-  postulate _×-isUnitalSep_ : IsUnitalSep (Pointwise _≈₁_ _≈₂_) (R₁ ×-⊎ R₂)
+  postulate _×-isUnitalSep_ : IsUnitalSep (Pointwise _≈₁_ _≈₂_)
 
 module _
   {ℓ₁ ℓ₂ ℓ₃ ℓ₄}
