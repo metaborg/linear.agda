@@ -16,8 +16,8 @@ open import Sessions.Syntax.Expr
 
 -- The command structure is the justification of changes made to the session context.
 data Cmd : Pred SCtx 0ℓ where
-  send    : ∀ {a α}   → ∀[ (Chan (a ⅋ α) ✴ Val a) ⇒ Cmd ]
-  receive : ∀ {a α}   → ∀[ Chan (a ⊗ α) ⇒ Cmd ]
+  send    : ∀ {a α}   → ∀[ (Chan (a ¿ α) ✴ Val a) ⇒ Cmd ]
+  receive : ∀ {a α}   → ∀[ Chan (a ! α) ⇒ Cmd ]
   close   :             ∀[ Chan end ⇒ Cmd ]
   fork    : ∀ {α b}   → ∀[ Closure (chan α) b ⇒ Cmd ]
 
@@ -29,7 +29,7 @@ data Cmd : Pred SCtx 0ℓ where
 
 mutual
   Cont : ∀ {Δ} → Cmd Δ → Pred SCtx 0ℓ → Pred SCtx 0ℓ
-  Cont c P = δ c ─✴ F P
+  Cont c P = δ c ─✴ F P -- P ─✴ Q = \ i → ∀ {j k} → i ⊎ j ≣ k → P j → Q k
 
   data F : Pt SCtx 0ℓ where
     pure   : ∀ {P}   → ∀[ P ⇒ F P ] 
@@ -58,12 +58,12 @@ module Free where
   -- put the arguments in the right order
   syntax f-bind f p s = p split s bind f
 
-  send! : ∀ {α} → ∀[ Chan (a ⅋ α) ✴ Val a ⇒ F (Chan (α .force)) ]
+  send! : ∀ {α} → ∀[ Chan (a ¿ α) ✴ Val a ⇒ F (Chan (α .force)) ]
   send! args =
     impure (send args ×⟨ ⊎-identityʳ refl ⟩ λ v s →
       subst (F _) (⊎-identity⁻ˡ s) (pure v))
 
-  receive! : ∀ {α} → ∀[ Chan (a ⊗ α) ⇒ F (Chan (α .force) ✴ Val a) ]
+  receive! : ∀ {α} → ∀[ Chan (a ! α) ⇒ F (Chan (α .force) ✴ Val a) ]
   receive! args =
     impure (receive args ×⟨ ⊎-identityʳ refl ⟩ λ v s →
       subst (F _) (⊎-identity⁻ˡ s) (pure v))

@@ -19,4 +19,5 @@ open MonoidalSep ⦃...⦄ hiding (isEquivalence; isPreorder; preorder; refl; sy
 open RawUnitalSep ⦃...⦄ public
 open RawSep ⦃...⦄ public
 open IsUnitalSep ⦃...⦄ public
+open IsSep ⦃...⦄ public
 

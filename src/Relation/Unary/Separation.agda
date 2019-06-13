@@ -89,10 +89,7 @@ record IsSep {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (s : RawSep 
     ⟨_⟨✴⟩_⟩ : (P ⊆ P') → (Q ⊆ Q') → P ✴ Q ⊆ P' ✴ Q'
     ⟨_⟨✴⟩_⟩ f g (px ×⟨ sep ⟩ qx) = (f px) ×⟨ sep ⟩ (g qx)
 
-    -- ✴✴-map : ∀[ (P ─✴ P') ✴ (Q ─✴ Q') ⇒ P ✴ Q ─✴ P' ✴ Q' ]
-    -- ✴✴-map (f ×⟨ sep₁ ⟩ g) (px ×⟨ sep₂ ⟩ qx) s =
-    --   let _ , eq₁ , eq₂ = ⊎-assoc (⊎-comm sep₂) (⊎-comm s) in
-    --   (f px {!!}) ×⟨ {!!} ⟩ (g qx {!!} )
+
 
   module _ {p q} {P : SPred p} {Q : SPred q} where
     apply : ∀[ (P ─✴ Q) ✴ P ⇒ Q ]
@@ -122,6 +119,23 @@ record IsSep {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (s : RawSep 
         λ qx sep' →
           let Φ , σ , σ' = ⊎-assoc sep sep'
           in  apply (f  ×⟨ σ' ⟩ (px ×⟨ σ ⟩ qx))
+
+  -- | The update modality is a strong monad
+  module Update {p} {P : SPred p} where
+
+    ⤇-map : ∀ {q} {Q : SPred q} → ∀[ P ⇒ Q ] → ∀[ (⤇ P) ⇒ (⤇ Q) ]
+    ⤇-map f mp σ with mp σ
+    ... | _ , _ , σ' , p = -, -, σ' , f p
+
+    ⤇-return : ∀[ P ⇒ ⤇ P ]
+    ⤇-return px σ = -, -, σ , px
+
+    ⤇-join : ∀[ ⤇ (⤇ P) ⇒ ⤇ P ]
+    ⤇-join mmp σ with mmp σ
+    ... | _ , _ , σ' , mp = mp σ'
+
+    -- ⤇-& : ∀ {q} {Q : SPred q} → ∀[ P ✴ ⤇ Q ⇒ ⤇ (P ✴ Q) ]
+    -- ⤇-& (p ×⟨ σ ⟩ mq) σ' = ?
 
 record RawUnitalSep {c} (C : Set c) : Set (suc c) where
   field
@@ -185,7 +199,7 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e) : Set (suc c ⊔ e) where
     ⊎-identity⁻ˡ   : ∀ {Φ} → ∀[ (ε ⊎ Φ) ⇒ (Φ ≡_) ]
     ε-separateˡ    : ∀ {Φᵣ} → ∀[ (_⊎ Φᵣ ≣ ε) ⇒ (_≡ ε) ]
 
-  open IsSep isSep public
+  open IsSep isSep
 
   ⊎-identityʳ : ∀ {Φ} → ∀[ (Φ ≡_) ⇒ (Φ ⊎ ε) ]
   ⊎-identityʳ = ⊎-comm ∘ ⊎-identityˡ

@@ -78,7 +78,7 @@ module _ {A : Set} {A-sep : RawUnitalSep A} ⦃ _ : IsSep _≡_ (RawUnitalSep.se
   comm (authᵣ x le) = authₗ (⊎-comm x) le
   comm (unauth x)   = unauth (⊎-comm x)
 
-  postulate auth-has-sep : IsSep _≡_ auth-raw-sep
+  instance postulate auth-has-sep : IsSep _≡_ auth-raw-sep
   -- auth-has-sep = record
   --   { ⊎-functional = func
   --   ; ⊎-cancellative = cancelₗ

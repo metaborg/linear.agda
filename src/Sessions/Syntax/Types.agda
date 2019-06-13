@@ -41,16 +41,16 @@ module _ where
       -- _⟶_  : ∀[ Type ⇒ Type ⇒ UType ]
 
     -- channel types
-    infixr 10 _⅋_
+    infixr 10 _¿_
     data SType : Size →  Set where
       -- input and output
-      -- a ⊗ α : output a and continue as α
-      -- a ⅋ α : input a and continue as α
-      _⊗_ _⅋_ : ∀[ Type ⇒ Thunk SType ⇒ SType ]
+      -- a ! α : output a and continue as α
+      -- a ¿ α : input a and continue as α
+      _!_ _¿_ : ∀[ Type ⇒ Thunk SType ⇒ SType ]
 
       -- selection and choice
       -- a ⊕ b : select from a and b
-      -- a ⅋ b : offer choice of a and b
+      -- a ¿ b : offer choice of a and b
       _⊕_ _&_ : ∀[ Type ⇒ Thunk SType ⇒ SType ]
 
       -- terminate
@@ -67,8 +67,8 @@ module _ where
 module _ where
 
   data _⊢_≈ₛ_ (i : Size) : SType ∞ → SType ∞ → Set where
-    -⊗_ : ∀ {a α α'} → Thunk^R _⊢_≈ₛ_ i α α' → i ⊢ (a ⊗ α) ≈ₛ (a ⊗ α')
-    -⅋_ : ∀ {a α α'} → Thunk^R _⊢_≈ₛ_ i α α' → i ⊢ (a ⅋ α) ≈ₛ (a ⅋ α')
+    -!_ : ∀ {a α α'} → Thunk^R _⊢_≈ₛ_ i α α' → i ⊢ (a ! α) ≈ₛ (a ! α')
+    -¿_ : ∀ {a α α'} → Thunk^R _⊢_≈ₛ_ i α α' → i ⊢ (a ¿ α) ≈ₛ (a ¿ α')
     -⊕_ : ∀ {a α α'} → Thunk^R _⊢_≈ₛ_ i α α' → i ⊢ (a ⊕ α) ≈ₛ (a ⊕ α')
     -&_ : ∀ {a α α'} → Thunk^R _⊢_≈ₛ_ i α α' → i ⊢ (a & α) ≈ₛ (a & α')
 
@@ -107,6 +107,9 @@ module _ {t} {T : Set t} where
 
   instance unital' : RawUnitalSep Ctx
   unital' = record { ε = [] ; sep = separation }
+
+  instance ctx-has-sep : IsSep _≡_ separation
+  ctx-has-sep = {!!}
 
   instance ctx-hasUnitalSep : IsUnitalSep _↭_
   ctx-hasUnitalSep = record { isSep = {!!} ; unital = unital' ; ⊎-identityˡ = {!!} ; ⊎-identity⁻ˡ = {!!} }
@@ -151,15 +154,15 @@ module _ where
 
   infixl 1000 _⁻¹
   _⁻¹  : ∀[ SType ⇒ SType ]
-  (a ⊗ β) ⁻¹ = a ⅋ λ where .force → (force β) ⁻¹
-  (a ⅋ β) ⁻¹ = a ⊗ λ where .force → (force β) ⁻¹
+  (a ! β) ⁻¹ = a ¿ λ where .force → (force β) ⁻¹
+  (a ¿ β) ⁻¹ = a ! λ where .force → (force β) ⁻¹
   (a ⊕ β) ⁻¹ = a & λ where .force → (force β) ⁻¹
   (a & β) ⁻¹ = a ⊕ λ where .force → (force β) ⁻¹
   end ⁻¹     = end
 
   -- dual-involutive : ∀ {i} → Involutive _⊢_≈_ _⁻¹
-  -- dual-involutive (x ⊗ y) = cong (x ⊗_) {!!}
-  -- dual-involutive (x ⅋ x₁) = {!!}
+  -- dual-involutive (x ! y) = cong (x !_) {!!}
+  -- dual-involutive (x ¿ x₁) = {!!}
   -- dual-involutive (x ⊕ x₁) = {!!}
   -- dual-involutive (x & x₁) = {!!}
   -- dual-involutive end! = {!!}
