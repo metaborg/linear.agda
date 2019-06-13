@@ -1,4 +1,4 @@
-module Sessions.Semantics.Process-02 where
+module Sessions.Semantics.Process-01 where
 
 open import Prelude hiding (_∷ʳ_; lift; Lift)
 open import Data.Unit
