@@ -52,11 +52,11 @@ Links = Bigstar Link
 
 -- | Threads are clients (predicates over `SCtx`)
 
-data Thread : Pred SCtx 0ℓ where
-  thread : ∀ {a} → ∀[ F (Val a) ⇒ Thread ]
+Thread : Type ∞ → Pred SCtx 0ℓ
+Thread a = F (Val a)
 
 Pool : Pred SCtx 0ℓ
-Pool = Bigstar Thread
+Pool = Bigstar (λ Φ → ∃ λ a → Thread a Φ)
 
 -- | The server state (predicate over `▣ SCtx`)
 
@@ -67,8 +67,8 @@ State = Lift Links ✴ ○ Pool
 M : ▤ → ▤
 M P = State ==✴ State ✴ P
 
-return : ∀ {P} → ∀[ P ⇒ M P ]
-return px st σ₁ σ₂ = -, -, σ₂ , st ×⟨ ⊎-comm σ₁ ⟩ px
+return : ∀ {P} → ∀[ P ─✴ M P ]
+return px st σ₁ σ₂ = {!!} -- -, -, σ₂ , st ×⟨ ⊎-comm σ₁ ⟩ px
 
 join : ∀ {P} → ∀[ M (M P) ⇒ M P ]
 join c st σ = ⤇-bind (apply ∘ ✴-swap) (apply (c ×⟨ σ ⟩ st))
@@ -86,7 +86,7 @@ newChannel : ∀ α → ∀[ State ==✴ State ✴ ○ (Just α ✴ Just (α ⁻
 newChannel α (lift ls ×⟨ σ₂ ⟩ th) σ₁ {Φⱼ = Φⱼ} {Φₖ = Φₖ₁ ◐ Φₖ₂ } σ =
   let
     new-state = lift (cons (newLink α ×⟨ consˡ (consˡ (right (≡⇒≋ refl))) , ⊎-identityˡ refl ⟩ ls)) ×⟨ {!!} ⟩ th
-    pointers  = unauth (refl ×⟨ consˡ (consʳ []) ⟩ refl)
+    pointers  = client (refl ×⟨ consˡ (consʳ []) ⟩ refl)
   in
    _ 
   , (α ∷ α ⁻¹ ∷ Φₖ₁) ◐ (α ∷ α ⁻¹ ∷ Φₖ₂)
@@ -94,7 +94,7 @@ newChannel α (lift ls ×⟨ σ₂ ⟩ th) σ₁ {Φⱼ = Φⱼ} {Φₖ = Φₖ�
   , new-state ×⟨ authₗ (⊎-identityˡ refl) (≤-reflexive refl) ⟩ pointers
   -- _
   -- , (α ∷ α ⁻¹ ∷ proj₁ Φ , α ∷ α ⁻¹ ∷ proj₂ Φ)
-  -- , ({!auth!} , {!!} ×⟨ {!!} ⟩ (unauth refl) ×⟨ unauth (consˡ (consʳ [])) ⟩ unauth refl)
+  -- , ({!auth!} , {!!} ×⟨ {!!} ⟩ (client refl) ×⟨ client (consˡ (consʳ [])) ⟩ client refl)
 
 do-send : ∀ {a α} → ∀[ ○ (Just (a ! α) ✴ Val a) ─✴ M (○ (Just (α .force))) ]
 do-send = {!!}
@@ -108,6 +108,6 @@ do-recv = {!!}
 do-fork : ∀[ ○ (Closure (chan α) b ✴ Just α) ─✴ M Emp ]
 do-fork = {!!}
 
-step : ∀[ ○ Thread ─✴ M (○ (Thread ∪ Emp)) ]
-step (unauth (thread (pure val))) = {!!}
-step (unauth (thread (impure x))) = {!!}
+step : ∀[ ○ (Thread a) ─✴ M (○ (Thread a ∪ Val a)) ]
+step (client (pure val))     = return (client (inj₂ val))
+step (client (impure cmd✴κ)) = {!!}

@@ -23,7 +23,7 @@ module Authoritative {A : Set} ⦃ A-sep : RawUnitalSep A ⦄ where
     auth   : ∀ {x} → P x → ● P (x ◐ ε)
 
   data ○ {p} (P : Pred A p) : Pred (▣ A) p where
-    unauth : ∀ {x} → P x → ○ P (ε ◐ x)
+    client : ∀ {x} → P x → ○ P (ε ◐ x)
 
   data Split : ▣ A → ▣ A → ▣ A → Set where
     authₗ   : ∀ {x y y' z} →
@@ -34,7 +34,7 @@ module Authoritative {A : Set} ⦃ A-sep : RawUnitalSep A ⦄ where
               y ⊎ y' ≣ z →
               z ≤ x →
               Split (ε ◐ y) (x ◐ y') (x ◐ z)
-    unauth  : ∀ {y y' z} →
+    client  : ∀ {y y' z} →
               y ⊎ y' ≣ z →
               Split (ε ◐ y) (ε ◐ y') (ε ◐ z)
 
@@ -53,30 +53,30 @@ module _ {A : Set} {A-sep : RawUnitalSep A} ⦃ _ : IsSep _≡_ (RawUnitalSep.se
   func : ∀ {Φ₁ Φ₂ Φ Φ'} → Split Φ₁ Φ₂ Φ → Split Φ₁ Φ₂ Φ' → Φ ≡ Φ'
   func (authₗ x le) (authₗ y le') = cong (_ ◐_) (⊎-functional x y)
   func (authₗ x le) (authᵣ y le') = cong (_ ◐_) (⊎-functional x y)
-  func (authₗ x le) (unauth y)    = cong (_ ◐_) (⊎-functional x y)
+  func (authₗ x le) (client y)    = cong (_ ◐_) (⊎-functional x y)
   func (authᵣ x le) (authₗ y le') = cong (_ ◐_) (⊎-functional x y)
   func (authᵣ x le) (authᵣ y le') = cong (_ ◐_) (⊎-functional x y)
-  func (authᵣ x le) (unauth y)    = cong (_ ◐_) (⊎-functional x y)
-  func (unauth x) (authₗ y le)    = cong (_ ◐_) (⊎-functional x y)
-  func (unauth x) (authᵣ y le)    = cong (_ ◐_) (⊎-functional x y)
-  func (unauth x) (unauth y)      = cong (_ ◐_) (⊎-functional x y)
+  func (authᵣ x le) (client y)    = cong (_ ◐_) (⊎-functional x y)
+  func (client x) (authₗ y le)    = cong (_ ◐_) (⊎-functional x y)
+  func (client x) (authᵣ y le)    = cong (_ ◐_) (⊎-functional x y)
+  func (client x) (client y)      = cong (_ ◐_) (⊎-functional x y)
 
   -- meh :(
   cancelₗ : ∀ {Φ₁ Φ₁' Φ₂ Φ} → Split Φ₁ Φ₂ Φ → Split Φ₁' Φ₂ Φ → Φ₁ ≡ Φ₁'
   cancelₗ (authₗ x le) (authₗ y le') = cong (_ ◐_) (⊎-cancellative x y)
   cancelₗ (authₗ x le) (authᵣ y le') = cong (_ ◐_) (⊎-cancellative x y)
-  cancelₗ (authₗ x le) (unauth y)    = cong (_ ◐_) (⊎-cancellative x y)
+  cancelₗ (authₗ x le) (client y)    = cong (_ ◐_) (⊎-cancellative x y)
   cancelₗ (authᵣ x le) (authₗ y le') = cong (_ ◐_) (⊎-cancellative x y)
   cancelₗ (authᵣ x le) (authᵣ y le') = cong (_ ◐_) (⊎-cancellative x y)
-  cancelₗ (authᵣ x le) (unauth y)    = cong (_ ◐_) (⊎-cancellative x y)
-  cancelₗ (unauth x) (authₗ y le)    = cong (_ ◐_) (⊎-cancellative x y)
-  cancelₗ (unauth x) (authᵣ y le)    = cong (_ ◐_) (⊎-cancellative x y)
-  cancelₗ (unauth x) (unauth y)      = cong (_ ◐_) (⊎-cancellative x y)
+  cancelₗ (authᵣ x le) (client y)    = cong (_ ◐_) (⊎-cancellative x y)
+  cancelₗ (client x) (authₗ y le)    = cong (_ ◐_) (⊎-cancellative x y)
+  cancelₗ (client x) (authᵣ y le)    = cong (_ ◐_) (⊎-cancellative x y)
+  cancelₗ (client x) (client y)      = cong (_ ◐_) (⊎-cancellative x y)
 
   comm : ∀ {Φ₁ Φ₂ Φ} → Split Φ₁ Φ₂ Φ → Split Φ₂ Φ₁ Φ
   comm (authₗ x le) = authᵣ (⊎-comm x) le
   comm (authᵣ x le) = authₗ (⊎-comm x) le
-  comm (unauth x)   = unauth (⊎-comm x)
+  comm (client x)   = client (⊎-comm x)
 
   instance postulate auth-has-sep : IsSep _≡_ auth-raw-sep
   -- auth-has-sep = record
