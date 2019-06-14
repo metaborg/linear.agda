@@ -32,6 +32,8 @@ instance
   auth-raw-unital = auth-unital
 
 -- | The channel buffers and connections (predicates over `SCtx × SCtx`)
+-- The left context is the 'authorative' part,
+-- and the right context is the 'client' part
 
 Buffer : SType ∞ → Pred (SCtx × SCtx) 0ℓ
 Buffer = {!!}
@@ -69,10 +71,15 @@ return : ∀ {P} → ∀[ P ⇒ M P ]
 return px st σ₁ σ₂ = -, -, σ₂ , st ×⟨ ⊎-comm σ₁ ⟩ px
 
 join : ∀ {P} → ∀[ M (M P) ⇒ M P ]
-join = {!!}
+join c st σ = ⤇-bind (apply ∘ ✴-swap) (apply (c ×⟨ σ ⟩ st))
+  where open Update
+
+mmap : ∀ {P Q} → ∀[ P ⇒ Q ] → ∀[ M P ⇒ M Q ]
+mmap f c st σ = ⤇-map ⟨ id ⟨✴⟩ f ⟩ (apply (c ×⟨ σ ⟩ st))
+  where open Update
 
 _>>=_ : ∀ {P Q} → ∀[ P ⇒ M Q ] → ∀[ M P ⇒ M Q ]
-_>>=_ = {!!}
+_>>=_ f = join ∘ mmap f
 
 -- | Creating a new channel, returning two compatible endpoints and updated links
 newChannel : ∀ α → ∀[ State ==✴ State ✴ ○ (Just α ✴ Just (α ⁻¹)) ]
@@ -102,5 +109,5 @@ do-fork : ∀[ ○ (Closure (chan α) b ✴ Just α) ─✴ M Emp ]
 do-fork = {!!}
 
 step : ∀[ ○ Thread ─✴ M (○ (Thread ∪ Emp)) ]
-step (unauth (thread (pure val))) st = {!!}
-step (unauth (thread (impure x))) st = {!!}
+step (unauth (thread (pure val))) = {!!}
+step (unauth (thread (impure x))) = {!!}

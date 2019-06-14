@@ -89,7 +89,11 @@ record IsSep {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (s : RawSep 
     ⟨_⟨✴⟩_⟩ : (P ⊆ P') → (Q ⊆ Q') → P ✴ Q ⊆ P' ✴ Q'
     ⟨_⟨✴⟩_⟩ f g (px ×⟨ sep ⟩ qx) = (f px) ×⟨ sep ⟩ (g qx)
 
-
+  -- commute product
+  module _ {p q}
+    {P : SPred p} {Q : SPred q} where
+    ✴-swap : ∀[ (P ✴ Q) ⇒ (Q ✴ P) ]
+    ✴-swap (px ×⟨ σ ⟩ qx) = qx ×⟨ ⊎-comm σ ⟩ px
 
   module _ {p q} {P : SPred p} {Q : SPred q} where
     apply : ∀[ (P ─✴ Q) ✴ P ⇒ Q ]
@@ -121,18 +125,23 @@ record IsSep {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (s : RawSep 
           in  apply (f  ×⟨ σ' ⟩ (px ×⟨ σ ⟩ qx))
 
   -- | The update modality is a strong monad
-  module Update {p} {P : SPred p} where
+  module Update where
 
-    ⤇-map : ∀ {q} {Q : SPred q} → ∀[ P ⇒ Q ] → ∀[ (⤇ P) ⇒ (⤇ Q) ]
+    ⤇-map : ∀ {p q} {P : SPred p} {Q : SPred q} →
+            ∀[ P ⇒ Q ] → ∀[ (⤇ P) ⇒ (⤇ Q) ]
     ⤇-map f mp σ with mp σ
     ... | _ , _ , σ' , p = -, -, σ' , f p
 
-    ⤇-return : ∀[ P ⇒ ⤇ P ]
+    ⤇-return : ∀ {p} {P : SPred p} → ∀[ P ⇒ ⤇ P ]
     ⤇-return px σ = -, -, σ , px
 
-    ⤇-join : ∀[ ⤇ (⤇ P) ⇒ ⤇ P ]
+    ⤇-join : ∀ {p} {P : SPred p} → ∀[ ⤇ (⤇ P) ⇒ ⤇ P ]
     ⤇-join mmp σ with mmp σ
     ... | _ , _ , σ' , mp = mp σ'
+
+    ⤇-bind : ∀ {q p} {P : SPred p} {Q : SPred q} →
+             ∀[ P ⇒ ⤇ Q ] → ∀[ (⤇ P) ⇒ (⤇ Q) ]
+    ⤇-bind f = ⤇-join ∘ ⤇-map f
 
     -- ⤇-& : ∀ {q} {Q : SPred q} → ∀[ P ✴ ⤇ Q ⇒ ⤇ (P ✴ Q) ]
     -- ⤇-& (p ×⟨ σ ⟩ mq) σ' = ?
