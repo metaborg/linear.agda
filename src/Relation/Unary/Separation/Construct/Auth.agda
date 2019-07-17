@@ -20,12 +20,6 @@ module _ ⦃ A-sep : RawUnitalSep A ⦄ where
     authed : ∀ (x y : A) → .(y ≤ x) → Auth
     unauth : ∀ (x : A) → Auth
 
-  -- data ● {p} (P : Pred A p) : Pred Auth  p where
-  --   authed   : ∀ {x} → P x → ● P (authed x ε {!ε-minimal!})
-
-  -- data ○ {p} (P : Pred A p) : Pred Auth p where
-  --   unauthed : ∀ {x} → P x → ○ P (nothing ◐ x)
-
   data Split : Auth → Auth → Auth → Set where
 
     on-left : ∀ {x y y' z } .{le le'} →
@@ -57,11 +51,12 @@ module _ ⦃ A-sep : RawUnitalSep A ⦄ where
   auth-raw-sep : RawSep Auth
   _⊎_≣_ auth-raw-sep = Split
 
---   auth-unital : RawUnitalSep Auth
---   auth-unital = record { ε = nothing ◐ ε ; sep = auth-raw-sep }
+  auth-raw-unital : RawUnitalSep Auth
+  auth-raw-unital = record { ε = unauth ε ; sep = auth-raw-sep }
 
 module _ ⦃ A-sep : RawUnitalSep A ⦄ ⦃ _ : IsSep _≡_ (RawUnitalSep.sep A-sep) ⦄ where
   open IsSep ⦃...⦄
+  open RawUnitalSep ⦃...⦄
 
   comm : ∀ {Φ₁ Φ₂ Φ} → Split Φ₁ Φ₂ Φ → Split Φ₂ Φ₁ Φ
   comm (on-right x) = on-left x
@@ -96,10 +91,16 @@ module _ ⦃ _ : IsUnitalSep {C = A} _≡_ ⦄  where
   open RawUnitalSep unital 
   instance _ = unital
   instance _ = isSep
-    
+
+  data ● {p} (P : Pred A p) : Pred Auth  p where
+    authed   : ∀ {x} → P x → ● P (authed x ε ε-minimal)
+
+  data ○ {p} (P : Pred A p) : Pred Auth p where
+    unauthed : ∀ {x} → P x → ○ P (unauth x)
+
   module U = IsUnitalSep
   instance auth-is-unital : IsUnitalSep {C = Auth} _≡_
-  U.unital auth-is-unital                           = record { ε = unauth ε ; sep = auth-raw-sep }
+  U.unital auth-is-unital                           = auth-raw-unital
   U.isSep auth-is-unital                            = auth-has-sep
   U.⊎-identityˡ auth-is-unital {authed x y x₁} refl = on-right (⊎-identityʳ refl)
   U.⊎-identityˡ auth-is-unital {unauth x} refl      = neither (⊎-identityˡ refl)
