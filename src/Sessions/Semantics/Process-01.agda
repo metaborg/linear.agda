@@ -88,6 +88,8 @@ bind' f = join ∘ mmap f
 bind : ∀ {P Q} → ∀[ (P ─✴ M Q) ⇒ (M P ─✴ M Q) ]
 bind = {!!}
 
+syntax bind f p s = p ⟪ s ⟫= f
+
 -- | Creating a new channel, returning two compatible endpoints and updated links
 newChannel : ∀ α → ε[ M (○ (Just α ✴ Just (α ⁻¹))) ]
 newChannel α {Φₒ} (lift ls ×⟨ σ₂ ⟩ th) σ₁ {Φⱼ = Φⱼ} {Φₖ = Φₖ} σ = {!!}
@@ -122,21 +124,21 @@ do-fork : ∀[ ○ (Closure (chan α) b ✴ Just α) ─✴ M Emp ]
 do-fork = {!!}
 
 step : ∀[ ○ (Thread a) ⇒ M (○ (Thread a ∪ Val a)) ]
+
 step (frag (pure val)) =
   return (frag (inj₂ val))
+
 step (frag (impure (send x ×⟨ σ₀ ⟩ κ))) =
-  bind
-    (λ where (frag ch) (neither σ) → return (frag (inj₁ (κ ch σ))))
-    (do-send (frag x))
-    (neither (⊎-comm σ₀))
+  do-send (frag x) ⟪ neither (⊎-comm σ₀) ⟫= λ where
+    (frag ch) (neither σ) → return (frag (inj₁ (κ ch σ)))
+
 step (frag thread@(impure (receive ch ×⟨ σ₀ ⟩ κ))) =
-  bind
-    (λ where
-      -- no value in the buffer; reschedule
-      (frag (inj₂ ch))   (neither σ) → return (frag (inj₁ (impure (receive ch ×⟨ ⊎-comm σ ⟩ κ))))
-      -- received a value from the buffer
-      (frag (inj₁ ch✴v)) (neither σ) → return (frag (inj₁ (κ ch✴v σ))))
-    (do-receive (frag ch))
-    (neither (⊎-comm σ₀))
+  do-receive (frag ch) ⟪ neither (⊎-comm σ₀) ⟫= λ where
+    -- no value in the buffer; reschedule
+    (frag (inj₂ ch))   (neither σ) → return (frag (inj₁ (impure (receive ch ×⟨ ⊎-comm σ ⟩ κ))))
+    -- received a value from the buffer
+    (frag (inj₁ ch✴v)) (neither σ) → return (frag (inj₁ (κ ch✴v σ)))
+    
 step (frag (impure (close x ×⟨ σ ⟩ qx))) = {!!}
+
 step (frag (impure (fork x  ×⟨ σ ⟩ qx))) = {!!}
