@@ -1,5 +1,5 @@
 -- | An implementation of the Authoritative PCM
-module Relation.Unary.Separation.Construct.Auth {A : Set} where
+module Relation.Unary.Separation.Construct.Auth (A : Set) where
 
 open import Level
 open import Data.Product
@@ -17,93 +17,91 @@ module _ ⦃ A-sep : RawUnitalSep A ⦄ where
   open RawSep sep
 
   data Auth : Set where
-    authed : ∀ (x y : A) → .(y ≤ x) → Auth
-    unauth : ∀ (x : A) → Auth
+    _◐_ : ∀ (x y : A) → Auth
+    ◌   : ∀ (x : A) → Auth
 
   data Split : Auth → Auth → Auth → Set where
 
-    on-left : ∀ {x y y' z } .{le le'} →
+    on-left : ∀ {x y y' z } →
                y ⊎ y' ≣ z →
-               Split (authed x y le) (unauth y') (authed x z le')
+               z ≤ x →
+               Split (x ◐ y) (◌ y') (x ◐ z)
 
-    on-right  : ∀ {x y y' z} .{le le'} →
+    on-right  : ∀ {x y y' z} →
                y ⊎ y' ≣ z →
-               Split (unauth y') (authed x y le) (authed x z le')
+               z ≤ x →
+               Split (◌ y') (x ◐ y) (x ◐ z)
 
     neither  : ∀ {y y' z} →
                y ⊎ y' ≣ z →
-               Split (unauth y) (unauth y') (unauth z)
+               Split (◌ y) (◌ y') (◌ z)
 
-  -- ◐-invₗ : ∀ {x z Φₗ Φᵣ Φ} → Split Φ (unauth ◐ Φᵣ) (z ◐ Φ) → x ≡ z
-  -- ◐-invₗ (on-left _ _) = refl
-  -- ◐-invₗ (neither  _)  = refl
+  data ● {p} (P : Pred Auth p) : Pred Auth  p where
+    whole : ∀ {x y} → P (x ◐ y) → ● P (x ◐ y)
 
---   ◐-invᵣ : ∀ {x z Φₗ Φᵣ Φ} → Split (nothing ◐ Φₗ) (x ◐ Φᵣ) (z ◐ Φ) → x ≡ z
---   ◐-invᵣ (on-right _ _) = refl
---   ◐-invᵣ (neither  _)   = refl
-
---   frag-split : ∀ {Φₗ Φᵣ Φ} → Split Φₗ Φᵣ Φ → frag Φₗ ⊎ frag Φᵣ ≣ frag Φ
---   frag-split (on-right x x₁)  = x
---   frag-split (on-left x x₁) = x
---   frag-split (neither x)     = x
+  data ○ {p} (P : Pred A p) : Pred Auth p where
+    frag : ∀ {x} → P x → ○ P (◌ x)
 
   open RawSep
-  auth-raw-sep : RawSep Auth
+  instance auth-raw-sep : RawSep Auth
   _⊎_≣_ auth-raw-sep = Split
 
-  auth-raw-unital : RawUnitalSep Auth
-  auth-raw-unital = record { ε = unauth ε ; sep = auth-raw-sep }
+  instance auth-raw-unital : RawUnitalSep Auth
+  auth-raw-unital = record { ε = ◌ ε ; sep = auth-raw-sep }
 
-module _ ⦃ A-sep : RawUnitalSep A ⦄ ⦃ _ : IsSep _≡_ (RawUnitalSep.sep A-sep) ⦄ where
+module _ ⦃ A-sep : RawUnitalSep A ⦄ ⦃ _ : IsSep (RawUnitalSep.sep A-sep) ⦄ where
   open IsSep ⦃...⦄
   open RawUnitalSep ⦃...⦄
 
   comm : ∀ {Φ₁ Φ₂ Φ} → Split Φ₁ Φ₂ Φ → Split Φ₂ Φ₁ Φ
-  comm (on-right x) = on-left x
-  comm (on-left x ) = on-right x
-  comm (neither x)  = neither (⊎-comm x)
+  comm (on-right l r) = on-left l r
+  comm (on-left l r)  = on-right l r
+  comm (neither x)    = neither (⊎-comm x)
 
-  assoc : ∀ {Φ₁ Φ₂ Ψ₁ Ψ₂ Ψ₃} →
-                    Split Φ₁ Φ₂ Ψ₁ → Split Ψ₁ Ψ₂ Ψ₃ →
-                    ∃ (λ ξ → Split Φ₂ Ψ₂ ξ × Split Φ₁ ξ Ψ₃)
-  assoc (on-left s) (on-left s') =
-    let _ , p , q = ⊎-assoc s s' in -, (neither p) , on-left q
-  assoc (on-right s) (on-left {le' = le} s') with ⊎-assoc (⊎-comm s) s'
-  ... | a , p , q =  -, on-left {le' = ≤-trans (-, ⊎-comm q) le} p , on-right (⊎-comm q)
-  assoc (neither s) (on-right {le' = le} s') with ⊎-assoc s (⊎-comm s')
-  ... | a , p , q = -, on-right {le' = ≤-trans (-, ⊎-comm q) le} (⊎-comm p) , on-right (⊎-comm q)
+  assoc : ∀ {Φ₁ Φ₂ Ψ₁ Ψ₂ Ψ₃} → Split Φ₁ Φ₂ Ψ₁ → Split Ψ₁ Ψ₂ Ψ₃ →
+          ∃ (λ ξ → Split Φ₂ Ψ₂ ξ × Split Φ₁ ξ Ψ₃)
+  assoc (on-left s r) (on-left s' r') =
+    let _ , p , q = ⊎-assoc s s' in -, (neither p) , on-left q r'
+  assoc (on-right s l) (on-left s' l') with ⊎-assoc (⊎-comm s) s'
+  ... | a , p , q =
+    let le = ≤-trans (-, ⊎-comm q) l' 
+    in -, on-left p le , on-right (⊎-comm q) l'
+  assoc (neither s) (on-right s' l) with ⊎-assoc s (⊎-comm s')
+  ... | a , p , q =
+    let le = ≤-trans (-, ⊎-comm q) l
+    in -, on-right (⊎-comm p) le , on-right (⊎-comm q) l
   assoc (neither s) (neither s') =
     let _ , p , q = ⊎-assoc s s' in -, neither p , neither q
 
-  instance auth-has-sep : IsSep _≡_ auth-raw-sep
+  instance auth-has-sep : IsSep auth-raw-sep
   auth-has-sep = record
     { ⊎-comm  = comm
     ; ⊎-assoc = assoc
     }
 
-  auth-sep : Separation _ _
+  instance auth-sep : Separation _ _
   auth-sep = record
     { set   = P.setoid Auth
     ; isSep = auth-has-sep }
 
-module _ ⦃ _ : IsUnitalSep {C = A} _≡_ ⦄  where
-  open IsUnitalSep ⦃...⦄
-  open RawUnitalSep unital 
-  instance _ = unital
-  instance _ = isSep
+-- The thing is not quite unital, because the inclusion between a part and the whole
+-- is part of the split relation and does not necessarily hold for a given carrier pair.
+-- If we force the authoratative carrier pair to witness the inclusion,
+-- then other things break, because that witness doesn't neccessarily agree with
+-- the inclusion as part of the split relation...
 
-  data ● {p} (P : Pred A p) : Pred Auth  p where
-    authed   : ∀ {x} → P x → ● P (authed x ε ε-minimal)
+-- module _ ⦃ _ : IsUnitalSep {C = A} _≡_ ⦄  where
+--   open IsUnitalSep ⦃...⦄
+--   open RawUnitalSep unital 
+--   instance _ = unital
+--   instance _ = isSep
 
-  data ○ {p} (P : Pred A p) : Pred Auth p where
-    unauthed : ∀ {x} → P x → ○ P (unauth x)
-
-  module U = IsUnitalSep
-  instance auth-is-unital : IsUnitalSep {C = Auth} _≡_
-  U.unital auth-is-unital                           = auth-raw-unital
-  U.isSep auth-is-unital                            = auth-has-sep
-  U.⊎-identityˡ auth-is-unital {authed x y x₁} refl = on-right (⊎-identityʳ refl)
-  U.⊎-identityˡ auth-is-unital {unauth x} refl      = neither (⊎-identityˡ refl)
-  U.⊎-identity⁻ˡ auth-is-unital (on-right x) rewrite ⊎-identity⁻ʳ x = refl
-  U.⊎-identity⁻ˡ auth-is-unital (neither x) rewrite ⊎-identity⁻ˡ x  = refl 
-  U.ε-separateˡ auth-is-unital (neither x)          = cong unauth (ε-separateˡ x)
+  -- module U = IsUnitalSep
+  -- instance auth-is-unital : IsUnitalSep {C = Auth} _≡_
+  -- U.unital auth-is-unital                           = auth-raw-unital
+  -- U.isSep auth-is-unital                            = auth-has-sep
+  -- U.⊎-identityˡ auth-is-unital {x ◐  y x₁} refl = {!!} -- on-right {!!} {!!} (⊎-identityʳ refl)
+  -- U.⊎-identityˡ auth-is-unital {◌ x} refl      = neither (⊎-identityˡ refl)
+  -- U.⊎-identity⁻ˡ auth-is-unital (on-right x) rewrite ⊎-identity⁻ʳ x = refl
+  -- U.⊎-identity⁻ˡ auth-is-unital (neither x) rewrite ⊎-identity⁻ˡ x  = refl 
+  -- U.ε-separateˡ auth-is-unital (neither x)          = cong ◌ (ε-separateˡ x)

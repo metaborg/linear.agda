@@ -108,11 +108,11 @@ module _ {t} {T : Set t} where
   instance unital' : RawUnitalSep Ctx
   unital' = record { ε = [] ; sep = separation }
 
-  instance ctx-has-sep : IsSep _≡_ separation
+  instance ctx-has-sep : IsSep separation
   ctx-has-sep = {!!}
 
   instance ctx-hasUnitalSep : IsUnitalSep _↭_
-  ctx-hasUnitalSep = record { isSep = {!!} ; unital = unital' ; ⊎-identityˡ = {!!} ; ⊎-identity⁻ˡ = {!!} }
+  ctx-hasUnitalSep = record { isSep = {!!} ; unital = unital' ; ⊎-identityˡ = {!!} }
 
   ctx-concattative : IsConcattative separation _++_
   ctx-concattative = record

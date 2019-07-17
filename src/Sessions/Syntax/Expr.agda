@@ -21,8 +21,8 @@ data Exp : Type ∞ → LCtx → Set where
   letpair   : ∀[ Exp (prod a b) ✴ (a ◂ b ◂ id ⊢ Exp c) ⇒ Exp c ]
 
   -- communication
-  send      : ∀ {b} → ∀[ Exp a ✴ Exp (chan (a ¿ b)) ⇒ Exp (chan (b .force)) ]
-  recv      : ∀ {b} → ∀[ Exp (chan (a ! b)) ⇒ Exp (prod (chan (b .force)) a) ]
+  send      : ∀ {b} → ∀[ Exp a ✴ Exp (chan (a ! b)) ⇒ Exp (chan (b .force)) ]
+  recv      : ∀ {b} → ∀[ Exp (chan (a ¿ b)) ⇒ Exp (prod (chan (b .force)) a) ]
 
   -- fork
   fork      : ∀[ Exp (chan α ⊸ b) ⇒ Exp (chan (α ⁻¹)) ]

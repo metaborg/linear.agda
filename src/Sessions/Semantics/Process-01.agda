@@ -7,29 +7,25 @@ open import Data.List.Relation.Ternary.Interleaving.Propositional
 open import Data.List.Relation.Equality.Propositional
 
 open import Relation.Unary
-open import Relation.Unary.Separation.Construct.Auth
 open import Relation.Unary.Separation.Construct.Product
 
 open import Sessions.Syntax.Types
 open import Sessions.Syntax.Values
 open import Sessions.Syntax.Expr
 
+open import Sessions.Semantics.Expr-01 using (receive; send; close; fork)
 open import Sessions.Semantics.Expr-02
 
-open Authoritative ⦃...⦄
-
 -- A framed predicate
-▤ = Pred (▣ SCtx) 0ℓ
+open import Relation.Unary.Separation.Construct.Auth SCtx
+fPred = Pred Auth 0ℓ
 
-data Lift (P : Pred (SCtx × SCtx) 0ℓ) : ▤ where
+data Lift (P : Pred (SCtx × SCtx) 0ℓ) : fPred where
   lift : ∀ {Φ₁ Φ₂} → P (Φ₁ , Φ₂) → Lift P (Φ₁ ◐ Φ₂)
 
 instance
-  auth-raw : RawSep (▣ SCtx)
+  auth-raw : RawSep Auth
   auth-raw = auth-raw-sep
-
-  auth-raw-unital : RawUnitalSep (▣ SCtx)
-  auth-raw-unital = auth-unital
 
 -- | The channel buffers and connections (predicates over `SCtx × SCtx`)
 -- The left context is the 'authorative' part,
@@ -60,54 +56,87 @@ Pool = Bigstar (λ Φ → ∃ λ a → Thread a Φ)
 
 -- | The server state (predicate over `▣ SCtx`)
 
-State : ▤
+State : fPred
 State = Lift Links ✴ ○ Pool
 
 -- The monotone state monad
-M : ▤ → ▤
-M P = State ==✴ State ✴ P
+M : fPred → fPred
+M P = State ==✴ State ✴ P -- i.e. M P = State ─✴ (⤇ (State ✴ P))
 
-return : ∀ {P} → ∀[ P ─✴ M P ]
-return px st σ₁ σ₂ = {!!} -- -, -, σ₂ , st ×⟨ ⊎-comm σ₁ ⟩ px
+return : ∀ {P} → ∀[ P ⇒ M P ]
+return px st σ₁ σ₂ = -, -, σ₂ , st ×⟨ ⊎-comm σ₁ ⟩ px
 
 join : ∀ {P} → ∀[ M (M P) ⇒ M P ]
 join c st σ = ⤇-bind (apply ∘ ✴-swap) (apply (c ×⟨ σ ⟩ st))
   where open Update
 
+-- external map
 mmap : ∀ {P Q} → ∀[ P ⇒ Q ] → ∀[ M P ⇒ M Q ]
 mmap f c st σ = ⤇-map ⟨ id ⟨✴⟩ f ⟩ (apply (c ×⟨ σ ⟩ st))
   where open Update
 
-_>>=_ : ∀ {P Q} → ∀[ P ⇒ M Q ] → ∀[ M P ⇒ M Q ]
-_>>=_ f = join ∘ mmap f
+-- internal map
+imap : ∀ {P Q} → ∀[ M P ─✴ (P ⇒ Q) ─✴ M Q ]
+imap f σ₁ c σ₂ st σ₃ = {!!}
+  where open Update
+
+-- this is the wrong bind; both the continuation and the monadic computation
+-- use some amount of resource, but they are not disjoint
+bind' : ∀ {P Q} → ∀[ P ⇒ M Q ] → ∀[ M P ⇒ M Q ]
+bind' f = join ∘ mmap f
+
+bind : ∀ {P Q} → ∀[ (P ─✴ M Q) ⇒ (M P ─✴ M Q) ]
+bind = {!!}
 
 -- | Creating a new channel, returning two compatible endpoints and updated links
-newChannel : ∀ α → ∀[ State ==✴ State ✴ ○ (Just α ✴ Just (α ⁻¹)) ]
-newChannel α (lift ls ×⟨ σ₂ ⟩ th) σ₁ {Φⱼ = Φⱼ} {Φₖ = Φₖ₁ ◐ Φₖ₂ } σ =
-  let
-    new-state = lift (cons (newLink α ×⟨ consˡ (consˡ (right (≡⇒≋ refl))) , ⊎-identityˡ refl ⟩ ls)) ×⟨ {!!} ⟩ th
-    pointers  = client (refl ×⟨ consˡ (consʳ []) ⟩ refl)
-  in
-   _ 
-  , (α ∷ α ⁻¹ ∷ Φₖ₁) ◐ (α ∷ α ⁻¹ ∷ Φₖ₂)
-  , {!!}
-  , new-state ×⟨ authₗ (⊎-identityˡ refl) (≤-reflexive refl) ⟩ pointers
-  -- _
-  -- , (α ∷ α ⁻¹ ∷ proj₁ Φ , α ∷ α ⁻¹ ∷ proj₂ Φ)
-  -- , ({!auth!} , {!!} ×⟨ {!!} ⟩ (client refl) ×⟨ client (consˡ (consʳ [])) ⟩ client refl)
+newChannel : ∀ α → ε[ M (○ (Just α ✴ Just (α ⁻¹))) ]
+newChannel α {Φₒ} (lift ls ×⟨ σ₂ ⟩ th) σ₁ {Φⱼ = Φⱼ} {Φₖ = Φₖ} σ = {!!}
+  -- -- σ describe an arbitrary frame (Φⱼ) around what we own (x₁)
+  -- --
+  -- let
+  --   new-state = lift (cons (newLink α ×⟨ consˡ (consˡ (right (≡⇒≋ refl))) , ⊎-identityˡ refl ⟩ ls)) ×⟨ {!!} ⟩ th
+  --   pointers  = frag (refl ×⟨ consˡ (consʳ []) ⟩ refl)
+  -- in
+  -- -- (Φ₁ ◐ Φ₂) → ls
+  -- -- Φᵣ        → th
+  -- ----------------- +
+  -- -- Φₚ = x
+  -- ((α ∷ α ⁻¹ ∷ objective Φₒ) ◐ (α ∷ α ⁻¹ ∷ subjective Φₒ)) 
+  -- , (α ∷ α ⁻¹ ∷ Φₖ₁) ◐ (α ∷ α ⁻¹ ∷ Φₖ₂)
+  -- , {!!}
+  -- , new-state ×⟨ {!!} ⟩ pointers -- authₗ (⊎-identityˡ refl) (≤-reflexive refl) ⟩ pointers
+  -- -- _
+  -- -- , (α ∷ α ⁻¹ ∷ proj₁ Φ , α ∷ α ⁻¹ ∷ proj₂ Φ)
+  -- -- , ({!auth!} , {!!} ×⟨ {!!} ⟩ (frag refl) ×⟨ frag (consˡ (consʳ [])) ⟩ frag refl)
 
-do-send : ∀ {a α} → ∀[ ○ (Just (a ! α) ✴ Val a) ─✴ M (○ (Just (α .force))) ]
+do-send : ∀ {a α} → ∀[ ○ (Just (a ! α) ✴ Val a) ⇒ M (○ (Just (α .force))) ]
 do-send = {!!}
 
 -- a receive might be blocked by the lack of messages in the buffer,
 -- in which case you will get an unmodified channel pointer back.
-do-recv : ∀ {a α} → ∀[ ○ (Just (a ¿ α)) ─✴ M (○ ((Just (α .force) ✴ Val a) ∪ Just (a ¿ α))) ]
-do-recv = {!!}
+do-receive : ∀ {a α} → ∀[ ○ (Just (a ¿ α)) ⇒ M (○ ((Just (α .force) ✴ Val a) ∪ Just (a ¿ α))) ]
+do-receive = {!!}
 
 -- | Given a closure and a endpointer, fork of a computation
 do-fork : ∀[ ○ (Closure (chan α) b ✴ Just α) ─✴ M Emp ]
 do-fork = {!!}
 
-step : ∀[ ○ (Thread a) ─✴ M (○ (Thread a ∪ Val a)) ]
-step (client (pure val))     = return (client (inj₂ val))
-step (client (impure cmd✴κ)) = {!!}
+step : ∀[ ○ (Thread a) ⇒ M (○ (Thread a ∪ Val a)) ]
+step (frag (pure val)) =
+  return (frag (inj₂ val))
+step (frag (impure (send x ×⟨ σ₀ ⟩ κ))) =
+  bind
+    (λ where (frag ch) (neither σ) → return (frag (inj₁ (κ ch σ))))
+    (do-send (frag x))
+    (neither (⊎-comm σ₀))
+step (frag thread@(impure (receive ch ×⟨ σ₀ ⟩ κ))) =
+  bind
+    (λ where
+      -- no value in the buffer; reschedule
+      (frag (inj₂ ch))   (neither σ) → return (frag (inj₁ (impure (receive ch ×⟨ ⊎-comm σ ⟩ κ))))
+      -- received a value from the buffer
+      (frag (inj₁ ch✴v)) (neither σ) → return (frag (inj₁ (κ ch✴v σ))))
+    (do-receive (frag ch))
+    (neither (⊎-comm σ₀))
+step (frag (impure (close x ×⟨ σ ⟩ qx))) = {!!}
+step (frag (impure (fork x  ×⟨ σ ⟩ qx))) = {!!}

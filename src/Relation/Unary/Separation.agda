@@ -97,7 +97,7 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
       mkPair : ∀[ P ⇒ (Q ◇─ P ✴ Q) ]
       mkPair px ⟪ qx , σ ⟫ = px ×⟨ σ ⟩ qx
 
-record IsSep {ℓ₁ ℓ₂} {A} (_≈_ : (l r : A) → Set ℓ₂) (s : RawSep {ℓ₁} A) : Set (ℓ₁ ⊔ ℓ₂) where
+record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
   open RawSep s
 
   field
@@ -228,7 +228,7 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e) : Set (suc c ⊔ e) where
   open RawUnitalSep unital
 
   field
-    isSep  : IsSep _≈_ sep
+    isSep  : IsSep sep
 
   open RawSep sep
 
@@ -363,7 +363,7 @@ record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
 
   field
     raw          : RawSep Carrier
-    isSep : IsSep _≈_ raw
+    isSep : IsSep raw
 
   open RawSep raw
   open IsSep isSep public

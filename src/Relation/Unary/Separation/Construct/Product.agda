@@ -30,13 +30,12 @@ module _ {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂} where
     record { ε = ε R₁ , ε R₂ ; sep = sep R₁ ×-⊎ sep R₂ }
 
 module _
-  {ℓ₁ ℓ₂ e₁ e₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂}
-  {_≈₁_ : Rel C₁ e₁} {_≈₂_ : Rel C₂ e₂}
+  {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂}
   {R₁ : RawSep C₁} {R₂ : RawSep C₂}
-  (s₁ : IsSep _≈₁_ R₁) (s₂ : IsSep _≈₂_ R₂)
+  (s₁ : IsSep R₁) (s₂ : IsSep R₂)
   where
 
-  postulate _×-isSep_ : IsSep (Pointwise _≈₁_ _≈₂_) (R₁ ×-⊎ R₂)
+  postulate _×-isSep_ : IsSep (R₁ ×-⊎ R₂)
 
 module _
   {ℓ₁ ℓ₂ e₁ e₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂}
