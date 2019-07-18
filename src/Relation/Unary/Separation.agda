@@ -61,9 +61,6 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
   _─✴_ : ∀ {p q} (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
   P ─✴ Q = λ Φᵢ → ∀ {Φₚ} → P Φₚ → ∀[ Φᵢ ⊎ Φₚ ⇒ Q ]
 
-  _─✴′_ : ∀ {p q} (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
-  P ─✴′ Q = λ Φᵢ → ∀ {Φₚ Φ} → (P Φₚ × Φᵢ ⊎ Φₚ ≣ Φ) → Q Φ
-
   -- | The update modality
 
   ⤇ : ∀ {p} → SPred p → SPred (a ⊔ p)
@@ -75,27 +72,18 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
   _==✴_ : ∀ {p q} → (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
   P ==✴ Q = P ─✴ (⤇ Q)
 
-  module Diamond where
+  -- A predicate transformer allowing one to express that
+  -- some value definitely does /not/ own some resource
+  infixl 9 _◇_
+  data _◇_ {p} (P : SPred p) (Φᵢ : Carrier) : SPred (p ⊔ a) where
+    ⟪_,_⟫ : ∀ {Φₚ Φ} → P Φₚ → Φᵢ ⊎ Φₚ ≣ Φ → (P ◇ Φᵢ) Φ
 
-    -- _◆_ : Rel Carrier _
-    -- _◆_ = ∃ _⊎_
+  -- | This gives another wand like thing
 
-    -- A predicate transformer allowing one to express that
-    -- some value definitely does /not/ own some resource
-    infixl 9 _◇_
-    data _◇_ {p} (P : SPred p) (Φᵢ : Carrier) : SPred (p ⊔ a) where
-      ⟪_,_⟫ : ∀ {Φₚ Φ} → P Φₚ → Φᵢ ⊎ Φₚ ≣ Φ → (P ◇ Φᵢ) Φ
-
-    -- | This gives another wand like thing
-
-    module _ {p q} (P : SPred p) (Q : SPred q) where
-      infixr 8 _◇─_
-      _◇─_ : SPred (p ⊔ q ⊔ a)
-      _◇─_ Φᵢ = ∀[ P ◇ Φᵢ ⇒ Q ]
-
-    module _ {p q} {P : SPred p} {Q : SPred q} where
-      mkPair : ∀[ P ⇒ (Q ◇─ P ✴ Q) ]
-      mkPair px ⟪ qx , σ ⟫ = px ×⟨ σ ⟩ qx
+  module _ {p q} (P : SPred p) (Q : SPred q) where
+    infixr 8 _◇─_
+    _◇─_ : SPred (p ⊔ q ⊔ a)
+    _◇─_ Φᵢ = ∀[ P ◇ Φᵢ ⇒ Q ]
 
 record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
   open RawSep s
@@ -103,22 +91,29 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
   field
     -- ⊎-functional   : ∀ {Φ₁ Φ₂ Φ Φ'}   → Φ₁ ⊎ Φ₂ ≣ Φ → Φ₁ ⊎ Φ₂ ≣ Φ' → Φ ≈ Φ'
     -- ⊎-cancellative : ∀ {Φ₁ Φ₁' Φ₂}    → ∀[ Φ₁ ⊎ Φ₂ ⇒ Φ₁' ⊎ Φ₂ ⇒ (λ _ → Φ₁ ≈ Φ₁') ]
-    ⊎-comm         : ∀ {Φ₁ Φ₂}        → ∀[ Φ₁ ⊎ Φ₂ ⇒ Φ₂ ⊎ Φ₁ ]
-    ⊎-assoc        : ∀ {Φ₁ Φ₂ Φ₃ Φ Ψ} → Φ₁ ⊎ Φ₂ ≣ Φ → Φ ⊎ Φ₃ ≣ Ψ →
-                                        ∃ λ Φ₄ → Φ₂ ⊎ Φ₃ ≣ Φ₄ × Φ₁ ⊎ Φ₄ ≣ Ψ
+    -- we axiomatize the basic laws for splittings
+    ⊎-comm  : ∀ {Φ₁ Φ₂}        → ∀[ Φ₁ ⊎ Φ₂ ⇒ Φ₂ ⊎ Φ₁ ]
+    ⊎-assoc : ∀ {a b ab c abc} → a ⊎ b ≣ ab → ab ⊎ c ≣ abc →
+                                 ∃ λ bc → a ⊎ bc ≣ abc × b ⊎ c ≣ bc
 
+  ⊎-unassoc : ∀ {b c bc a abc} → a ⊎ bc ≣ abc → b ⊎ c ≣ bc →
+                                 ∃ λ ab → a ⊎ b ≣ ab × ab ⊎ c ≣ abc
+  ⊎-unassoc σ₁ σ₂ =
+    let _ , σ₃ , σ₄ = ⊎-assoc (⊎-comm σ₂) (⊎-comm σ₁)
+    in -, ⊎-comm σ₄ , ⊎-comm σ₃
+                                
   variable
     Φ₁ Φ₂ Φ₃ Φ : A
 
-  -- derived split laws
   module _ where
-    postulate resplit : ∀ {Φ₁₁ Φ₁₂ Φ₂₁ Φ₂₂} →
-                        Φ₁₁ ⊎ Φ₁₂ ≣ Φ₁ →
-                        Φ₂₁ ⊎ Φ₂₂ ≣ Φ₂ →
-                        Φ₁  ⊎ Φ₂  ≣ Φ  →
-                        ∃₂ λ Ψ₁ Ψ₂ → Φ₁₁ ⊎ Φ₂₁ ≣ Ψ₁ ×
-                                     Φ₁₂ ⊎ Φ₂₂ ≣ Ψ₂ ×
-                                     Ψ₁  ⊎ Ψ₂  ≣ Φ
+    resplit : ∀ {a b c d ab cd abcd} →
+              a ⊎ b ≣ ab → c ⊎ d ≣ cd → ab ⊎ cd ≣ abcd →
+              ∃₂ λ ac bd → a ⊎ c ≣ ac × b ⊎ d ≣ bd × ac  ⊎ bd  ≣ abcd
+    resplit σ₁ σ₂ σ     with ⊎-assoc σ₁ σ
+    ... | bcd , σ₃ , σ₄ with ⊎-unassoc σ₄ (⊎-comm σ₂)
+    ... | bd  , σ₅ , σ₆ with ⊎-unassoc σ₃ σ₆
+    ... | abd , σ₇ , σ₈ with ⊎-unassoc (⊎-comm σ₈) σ₇
+    ... | ac  , τ  , τ' = -, -, ⊎-comm τ , σ₅ , τ'
 
   -- pairs commute
   module _ {p q} {P : SPred p} {Q : SPred q} where
@@ -130,22 +125,22 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
     ✴-assocₗ : ∀[ P ✴ (Q ✴ R) ⇒ (P ✴ Q) ✴ R ]
     ✴-assocₗ (p ×⟨ σ₁ ⟩ (q ×⟨ σ₂ ⟩ r)) =
       let _ , σ₃ , σ₄ = ⊎-assoc (⊎-comm σ₂) (⊎-comm σ₁) in
-      (p ×⟨ ⊎-comm σ₃ ⟩ q) ×⟨ ⊎-comm σ₄ ⟩ r
+      (p ×⟨ ⊎-comm σ₄ ⟩ q) ×⟨ ⊎-comm σ₃ ⟩ r
 
     ✴-assocᵣ : ∀[ (P ✴ Q) ✴ R ⇒ P ✴ (Q ✴ R) ]
     ✴-assocᵣ ((p ×⟨ σ₁ ⟩ q) ×⟨ σ₂ ⟩ r) =
       let _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂ in
-      p ×⟨ σ₄ ⟩ q ×⟨ σ₃ ⟩ r
+      p ×⟨ σ₃ ⟩ q ×⟨ σ₄ ⟩ r
 
     ✴-rotateᵣ : ∀[ P ✴ (Q ✴ R) ⇒ R ✴ P ✴ Q ]
     ✴-rotateᵣ (p ×⟨ σ₁ ⟩ (q ×⟨ σ₂ ⟩ r)) =
       let _ , σ₃ , σ₄ = ⊎-assoc (⊎-comm σ₂) (⊎-comm σ₁) in
-      r ×⟨ σ₄ ⟩ p ×⟨ ⊎-comm σ₃ ⟩ q
+      r ×⟨ σ₃ ⟩ p ×⟨ ⊎-comm σ₄ ⟩ q
 
     ✴-rotateₗ : ∀[ P ✴ (Q ✴ R) ⇒ Q ✴ R ✴ P ]
     ✴-rotateₗ (p ×⟨ σ₁ ⟩ (q ×⟨ σ₂ ⟩ r)) =
       let _ , σ₃ , σ₄ = ⊎-assoc σ₂ (⊎-comm σ₁) in
-      q ×⟨ σ₄ ⟩ r ×⟨ σ₃ ⟩ p
+      q ×⟨ σ₃ ⟩ r ×⟨ σ₄ ⟩ p
 
   module _ {p q} {P : SPred p} {Q : SPred q} where
     apply : ∀[ (P ─✴ Q) ✴ P ⇒ Q ]
@@ -164,28 +159,18 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
 
   module _ {p q r} {P : SPred p} {Q : SPred q} {R : SPred r} where
 
-    postulate ✴-curry : ∀[ (P ─✴ (Q ─✴ R)) ⇒ (P ✴ Q) ─✴ R ]
-    -- ✴-curry f = wand (λ where
-    --   (px ×⟨ sep₁ ⟩ qx) sep →
-    --     let
-    --       Φ , σ , σ' = ⊎-assoc (⊎-comm sep₁) {!⊎-comm sep!} 
-    --       g = apply (f ×⟨ σ ⟩ px)
-    --     in apply (g ×⟨ ⊎-comm σ' ⟩ qx))
+    ✴-curry : ∀[ (P ─✴ (Q ─✴ R)) ⇒ (P ✴ Q) ─✴ R ]
+    ✴-curry f (p ×⟨ σ₁ ⟩ q) σ₂ =
+      let _ , σ₃ , σ₄ = ⊎-unassoc σ₂ σ₁ in f p σ₃ q σ₄
 
     wand : ∀[ (P ✴ Q) ⇒ R ] → ∀[ P ⇒ (Q ─✴ R) ]
     wand f px qx s = f (px ×⟨ s ⟩ qx)
 
     com : ∀[ (P ─✴ Q) ✴ (Q ─✴ R) ⇒ (P ─✴ R) ]
-    com (f ×⟨ s ⟩ g) px s' =
-      let _ , eq₁ , eq₂ = ⊎-assoc (⊎-comm s) s' in
-      g (f px eq₁) eq₂ 
+    com (f ×⟨ s ⟩ g) px s' = let _ , eq₁ , eq₂ = ⊎-assoc (⊎-comm s) s' in g (f px eq₂) eq₁
 
-    ✴-uncurry : ∀[ P ✴ Q ─✴ R ] → ∀[ P ─✴ (Q ─✴ R) ]
-    ✴-uncurry f =
-      λ px sep →
-        λ qx sep' →
-          let Φ , σ , σ' = ⊎-assoc sep sep'
-          in  apply (f  ×⟨ σ' ⟩ (px ×⟨ σ ⟩ qx))
+    ✴-uncurry : ∀[ (P ✴ Q ─✴ R) ⇒ P ─✴ (Q ─✴ R) ]
+    ✴-uncurry f p σ₁ q σ₂ = let _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂ in f (p ×⟨ σ₄ ⟩ q) σ₃
 
   -- | The update modality is a strong monad
   module Update where
@@ -217,7 +202,7 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
   module _ where
     ≤-trans : Φ₁ ≤ Φ₂ → Φ₂ ≤ Φ₃ → Φ₁ ≤ Φ₃
     ≤-trans (τ₁ , Φ₁⊎τ₁=Φ₂) (τ₂ , Φ₂⊎τ₂=Φ₃) =
-      let τ₃ , p , q = ⊎-assoc Φ₁⊎τ₁=Φ₂ Φ₂⊎τ₂=Φ₃ in τ₃ , q
+      let τ₃ , p , q = ⊎-assoc Φ₁⊎τ₁=Φ₂ Φ₂⊎τ₂=Φ₃ in τ₃ , p
 
 record RawUnitalSep {c} (C : Set c) : Set (suc c) where
   field
@@ -307,9 +292,12 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e) : Set (suc c ⊔ e) where
     ─[id] : ∀ {p} {P : SPred p} → ε[ P ─✴ P ]
     ─[id] = wandit id
 
-  module _ {p q} {P : SPred p} {Q : SPred q} where
-    open Diamond
 
+  module _ {p q} {P : SPred p} {Q : SPred q} where
+    pair : ε[ P ◇─ (Q ◇─ P ✴ Q) ]
+    pair ⟪ px , σ₁ ⟫ ⟪ qx , σ₂ ⟫ rewrite ⊎-identity⁻ˡ σ₁ = px ×⟨ σ₂ ⟩ qx
+
+  module _ {p} {P : SPred p} where
     ◇-ε : ∀[ P ◇ ε ⇒ P ]
     ◇-ε ⟪ px , σ ⟫ rewrite ⊎-identity⁻ˡ σ = px
 
@@ -373,27 +361,6 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e) : Set (suc c ⊔ e) where
       π₂ : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ (P ✴ Q) ⇒ Q ↑ ]
       π₂ (_ ×⟨ sep ⟩ qx) = qx ⇑ ⊎-comm sep
 
-  -- module ▣-Frames {ℓ} where
-
-  --   frame_out_ : C → SPred ℓ → SPred (c ⊔ ℓ)
-  --   frame Φ out P = (Exactly Φ) ✴ P
-
-  --   _◇_ : SPred ℓ → C → SPred (c ⊔ ℓ)
-  --   _◇_ = flip frame_out_
-
-  --   _⇒′_ : ∀ {A ℓ₁ ℓ₂} → (P : Pred A ℓ₁) → (∀ {a} → P a → Pred A ℓ₂) → Pred A _
-  --   P ⇒′ Q = λ x → (p : x ∈ P) → x ∈ Q p
-
-  --   π₁ : ∀ {P Q : SPred ℓ} → ∀[ (P ✴ Q) ⇒′ (P ◇_ ∘ Conj.Φᵣ) ]
-  --   π₁ (px ×⟨ σ ⟩ qx) = P.refl ×⟨ ⊎-comm σ ⟩ px
-
-  --   π₂ : ∀ {P Q : SPred ℓ} → ∀[ (P ✴ Q) ⇒′ (Q ◇_ ∘ Conj.Φₗ) ]
-  --   π₂ (px ×⟨ σ ⟩ qx) = P.refl ×⟨ σ ⟩ qx
-
-    -- _─⟨_⟩_ : (P : SPred ℓ₁) → Carrier → (Q : SPred ℓ₂)  → SPred _
-    -- P ─⟨ j ⟩ Q = P ⇒ Q ▣ j 
-
-
 record IsConcattative {c} {C : Set c} (sep : RawSep C) (_∙_ : C → C → C) : Set c where
   open RawSep sep
 
@@ -445,28 +412,3 @@ record MonoidalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
     isConcat    : IsConcattative sep _∙_
 
   open IsConcattative isConcat public
-
-  -- module _ {ℓ₁ ℓ₂} where
-  --   _─✫_ : (P : SPred ℓ₁) (Q : SPred ℓ₂)  → SPred _
-  --   P ─✫ Q = λ Φ₁ → ∀ {Φ₂} → P Φ₂ → Q (Φ₁ ∙ Φ₂)
-
-  --   ✫─✴ : ∀ {P Q} → ∀[ (P ─✴ Q) ⇒ (P ─✫ Q) ]
-  --   ✫─✴ f = λ px → f px ⊎-∙
-
-  {- Disjoint extension -}
-  -- module _ {ℓ₁ ℓ₂} where
-
-    -- infixr 8 _─◆′_
-    -- _─◆′_ : (P : SPred ℓ₁) (Q : ∀ {i} → P i → SPred ℓ₂)  → SPred _
-    -- P ─◆′ Q = λ i → (p : P i) → ∃ (Q p)
-
-    -- infixr 8 _─◆_
-    -- _─◆_ : (P : SPred ℓ₁) (Q : SPred ℓ₂)  → SPred _
-    -- P ─◆ Q = P ─◆′ (const Q)
-
-  -- {- Framing is functorial -}
-  -- module _ where
-
-  --   ▣-map : ∀ {j} {P : SPred ℓ₁} {Q : SPred ℓ₂} → ∀[ P ─◆ Q ] → ∀[ P ▣ j ─◆ Q ▣ j ]
-  --   ▣-map f (px ×⟨ ◆ ⟩ qx) with f qx
-  --   ... | ext , rx = -, px ×⟨ ⊎-∙ ⟩ rx
