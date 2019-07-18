@@ -121,10 +121,17 @@ newChannel α μ =
   ⤇-map (⟨ ✴-swap ⟨✴⟩ id ⟩ ∘ ✴-assocₗ ∘ ✴-rotateᵣ ∘ ✴-assocᵣ)
   ∘ ⤇-&
   ∘ both (helper α ×⟨ neither (⊎-identityˡ refl) ⟩ ○-map ─[id]) μ
+
   where
     open Update
+
     helper : ∀ α → ε[ Links ==✴ Links ✴ ○ (Just α ✴ Just (α ⁻¹)) ]
-    helper = {!!}
+    helper α (lift ls) (on-right x le) (on-left au z≤Φ₁) rewrite ⊎-identity⁻ʳ x =
+      -,
+      -, on-left (⊎-∙ₗ au) (≤-∙ z≤Φ₁)
+      ,  lift (cons (newLink α ×⟨ ⊎-∙ , ⊎-identityˡ refl ⟩ ls))
+           ×⟨ on-left (⊎-comm ⊎-∙) (≤-∙ le) ⟩
+         frag (refl ×⟨ ⊎-∙ ⟩ refl)
 
 do-send : ∀ {a α} → ∀[ ○ (Just (a ! α) ✴ Val a) ⇒ M (○ (Just (α .force))) ]
 do-send = {!!}

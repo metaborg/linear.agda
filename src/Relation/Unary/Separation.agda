@@ -155,7 +155,7 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
   module _ {p q p' q'}
     {P : SPred p} {Q : SPred q} {P' : SPred p'} {Q' : SPred q'} where
 
-    ⟨_⟨✴⟩_⟩ : (P ⊆ P') → (Q ⊆ Q') → P ✴ Q ⊆ P' ✴ Q'
+    ⟨_⟨✴⟩_⟩ : ∀[ P ⇒ P' ] → ∀[ Q ⇒ Q' ] → ∀[ P ✴ Q ⇒ P' ✴ Q' ]
     ⟨_⟨✴⟩_⟩ f g (px ×⟨ sep ⟩ qx) = (f px) ×⟨ sep ⟩ (g qx)
 
     both : ∀[ (P ─✴ P') ✴ (Q ─✴ Q') ⇒ P ✴ Q ─✴ P' ✴ Q' ]
@@ -296,9 +296,6 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e) : Set (suc c ⊔ e) where
     ⋆-identityʳ : ∀ {P : SPred 0ℓ} → ∀[ P ⇒ P ✴ Emp ]
     ⋆-identityʳ px = px ×⟨ ⊎-identityʳ P.refl ⟩ P.refl
 
-    ─[id] : ∀ {p} {P : SPred p} → ε[ P ─✴ P ]
-    ─[id] p σ rewrite ⊎-identity⁻ˡ σ = p
-
     -- a resource-polymorphic function is a pure wand
     wandit : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ P ⇒ Q ] → ε[ P ─✴ Q ]
     wandit f p σ rewrite ⊎-identity⁻ˡ σ = f p
@@ -306,6 +303,9 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e) : Set (suc c ⊔ e) where
     -- a pure wand is a resource-polymorphic function
     unwand : ∀ {p q} {P : SPred p} {Q : SPred q} → ε[ P ─✴ Q ] → ∀[ P ⇒ Q ]
     unwand f p = f p (⊎-identityˡ P.refl)
+
+    ─[id] : ∀ {p} {P : SPred p} → ε[ P ─✴ P ]
+    ─[id] = wandit id
 
   module _ {p q} {P : SPred p} {Q : SPred q} where
     open Diamond
@@ -399,6 +399,9 @@ record IsConcattative {c} {C : Set c} (sep : RawSep C) (_∙_ : C → C → C) :
 
   field
     ⊎-∙ : ∀ {Φₗ Φᵣ} → Φₗ ⊎ Φᵣ ≣ (Φₗ ∙ Φᵣ)
+
+  postulate ≤-∙ : ∀ {Φₗ Φᵣ Φ} → Φₗ ≤ Φᵣ → (Φ ∙ Φₗ) ≤ (Φ ∙ Φᵣ)
+  postulate ⊎-∙ₗ : ∀ {Φ₁ Φ₂ Φ Φₑ} → Φ₁ ⊎ Φ₂ ≣ Φ → (Φₑ ∙ Φ₁) ⊎ Φ₂ ≣ (Φₑ ∙ Φ)
 
 record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   field
