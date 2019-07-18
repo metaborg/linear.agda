@@ -43,8 +43,8 @@ data Link : Pred (SCtx × SCtx) 0ℓ where
 newLink : ∀ α → Link (α ∷ α ⁻¹ ∷ [] , ε)
 newLink α = {!!} -- link (empty α ×⟨ {!!} ⟩ empty (α ⁻¹))
 
-Links : Pred (SCtx × SCtx) 0ℓ
-Links = Bigstar Link
+Links : Pred Auth 0ℓ
+Links = Lift (Bigstar Link)
 
 -- | Threads are clients (predicates over `SCtx`)
 
@@ -57,11 +57,14 @@ Pool = Bigstar (λ Φ → ∃ λ a → Thread a Φ)
 -- | The server state (predicate over `▣ SCtx`)
 
 State : fPred
-State = Lift Links ✴ ○ Pool
+State = Links ✴ ○ Pool
 
 -- The monotone state monad
 M : fPred → fPred
 M P = State ==✴ State ✴ P -- i.e. M P = State ─✴ (⤇ (State ✴ P))
+
+runM : ∀ {P} → ∀[ (State ✴ M P) ==✴ (State ✴ P) ]
+runM = {!!}
 
 return : ∀ {P} → ∀[ P ⇒ M P ]
 return px st σ₁ σ₂ = -, -, σ₂ , st ×⟨ ⊎-comm σ₁ ⟩ px
@@ -75,16 +78,12 @@ mmap : ∀ {P Q} → ∀[ P ⇒ Q ] → ∀[ M P ⇒ M Q ]
 mmap f c st σ = ⤇-map ⟨ id ⟨✴⟩ f ⟩ (apply (c ×⟨ σ ⟩ st))
   where open Update
 
--- internal map
-imap : ∀ {P Q} → ∀[ M P ─✴ (P ⇒ Q) ─✴ M Q ]
-imap f σ₁ c σ₂ st σ₃ = {!!}
-  where open Update
-
 -- this is the wrong bind; both the continuation and the monadic computation
--- use some amount of resource, but they are not disjoint
+-- use some amount of resource, but they are not the same
 bind' : ∀ {P Q} → ∀[ P ⇒ M Q ] → ∀[ M P ⇒ M Q ]
 bind' f = join ∘ mmap f
 
+-- internal bind - I think?
 bind : ∀ {P Q} → ∀[ (P ─✴ M Q) ⇒ (M P ─✴ M Q) ]
 bind f mp σ₁ μ₁ σ₂ σ₃             with ⊎-assoc σ₁ σ₂
 ... | _ , σ₄ , σ₅                 with ⊎-assoc (⊎-comm σ₅) σ₃
@@ -94,31 +93,38 @@ bind f mp σ₁ μ₁ σ₂ σ₃             with ⊎-assoc σ₁ σ₂
 ... | _ , _ , τ₁ , τ₂ , τ₃        with ⊎-assoc τ₂ (⊎-comm τ₃)
 ... | _ , τ₄ , τ₅                  = f px τ₁ μ₂ (⊎-comm τ₄) (⊎-comm τ₅)
 
+-- open Update
+-- bind'' : ∀ {P Q} → ∀[ (P ─✴ M Q) ⇒ (M P ─✴ M Q) ]
+-- bind'' f mp σ₁ μ₁ σ₂ σ₃ with ⊎-assoc σ₁ σ₂
+-- ... | _ , σ₄ , σ₅ with ⊎-assoc (⊎-comm σ₅) σ₃
+-- ... | _ , σ₆ , σ₇ with apply (runM ×⟨ ⊎-comm σ₇ ⟩ (μ₁ ×⟨ ⊎-comm σ₄ ⟩ mp))
+-- ... | ⤇μ✴px with ⤇-map (λ μ✴px → apply ((✴-curry f) ×⟨ {!!} ⟩ (✴-swap μ✴px))) ⤇μ✴px
+-- ... | ⤇⤇μ✴qx = {!⤇-join ⤇⤇μ✴qx!}
+
+-- internal map
+imap : ∀ {P Q} → ∀[ (P ─✴ Q) ⇒ (M P ─✴ M Q) ]
+imap f = bind λ px σ → return (f px σ)
+
 syntax bind f p s = p ⟪ s ⟫= f
 
 putThread : ∀ {a} → ∀[ ○ (Thread a) ⇒ M Emp ]
 putThread th = {!!}
 
 -- | Creating a new channel, returning two compatible endpoints and updated links
+
+-- observations
+--    * lot of trouble/duplication from the distinction between ∀[ _ ⇒ _ ] vs wands
+--    * because wands take two arguments, rather than being curried, we cannot use normal function composition
+
 newChannel : ∀ α → ε[ M (○ (Just α ✴ Just (α ⁻¹))) ]
-newChannel α {Φₒ} (lift ls ×⟨ σ₂ ⟩ th) σ₁ {Φⱼ = Φⱼ} {Φₖ = Φₖ} σ = {!!}
-  -- -- σ describe an arbitrary frame (Φⱼ) around what we own (x₁)
-  -- --
-  -- let
-  --   new-state = lift (cons (newLink α ×⟨ consˡ (consˡ (right (≡⇒≋ refl))) , ⊎-identityˡ refl ⟩ ls)) ×⟨ {!!} ⟩ th
-  --   pointers  = frag (refl ×⟨ consˡ (consʳ []) ⟩ refl)
-  -- in
-  -- -- (Φ₁ ◐ Φ₂) → ls
-  -- -- Φᵣ        → th
-  -- ----------------- +
-  -- -- Φₚ = x
-  -- ((α ∷ α ⁻¹ ∷ objective Φₒ) ◐ (α ∷ α ⁻¹ ∷ subjective Φₒ)) 
-  -- , (α ∷ α ⁻¹ ∷ Φₖ₁) ◐ (α ∷ α ⁻¹ ∷ Φₖ₂)
-  -- , {!!}
-  -- , new-state ×⟨ {!!} ⟩ pointers -- authₗ (⊎-identityˡ refl) (≤-reflexive refl) ⟩ pointers
-  -- -- _
-  -- -- , (α ∷ α ⁻¹ ∷ proj₁ Φ , α ∷ α ⁻¹ ∷ proj₂ Φ)
-  -- -- , ({!auth!} , {!!} ×⟨ {!!} ⟩ (frag refl) ×⟨ frag (consˡ (consʳ [])) ⟩ frag refl)
+newChannel α μ =
+  ⤇-map (⟨ ✴-swap ⟨✴⟩ id ⟩ ∘ ✴-assocₗ ∘ ✴-rotateᵣ ∘ ✴-assocᵣ)
+  ∘ ⤇-&
+  ∘ both (helper α ×⟨ neither (⊎-identityˡ refl) ⟩ ○-map ─[id]) μ
+  where
+    open Update
+    helper : ∀ α → ε[ Links ==✴ Links ✴ ○ (Just α ✴ Just (α ⁻¹)) ]
+    helper = {!!}
 
 do-send : ∀ {a α} → ∀[ ○ (Just (a ! α) ✴ Val a) ⇒ M (○ (Just (α .force))) ]
 do-send = {!!}

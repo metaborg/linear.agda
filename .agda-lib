@@ -2,3 +2,4 @@ name: session-types
 include:
   ./src/
   ./lib/stdlib.agda/src/
+  ./lib/cubical.agda/

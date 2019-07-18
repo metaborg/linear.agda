@@ -51,7 +51,10 @@ module _ ⦃ A-sep : RawUnitalSep A ⦄ where
 
 module _ ⦃ A-sep : RawUnitalSep A ⦄ ⦃ _ : IsSep (RawUnitalSep.sep A-sep) ⦄ where
   open IsSep ⦃...⦄
+  open RawSep ⦃...⦄
   open RawUnitalSep ⦃...⦄
+
+  private instance A-raw = RawUnitalSep.sep A-sep
 
   comm : ∀ {Φ₁ Φ₂ Φ} → Split Φ₁ Φ₂ Φ → Split Φ₂ Φ₁ Φ
   comm (on-right l r) = on-left l r
@@ -83,6 +86,10 @@ module _ ⦃ A-sep : RawUnitalSep A ⦄ ⦃ _ : IsSep (RawUnitalSep.sep A-sep) �
   auth-sep = record
     { set   = P.setoid Auth
     ; isSep = auth-has-sep }
+
+  -- ○ is a relative functor of sorts
+  ○-map : ∀ {p q} {P : Pred A p}{Q : Pred A q} {Φ} → (P ─✴ Q) Φ → (○ P ─✴ ○ Q) (◌ Φ)
+  ○-map f (frag p) (neither σ) = frag (f p σ)
 
 -- The thing is not quite unital, because the inclusion between a part and the whole
 -- is part of the split relation and does not necessarily hold for a given carrier pair.

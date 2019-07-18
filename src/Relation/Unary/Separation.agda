@@ -120,6 +120,37 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
                                      Φ₁₂ ⊎ Φ₂₂ ≣ Ψ₂ ×
                                      Ψ₁  ⊎ Ψ₂  ≣ Φ
 
+  -- pairs commute
+  module _ {p q} {P : SPred p} {Q : SPred q} where
+    ✴-swap : ∀[ (P ✴ Q) ⇒ (Q ✴ P) ]
+    ✴-swap (px ×⟨ σ ⟩ qx) = qx ×⟨ ⊎-comm σ ⟩ px
+
+  -- pairs rotate and reassociate
+  module _ {p q r} {P : SPred p} {Q : SPred q} {R : SPred r} where
+    ✴-assocₗ : ∀[ P ✴ (Q ✴ R) ⇒ (P ✴ Q) ✴ R ]
+    ✴-assocₗ (p ×⟨ σ₁ ⟩ (q ×⟨ σ₂ ⟩ r)) =
+      let _ , σ₃ , σ₄ = ⊎-assoc (⊎-comm σ₂) (⊎-comm σ₁) in
+      (p ×⟨ ⊎-comm σ₃ ⟩ q) ×⟨ ⊎-comm σ₄ ⟩ r
+
+    ✴-assocᵣ : ∀[ (P ✴ Q) ✴ R ⇒ P ✴ (Q ✴ R) ]
+    ✴-assocᵣ ((p ×⟨ σ₁ ⟩ q) ×⟨ σ₂ ⟩ r) =
+      let _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂ in
+      p ×⟨ σ₄ ⟩ q ×⟨ σ₃ ⟩ r
+
+    ✴-rotateᵣ : ∀[ P ✴ (Q ✴ R) ⇒ R ✴ P ✴ Q ]
+    ✴-rotateᵣ (p ×⟨ σ₁ ⟩ (q ×⟨ σ₂ ⟩ r)) =
+      let _ , σ₃ , σ₄ = ⊎-assoc (⊎-comm σ₂) (⊎-comm σ₁) in
+      r ×⟨ σ₄ ⟩ p ×⟨ ⊎-comm σ₃ ⟩ q
+
+    ✴-rotateₗ : ∀[ P ✴ (Q ✴ R) ⇒ Q ✴ R ✴ P ]
+    ✴-rotateₗ (p ×⟨ σ₁ ⟩ (q ×⟨ σ₂ ⟩ r)) =
+      let _ , σ₃ , σ₄ = ⊎-assoc σ₂ (⊎-comm σ₁) in
+      q ×⟨ σ₄ ⟩ r ×⟨ σ₃ ⟩ p
+
+  module _ {p q} {P : SPred p} {Q : SPred q} where
+    apply : ∀[ (P ─✴ Q) ✴ P ⇒ Q ]
+    apply (px ×⟨ sep ⟩ qx) =  px qx sep
+
   -- mapping
   module _ {p q p' q'}
     {P : SPred p} {Q : SPred q} {P' : SPred p'} {Q' : SPred q'} where
@@ -127,19 +158,13 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
     ⟨_⟨✴⟩_⟩ : (P ⊆ P') → (Q ⊆ Q') → P ✴ Q ⊆ P' ✴ Q'
     ⟨_⟨✴⟩_⟩ f g (px ×⟨ sep ⟩ qx) = (f px) ×⟨ sep ⟩ (g qx)
 
-  -- commute product
-  module _ {p q}
-    {P : SPred p} {Q : SPred q} where
-    ✴-swap : ∀[ (P ✴ Q) ⇒ (Q ✴ P) ]
-    ✴-swap (px ×⟨ σ ⟩ qx) = qx ×⟨ ⊎-comm σ ⟩ px
-
-  module _ {p q} {P : SPred p} {Q : SPred q} where
-    apply : ∀[ (P ─✴ Q) ✴ P ⇒ Q ]
-    apply (px ×⟨ sep ⟩ qx) =  px qx sep
+    both : ∀[ (P ─✴ P') ✴ (Q ─✴ Q') ⇒ P ✴ Q ─✴ P' ✴ Q' ]
+    both (f ×⟨ σ₁ ⟩ g) (px ×⟨ σ₂ ⟩ qx) σ₃ with resplit σ₁ σ₂ σ₃
+    ... | _ , _ , σ₄ , σ₅ , σ₆ = apply (f ×⟨ σ₄ ⟩ px) ×⟨ σ₆ ⟩ apply (g ×⟨ σ₅ ⟩ qx)
 
   module _ {p q r} {P : SPred p} {Q : SPred q} {R : SPred r} where
 
-    -- ✴-curry : ∀[ P ─✴ (Q ─✴ R) ] → ∀[ (P ✴ Q) ─✴ R ]
+    postulate ✴-curry : ∀[ (P ─✴ (Q ─✴ R)) ⇒ (P ✴ Q) ─✴ R ]
     -- ✴-curry f = wand (λ where
     --   (px ×⟨ sep₁ ⟩ qx) sep →
     --     let
@@ -147,7 +172,7 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
     --       g = apply (f ×⟨ σ ⟩ px)
     --     in apply (g ×⟨ ⊎-comm σ' ⟩ qx))
 
-    wand : ∀[ P ✴ Q ⇒ R ] → ∀[ P ⇒ Q ─✴ R ]
+    wand : ∀[ (P ✴ Q) ⇒ R ] → ∀[ P ⇒ (Q ─✴ R) ]
     wand f px qx s = f (px ×⟨ s ⟩ qx)
 
     com : ∀[ (P ─✴ Q) ✴ (Q ─✴ R) ⇒ (P ─✴ R) ]
@@ -181,8 +206,13 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
              ∀[ P ⇒ ⤇ Q ] → ∀[ (⤇ P) ⇒ (⤇ Q) ]
     ⤇-bind f = ⤇-join ∘ ⤇-map f
 
-    -- ⤇-& : ∀ {q} {Q : SPred q} → ∀[ P ✴ ⤇ Q ⇒ ⤇ (P ✴ Q) ]
+    -- strength
+    postulate &-⤇ : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ P ✴ ⤇ Q ⇒ ⤇ (P ✴ Q) ]
     -- ⤇-& (p ×⟨ σ ⟩ mq) σ' = ?
+
+    -- reverse strength
+    ⤇-& : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ ⤇ P ✴ Q ⇒ ⤇ (P ✴ Q) ]
+    ⤇-& = ⤇-map ✴-swap ∘ &-⤇ ∘ ✴-swap
 
   module _ where
     ≤-trans : Φ₁ ≤ Φ₂ → Φ₂ ≤ Φ₃ → Φ₁ ≤ Φ₃
@@ -265,6 +295,9 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e) : Set (suc c ⊔ e) where
 
     ⋆-identityʳ : ∀ {P : SPred 0ℓ} → ∀[ P ⇒ P ✴ Emp ]
     ⋆-identityʳ px = px ×⟨ ⊎-identityʳ P.refl ⟩ P.refl
+
+    ─[id] : ∀ {p} {P : SPred p} → ε[ P ─✴ P ]
+    ─[id] p σ rewrite ⊎-identity⁻ˡ σ = p
 
   module _ {p q} {P : SPred p} {Q : SPred q} where
     open Diamond
