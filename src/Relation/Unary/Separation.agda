@@ -110,6 +110,16 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
   variable
     Φ₁ Φ₂ Φ₃ Φ : A
 
+  -- derived split laws
+  module _ where
+    postulate resplit : ∀ {Φ₁₁ Φ₁₂ Φ₂₁ Φ₂₂} →
+                        Φ₁₁ ⊎ Φ₁₂ ≣ Φ₁ →
+                        Φ₂₁ ⊎ Φ₂₂ ≣ Φ₂ →
+                        Φ₁  ⊎ Φ₂  ≣ Φ  →
+                        ∃₂ λ Ψ₁ Ψ₂ → Φ₁₁ ⊎ Φ₂₁ ≣ Ψ₁ ×
+                                     Φ₁₂ ⊎ Φ₂₂ ≣ Ψ₂ ×
+                                     Ψ₁  ⊎ Ψ₂  ≣ Φ
+
   -- mapping
   module _ {p q p' q'}
     {P : SPred p} {Q : SPred q} {P' : SPred p'} {Q' : SPred q'} where

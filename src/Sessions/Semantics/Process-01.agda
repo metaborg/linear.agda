@@ -86,9 +86,18 @@ bind' : ∀ {P Q} → ∀[ P ⇒ M Q ] → ∀[ M P ⇒ M Q ]
 bind' f = join ∘ mmap f
 
 bind : ∀ {P Q} → ∀[ (P ─✴ M Q) ⇒ (M P ─✴ M Q) ]
-bind = {!!}
+bind f mp σ₁ μ₁ σ₂ σ₃             with ⊎-assoc σ₁ σ₂
+... | _ , σ₄ , σ₅                 with ⊎-assoc (⊎-comm σ₅) σ₃
+... | _ , σ₆ , σ₇                 with mp μ₁ σ₄ σ₇ -- m specifies the frame for the update
+... | _ , _ , σ₈ , μ₂ ×⟨ σ₉ ⟩ px  with ⊎-assoc σ₉ σ₈
+... | _ , p' , q'                 with resplit σ₆ (⊎-comm σ₉) (⊎-comm σ₈)
+... | _ , _ , τ₁ , τ₂ , τ₃        with ⊎-assoc τ₂ (⊎-comm τ₃)
+... | _ , τ₄ , τ₅                  = f px τ₁ μ₂ (⊎-comm τ₄) (⊎-comm τ₅)
 
 syntax bind f p s = p ⟪ s ⟫= f
+
+putThread : ∀ {a} → ∀[ ○ (Thread a) ⇒ M Emp ]
+putThread th = {!!}
 
 -- | Creating a new channel, returning two compatible endpoints and updated links
 newChannel : ∀ α → ε[ M (○ (Just α ✴ Just (α ⁻¹))) ]
