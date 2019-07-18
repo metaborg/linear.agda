@@ -299,17 +299,19 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e) : Set (suc c ⊔ e) where
     ─[id] : ∀ {p} {P : SPred p} → ε[ P ─✴ P ]
     ─[id] p σ rewrite ⊎-identity⁻ˡ σ = p
 
+    -- a resource-polymorphic function is a pure wand
+    wandit : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ P ⇒ Q ] → ε[ P ─✴ Q ]
+    wandit f p σ rewrite ⊎-identity⁻ˡ σ = f p
+
+    -- a pure wand is a resource-polymorphic function
+    unwand : ∀ {p q} {P : SPred p} {Q : SPred q} → ε[ P ─✴ Q ] → ∀[ P ⇒ Q ]
+    unwand f p = f p (⊎-identityˡ P.refl)
+
   module _ {p q} {P : SPred p} {Q : SPred q} where
     open Diamond
 
     ◇-ε : ∀[ P ◇ ε ⇒ P ]
     ◇-ε ⟪ px , σ ⟫ rewrite ⊎-identity⁻ˡ σ = px
-
-    -- {-# BUILTIN REWRITE _≡_ #-}
-    -- {-# REWRITE ◇-ε #-}
-
-    -- _,,_ : ε[ P ◇─ Q ◇─ P ✴ Q ]
-    -- _,,_ px qx = {!!}
 
   module _ {i ℓ} {I : Set i} {P : I → SPred ℓ} where
     open import Data.List
