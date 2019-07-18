@@ -192,8 +192,11 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
     ⤇-bind f = ⤇-join ∘ ⤇-map f
 
     -- strength
-    postulate &-⤇ : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ P ✴ ⤇ Q ⇒ ⤇ (P ✴ Q) ]
-    -- ⤇-& (p ×⟨ σ ⟩ mq) σ' = ?
+    &-⤇ : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ P ✴ ⤇ Q ⇒ ⤇ (P ✴ Q) ]
+    &-⤇ (p ×⟨ σ ⟩ mq) σ' with ⊎-assoc (⊎-comm σ) σ'
+    ... | _ , σ₂ , σ₃ with mq σ₂
+    ... | _ , _ , σ₄ , q with ⊎-assoc (⊎-comm σ₃) (⊎-comm σ₄)
+    ... | _ , σ₅ , σ₆ = -, -, ⊎-comm σ₅ , (p ×⟨ σ₆ ⟩ q)
 
     -- reverse strength
     ⤇-& : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ ⤇ P ✴ Q ⇒ ⤇ (P ✴ Q) ]
