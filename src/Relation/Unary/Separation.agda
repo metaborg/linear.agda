@@ -250,7 +250,7 @@ record RawUnitalSep {c} (C : Set c) : Set (suc c) where
     infixr 5 _:⟨_⟩:_
     pattern _:⟨_⟩:_ x p xs = cons (x ×⟨ p ⟩ xs)
 
-record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e) : Set (suc c ⊔ e) where
+record IsUnitalSep {c} (C : Set c) : Set (suc c) where
   field
     unital : RawUnitalSep C
 
@@ -365,10 +365,14 @@ record IsUnitalSep {c e} {C : Set c} (_≈_ : Rel C e) : Set (suc c ⊔ e) where
       π₂ : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ (P ✴ Q) ⇒ Q ↑ ]
       π₂ (_ ×⟨ sep ⟩ qx) = qx ⇑ ⊎-comm sep
 
-record IsConcattative {c} {C : Set c} (sep : RawSep C) (_∙_ : C → C → C) : Set c where
+record IsConcattative {c} (C : Set c) : Set (suc c) where
+  field
+    sep : RawSep C 
+
   open RawSep sep
 
   field
+    _∙_ : C → C → C 
     ⊎-∙ : ∀ {Φₗ Φᵣ} → Φₗ ⊎ Φᵣ ≣ (Φₗ ∙ Φᵣ)
 
   postulate ≤-∙ : ∀ {Φₗ Φᵣ Φ} → Φₗ ≤ Φᵣ → (Φ ∙ Φₗ) ≤ (Φ ∙ Φᵣ)
@@ -394,7 +398,7 @@ record UnitalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   open Setoid set public 
 
   field
-    isUnitalSep : IsUnitalSep _≈_
+    isUnitalSep : IsUnitalSep Carrier
 
   open IsUnitalSep isUnitalSep public
 
@@ -405,14 +409,13 @@ record MonoidalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   open Setoid set public 
 
   field
-    _∙_         : Carrier → Carrier → Carrier
-    isUnitalSep : IsUnitalSep _≈_
+    isUnitalSep : IsUnitalSep Carrier
 
   open IsUnitalSep isUnitalSep
   open RawUnitalSep unital
   open RawSep sep
 
   field
-    isConcat    : IsConcattative sep _∙_
+    isConcat    : IsConcattative Carrier
 
   open IsConcattative isConcat public

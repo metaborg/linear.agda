@@ -15,9 +15,9 @@ open import Relation.Binary.PropositionalEquality hiding ([_]) public
 
 open import Relation.Unary.Separation public
 
-open MonoidalSep ⦃...⦄ hiding (isEquivalence; isPreorder; preorder; refl; sym; trans) public
 open RawUnitalSep ⦃...⦄ public
 open RawSep ⦃...⦄ public
-open IsUnitalSep ⦃...⦄ public
 open IsSep ⦃...⦄ public
+open IsUnitalSep ⦃...⦄ public
+open IsConcattative ⦃...⦄ public
 

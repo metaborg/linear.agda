@@ -31,11 +31,28 @@ instance
 -- The left context is the 'authorative' part,
 -- and the right context is the 'client' part
 
+-- | Snoc lists of values
+-- Writing is cheap, reading is expensive
+
 data _⇝_ : SType ∞ → SType ∞ → Pred (SCtx × SCtx) 0ℓ where
-  emp  : ∀ {α}   → (α ⇝ α) ([ α ] , ε)
-  snoc : ∀ {a α} → ε[ (Val a ∘ proj₂) ─✴ ((a ¿ α) ⇝ β) ─✴ (α .force ⇝ β) ]
+  emp  : ∀ {α}      → (α ⇝ α) ([ α ] , ε)
+  snoc : ∀ {a α α'} → α .force ≡ α' → ε[ (Emp ⟨×⟩ Val a ) ─✴ ((a ¿ α) ⇝ β) ─✴ (α' ⇝ β) ]
 
 _⇜_ = flip _⇝_
+
+open Update
+readBuffer : ∀ {β} → ε[ (α ⇝ (a ¿ β)) ==✴ ((α ⇝ (a ¿ β)) ∪ ((Val a ∘ proj₂) ✴ (α ⇝ β .force))) ]
+readBuffer emp σ with ⊎-identity⁻ˡ σ
+... | refl = ⤇-return (inj₁ emp)
+readBuffer (snoc refl (refl , v) σ₁ emp (σ₂ₗ , σ₂ᵣ)) σ₃ with ⊎-identity⁻ˡ σ₃
+... | refl with ⊎-identity⁻ˡ σ₁
+... | refl with ⊎-identity⁻ˡ σ₂ₗ
+... | refl = λ fr →
+    -,
+    -, ⊎-∙ -- extend the frame on the left
+    ,  inj₂ (v ×⟨ ⊎-identityˡ refl , σ₂ᵣ ⟩ emp)
+readBuffer (snoc refl (refl , v) σ₁ head@(snoc _ _ _ _ _) σ₂) with readBuffer head
+... | ⤇z = {!!}
 
 data Link : Pred (SCtx × SCtx) 0ℓ where
   link : ∀[ α ⇜ β ✴ (β ⁻¹ ⇝ γ) ⇒ Link ]

@@ -111,12 +111,14 @@ module _ {t} {T : Set t} where
   instance ctx-has-sep : IsSep separation
   ctx-has-sep = {!!}
 
-  instance ctx-hasUnitalSep : IsUnitalSep _↭_
+  instance ctx-hasUnitalSep : IsUnitalSep _
   ctx-hasUnitalSep = record { isSep = {!!} ; unital = unital' ; ⊎-identityˡ = {!!} }
 
-  ctx-concattative : IsConcattative separation _++_
+  instance ctx-concattative : IsConcattative _
   ctx-concattative = record
-    { ⊎-∙ = λ {Φₗ} {Φᵣ} → ++-disjoint (left (≡⇒≋ P.refl)) (right (≡⇒≋ P.refl))
+    { sep = separation
+    ; _∙_ = _++_
+    ; ⊎-∙ = λ {Φₗ} {Φᵣ} → ++-disjoint (left (≡⇒≋ P.refl)) (right (≡⇒≋ P.refl))
     }
 
   instance ctx-resource : MonoidalSep _ _
