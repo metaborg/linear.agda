@@ -27,21 +27,21 @@ instance
   auth-raw : RawSep Auth
   auth-raw = auth-raw-sep
 
--- | The channel buffers and connections (predicates over `SCtx × SCtx`)
+-- | The channel buffers and links (predicates over `SCtx × SCtx`)
 -- The left context is the 'authorative' part,
 -- and the right context is the 'client' part
 
-Buffer : SType ∞ → Pred (SCtx × SCtx) 0ℓ
-Buffer = {!!}
+data _⇝_ : SType ∞ → SType ∞ → Pred (SCtx × SCtx) 0ℓ where
+  emp  : ∀ {α}   → (α ⇝ α) ([ α ] , ε)
+  snoc : ∀ {a α} → ε[ (Val a ∘ proj₂) ─✴ ((a ¿ α) ⇝ β) ─✴ (α .force ⇝ β) ]
 
-empty : ∀ α → Buffer α ([ α ] , ε)
-empty = {!!}
+_⇜_ = flip _⇝_
 
 data Link : Pred (SCtx × SCtx) 0ℓ where
-  link : ∀[ Buffer α ✴ Buffer (α ⁻¹) ⇒ Link ]
+  link : ∀[ α ⇜ β ✴ (β ⁻¹ ⇝ γ) ⇒ Link ]
 
 newLink : ∀ α → Link (α ∷ α ⁻¹ ∷ [] , ε)
-newLink α = {!!} -- link (empty α ×⟨ {!!} ⟩ empty (α ⁻¹))
+newLink α = link $ emp ×⟨ consˡ (consʳ []) , ⊎-identityˡ refl ⟩ emp
 
 Links : Pred Auth 0ℓ
 Links = Lift (Bigstar Link)
@@ -54,14 +54,15 @@ Thread a = F (Val a)
 Pool : Pred SCtx 0ℓ
 Pool = Bigstar (λ Φ → ∃ λ a → Thread a Φ)
 
--- | The server state (predicate over `▣ SCtx`)
+-- | The server state
 
 State : fPred
 State = Links ✴ ○ Pool
 
--- The monotone state monad
+-- | The monotone state monad
+
 M : fPred → fPred
-M P = State ==✴ State ✴ P -- i.e. M P = State ─✴ (⤇ (State ✴ P))
+M P = State ==✴ State ✴ P
 
 runM : ∀ {P} → ∀[ (State ✴ M P) ==✴ (State ✴ P) ]
 runM = {!!}
@@ -77,11 +78,6 @@ join c st σ = ⤇-bind (apply ∘ ✴-swap) (apply (c ×⟨ σ ⟩ st))
 mmap : ∀ {P Q} → ∀[ P ⇒ Q ] → ∀[ M P ⇒ M Q ]
 mmap f c st σ = ⤇-map ⟨ id ⟨✴⟩ f ⟩ (apply (c ×⟨ σ ⟩ st))
   where open Update
-
--- this is the wrong bind; both the continuation and the monadic computation
--- use some amount of resource, but they are not the same
-bind' : ∀ {P Q} → ∀[ P ⇒ M Q ] → ∀[ M P ⇒ M Q ]
-bind' f = join ∘ mmap f
 
 -- internal bind - I think?
 bind : ∀ {P Q} → ∀[ (P ─✴ M Q) ⇒ (M P ─✴ M Q) ]
