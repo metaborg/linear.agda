@@ -44,9 +44,9 @@ module Free where
   f-map f (pure x) σ                  = pure (f x σ)
   f-map f (impure (cmd ×⟨ σ₁ ⟩ κ)) σ₂ =
     let (Φ , eq₁ , eq₂) = ⊎-assoc σ₁ (⊎-comm σ₂) in
-    impure (cmd ×⟨ eq₂ ⟩ (λ r σ₃ →
-      let (Φ' , eq₃ , eq₄) = ⊎-assoc (⊎-comm eq₁) σ₃ in
-      f-map f (κ r eq₃) eq₄))
+    impure (cmd ×⟨ eq₁ ⟩ (λ r σ₃ →
+      let (Φ' , eq₃ , eq₄) = ⊎-assoc (⊎-comm eq₂) σ₃ in
+      f-map f (κ r eq₄) eq₃))
 
   f-join : ∀ {P} → ∀[ F (F P) ⇒ F P ]
   f-join (pure fp)  = fp
@@ -99,19 +99,19 @@ module Free where
             let closure' = cons (v ×⟨ ⊎-comm v◆E₂ ⟩ closure-env)
             in eval body closure'
 
-  eval (pair (px ×⟨ Γ≺ ⟩ qx)) env =
+  eval (pairs (px ×⟨ Γ≺ ⟩ qx)) env =
     let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
     eval px E₁ split (⊎-comm E≺) bind λ v v◆E₁ →
       eval qx E₂ split (⊎-comm v◆E₁) bind λ w dj →
-        f-return (pair (v ×⟨ dj ⟩ w))
+        f-return (pairs (v ×⟨ dj ⟩ w))
 
   eval (letpair (p ×⟨ Γ≺ ⟩ k)) env =
     let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
     (eval p E₁) split (⊎-comm E≺) bind λ where
-      (pair (v ×⟨ v◆w ⟩ w)) pr◆E₂ →
+      (pairs (v ×⟨ v◆w ⟩ w)) pr◆E₂ →
         let -- extend the environment with the two values
-            (Φ , sip , sop) = ⊎-assoc v◆w (⊎-comm pr◆E₂)
-            Eₖ = cons (v ×⟨ sop ⟩ (cons (w ×⟨ sip ⟩ E₂)))
+          _ , sip , sop = ⊎-assoc v◆w (⊎-comm pr◆E₂)
+          Eₖ = cons (v ×⟨ sip ⟩ cons (w ×⟨ sop ⟩ E₂))
         in eval k Eₖ
 
   eval (send (e ×⟨ Γ≺ ⟩ ch)) env =
@@ -126,7 +126,7 @@ module Free where
     (eval e env) split ⊎-identityˡ refl bind λ where
       (chan ch) ε◆ch → receive! ch split ε◆ch bind λ a×b s →
         f-return $ subst (Val _) (⊎-identity⁻ˡ s) $
-          pair (⟨ chan ⟨✴⟩ id ⟩ a×b)  
+          pairs (⟨ chan ⟨✴⟩ id ⟩ a×b)  
 
   eval (fork e) env =
     eval e env split ⊎-identityˡ refl bind λ where

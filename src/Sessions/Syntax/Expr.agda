@@ -17,7 +17,7 @@ data Exp : Type ∞ → LCtx → Set where
   app       :       ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
 
   -- product introduction and elimination
-  pair      : ∀[ Exp a ✴ Exp b ⇒ Exp (prod a b) ]
+  pairs     : ∀[ Exp a ✴ Exp b ⇒ Exp (prod a b) ]
   letpair   : ∀[ Exp (prod a b) ✴ (a ◂ b ◂ id ⊢ Exp c) ⇒ Exp c ]
 
   -- communication

@@ -62,17 +62,17 @@ module _ ⦃ A-sep : RawUnitalSep A ⦄ ⦃ _ : IsSep (RawUnitalSep.sep A-sep) �
   comm (neither x)    = neither (⊎-comm x)
 
   assoc : ∀ {Φ₁ Φ₂ Ψ₁ Ψ₂ Ψ₃} → Split Φ₁ Φ₂ Ψ₁ → Split Ψ₁ Ψ₂ Ψ₃ →
-          ∃ (λ ξ → Split Φ₂ Ψ₂ ξ × Split Φ₁ ξ Ψ₃)
+          ∃ (λ ξ → Split Φ₁ ξ Ψ₃ × Split Φ₂ Ψ₂ ξ)
   assoc (on-left s r) (on-left s' r') =
-    let _ , p , q = ⊎-assoc s s' in -, (neither p) , on-left q r'
+    let _ , q , p = ⊎-assoc s s' in -, on-left q r' , (neither p)
   assoc (on-right s l) (on-left s' l') with ⊎-assoc (⊎-comm s) s'
-  ... | a , p , q =
+  ... | a , q , p =
     let le = ≤-trans (-, ⊎-comm q) l' 
-    in -, on-left p le , on-right (⊎-comm q) l'
+    in -, on-right (⊎-comm q) l' , on-left p le
   assoc (neither s) (on-right s' l) with ⊎-assoc s (⊎-comm s')
-  ... | a , p , q =
+  ... | a , q , p =
     let le = ≤-trans (-, ⊎-comm q) l
-    in -, on-right (⊎-comm p) le , on-right (⊎-comm q) l
+    in -, on-right (⊎-comm q) l , on-right (⊎-comm p) le
   assoc (neither s) (neither s') =
     let _ , p , q = ⊎-assoc s s' in -, neither p , neither q
 

@@ -223,6 +223,7 @@ record RawUnitalSep {c} (C : Set c) : Set (suc c) where
     Exactly : C → SPred c
     Exactly = flip _≡_
 
+    -- disjointness
     _◆_ : C → C → SPred c
     Φₗ ◆ Φᵣ = Exactly Φₗ ✴ Exactly Φᵣ
 

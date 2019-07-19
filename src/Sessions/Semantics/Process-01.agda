@@ -86,12 +86,12 @@ bind' f = join ∘ mmap f
 -- internal bind - I think?
 bind : ∀ {P Q} → ∀[ (P ─✴ M Q) ⇒ (M P ─✴ M Q) ]
 bind f mp σ₁ μ₁ σ₂ σ₃             with ⊎-assoc σ₁ σ₂
-... | _ , σ₄ , σ₅                 with ⊎-assoc (⊎-comm σ₅) σ₃
-... | _ , σ₆ , σ₇                 with mp μ₁ σ₄ σ₇ -- m specifies the frame for the update
+... | _ , σ₄ , σ₅                 with ⊎-assoc (⊎-comm σ₄) σ₃
+... | _ , σ₆ , σ₇                 with mp μ₁ σ₅ σ₆ -- m specifies the frame for the update
 ... | _ , _ , σ₈ , μ₂ ×⟨ σ₉ ⟩ px  with ⊎-assoc σ₉ σ₈
-... | _ , p' , q'                 with resplit σ₆ (⊎-comm σ₉) (⊎-comm σ₈)
-... | _ , _ , τ₁ , τ₂ , τ₃        with ⊎-assoc τ₂ (⊎-comm τ₃)
-... | _ , τ₄ , τ₅                  = f px τ₁ μ₂ (⊎-comm τ₄) (⊎-comm τ₅)
+... | _ , p' , q'                 with resplit σ₇ (⊎-comm σ₉) (⊎-comm σ₈)
+... | _ , _ , τ₁ , τ₂ , τ₃        with ⊎-unassoc τ₃ (⊎-comm τ₂)
+... | _ , τ₄ , τ₅                 = f px τ₁ μ₂ τ₄ τ₅ 
 
 -- open Update
 -- bind'' : ∀ {P Q} → ∀[ (P ─✴ M Q) ⇒ (M P ─✴ M Q) ]
@@ -129,7 +129,7 @@ newChannel α μ =
     helper α (lift ls) (on-right x le) (on-left au z≤Φ₁) rewrite ⊎-identity⁻ʳ x =
       -,
       -, on-left (⊎-∙ₗ au) (≤-∙ z≤Φ₁)
-      ,  lift (cons (newLink α ×⟨ ⊎-∙ , ⊎-identityˡ refl ⟩ ls))
+      ,  lift (cons ((newLink α) ×⟨ ⊎-∙ , ⊎-identityˡ refl ⟩ ls))
            ×⟨ on-left (⊎-comm ⊎-∙) (≤-∙ le) ⟩
          frag (refl ×⟨ ⊎-∙ ⟩ refl)
 
