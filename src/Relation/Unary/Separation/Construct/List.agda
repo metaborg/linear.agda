@@ -1,4 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
 module Relation.Unary.Separation.Construct.List {a} {A : Set a} where
 
 open import Data.Product
@@ -27,10 +26,19 @@ separation = record { _⊎_≣_ = Interleaving }
 instance unital' : RawUnitalSep C
 unital' = record { ε = [] ; sep = separation }
 
+-- TODO add to stdlib
+reassoc : ∀ {a b ab c abc : List A} →
+          Interleaving a b ab → Interleaving ab c abc →
+          ∃ λ bc → Interleaving a bc abc × Interleaving b c bc
+reassoc l (consʳ r)         = let _ , p , q = reassoc l r in -, consʳ p , consʳ q
+reassoc (consˡ l) (consˡ r) = let _ , p , q = reassoc l r in -, consˡ p , q
+reassoc (consʳ l) (consˡ r) = let _ , p , q = reassoc l r in -, consʳ p , consˡ q
+reassoc [] []               = [] , [] , []
+
 instance ctx-has-sep : IsSep separation
 ctx-has-sep = record
   { ⊎-comm = I.swap
-  ; ⊎-assoc = {!!}
+  ; ⊎-assoc = reassoc
   }
 
 instance ctx-hasUnitalSep : IsUnitalSep _
@@ -64,7 +72,7 @@ module All {v} {V : A → Set v} where
   all-split (consʳ s) (px ∷ vs) = let xs , ys = all-split s vs in xs , px ∷ ys
 
 {- This gives rise to a notion of linear, typed environments -}
-module LinearEnv {v} {V : A → Pred C v} where
+module LinearEnv {v} (V : A → Pred C v) where
 
   Env = Allstar V
 
