@@ -36,8 +36,8 @@ module _ ⦃ A-sep : RawUnitalSep A ⦄ where
                y ⊎ y' ≣ z →
                Split (◌ y) (◌ y') (◌ z)
 
-  data ● {p} (P : Pred Auth p) : Pred Auth  p where
-    whole : ∀ {x y} → P (x ◐ y) → ● P (x ◐ y)
+  data ● {p} (P : Pred A p) : Pred Auth p where
+    whole : ∀ {x} → P x → ● P (x ◐ x)
 
   data ○ {p} (P : Pred A p) : Pred Auth p where
     frag : ∀ {x} → P x → ○ P (◌ x)

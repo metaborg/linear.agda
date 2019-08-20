@@ -24,7 +24,7 @@ data Exp : Type ∞ → LCtx → Set where
   send      : ∀ {b} → ∀[ Exp a ✴ Exp (chan (a ! b)) ⇒ Exp (chan (b .force)) ]
   recv      : ∀ {b} → ∀[ Exp (chan (a ¿ b)) ⇒ Exp (prod (chan (b .force)) a) ]
 
-  -- fork
+  -- fork ; TODO unit
   fork      : ∀[ Exp (chan α ⊸ b) ⇒ Exp (chan (α ⁻¹)) ]
 
   -- termination

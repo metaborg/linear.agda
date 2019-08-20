@@ -10,7 +10,7 @@ open import Data.List
 open import Data.List.All
 open import Data.List.Membership.Propositional
 open import Data.List.Relation.Binary.Permutation.Inductive
-open import Data.List.Relation.Ternary.Interleaving.Propositional
+open import Data.List.Relation.Ternary.Interleaving.Propositional as I
 open import Data.List.Relation.Ternary.Interleaving.Properties
 open import Data.List.Relation.Binary.Equality.Propositional
 open import Data.Product
@@ -109,10 +109,15 @@ module _ {t} {T : Set t} where
   unital' = record { ε = [] ; sep = separation }
 
   instance ctx-has-sep : IsSep separation
-  ctx-has-sep = {!!}
+  ctx-has-sep = record { ⊎-comm = I.swap ; ⊎-assoc = {!!} }
 
   instance ctx-hasUnitalSep : IsUnitalSep _
-  ctx-hasUnitalSep = record { isSep = {!!} ; unital = unital' ; ⊎-identityˡ = {!!} }
+  ctx-hasUnitalSep = record
+                       { unital = unital'
+                       ; isSep = ctx-has-sep
+                       ; ⊎-identityˡ = λ where refl → right (≡⇒≋ P.refl)
+                       ; ⊎-identity⁻ˡ = ?
+                       }
 
   instance ctx-concattative : IsConcattative _
   ctx-concattative = record

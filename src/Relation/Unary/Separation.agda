@@ -214,6 +214,7 @@ record RawUnitalSep {c} (C : Set c) : Set (suc c) where
 
   open RawSep sep
 
+  infix 10 ε[_]
   ε[_] : ∀ {ℓ} → Pred C ℓ → Set ℓ
   ε[ P ] = P ε
 
@@ -232,6 +233,13 @@ record RawUnitalSep {c} (C : Set c) : Set (suc c) where
 
     Emp : SPred c
     Emp = Exactly ε
+
+    Emp' : SPred c
+    Emp' = ε ⊎ ε
+
+    -- ∀[ P ⇒ ■ Q ] ≡ ε[ P ─✴ Q  ] and isomorph (but not def. equal) to ∀[ P ⇒ Q ]
+    ■ : ∀ {p} → SPred p → SPred (c ⊔ p)
+    ■ P Φₚ = ∀ {Φ} → ε ⊎ Φₚ ≣ Φ → P Φ
 
   {- Big seperating conjunction over an SPred -}
   module _ where
@@ -264,7 +272,6 @@ record IsUnitalSep {c} (C : Set c) : Set (suc c) where
   field
     ⊎-identityˡ    : ∀ {Φ} → ∀[ (Φ ≡_) ⇒ (ε ⊎ Φ) ]
     ⊎-identity⁻ˡ   : ∀ {Φ} → ∀[ (ε ⊎ Φ) ⇒ (Φ ≡_) ]
-    ε-separateˡ    : ∀ {Φᵣ} → ∀[ (_⊎ Φᵣ ≣ ε) ⇒ (_≡ ε) ]
 
   open IsSep isSep
 
@@ -273,9 +280,6 @@ record IsUnitalSep {c} (C : Set c) : Set (suc c) where
 
   ⊎-identity⁻ʳ : ∀ {Φ} → ∀[ (Φ ⊎ ε) ⇒ (Φ ≡_) ]
   ⊎-identity⁻ʳ = ⊎-identity⁻ˡ ∘ ⊎-comm
-
-  ε-separateʳ : ∀ {Φₗ} → ∀[ (Φₗ ⊎_≣ ε) ⇒ (_≡ ε) ]
-  ε-separateʳ = ε-separateˡ ∘ ⊎-comm
 
   module _ where
     ε⊎ε : ∀[ ε ⊎ ε ⇒ Emp ]
@@ -293,9 +297,38 @@ record IsUnitalSep {c} (C : Set c) : Set (suc c) where
     unwand : ∀ {p q} {P : SPred p} {Q : SPred q} → ε[ P ─✴ Q ] → ∀[ P ⇒ Q ]
     unwand f p = f p (⊎-identityˡ P.refl)
 
-    ─[id] : ∀ {p} {P : SPred p} → ε[ P ─✴ P ]
-    ─[id] = wandit id
+  ─[id] : ∀ {p} {P : Pred _ p} → ε[ P ─✴ P ]
+  ─[id] px σ rewrite ⊎-identity⁻ˡ σ = px
 
+  postulate _✧_ : ∀ {p q r}{P : Pred _ p}{Q : Pred _ q}{R : Pred _ r} →
+                  ε[ Q ─✴ R ] → ε[ P ─✴ Q ] → ε[ P ─✴ R ]
+
+  module _ where
+    ■-return : ∀ {p} {P : SPred p} → ∀[ P ⇒ ■ P ]
+    ■-return px σ rewrite ⊎-identity⁻ˡ σ = px
+
+    postulate ■-join : ∀ {p} {P : SPred p} → ∀[ ■ (■ P) ⇒ ■ P ]
+
+    postulate ■-bind  : ∀ {p q} {P : SPred p}{Q : SPred q} → ∀[ P ⇒ ■ Q ] → ∀[ ■ P ⇒ ■ Q ]
+    postulate ■-ibind : ∀ {p q} {P : SPred p}{Q : SPred q} → ∀[ (P ⇒ ■ Q) ─✴ (■ P ⇒ ■ Q) ]
+    postulate ■-cobind : ∀ {p q} {P : SPred p}{Q : SPred q} → ∀[ (■ P ⇒ Q) ─✴ (■ P ⇒ ■ Q) ]
+
+
+  -- internal versions of the strong monadic structure on update
+  module _ where
+
+    ⤇-return : ∀ {p} {P : SPred p} → ε[ P ─✴ (⤇ P) ]
+    ⤇-return px σ fr with ⊎-identity⁻ˡ σ
+    ... | P.refl = -, -, fr , px
+
+    ⤇-bind : ∀ {p q}{P : SPred p}{Q : SPred q} → ε[ (P ─✴ ⤇ Q) ─✴ ((⤇ P) ─✴ ⤇ Q) ]
+    ⤇-bind f σf p σₚ fr with ⊎-identity⁻ˡ σf
+    ... | P.refl with ⊎-assoc (⊎-comm σₚ) fr
+    ... | _ , σ₁ , σ₂ with p σ₁
+    ... | Δ , Σ , σ₃ , px with ⊎-assoc (⊎-comm σ₂) (⊎-comm σ₃)
+    ... | _ , σ₄ , σ₅ = f px σ₅ (⊎-comm σ₄)
+
+    postulate &-⤇ : ∀ {p q} {P : SPred p} {Q : SPred q} → ε[ P ✴ ⤇ Q ─✴ ⤇ (P ✴ Q) ]
 
   module _ {p q} {P : SPred p} {Q : SPred q} where
     pair : ε[ P ◇─ (Q ◇─ P ✴ Q) ]
