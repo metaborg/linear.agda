@@ -34,7 +34,7 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
 
   -- buy one, get a preorder for free
   _≤_ : Rel Carrier _
-  Φ₁ ≤ Φ = ∃ λ Φ₂ → (Φ₁ ⊎ Φ₂) Φ
+  Φ₁ ≤ Φ = ∃ λ Φ₂ → Φ₁ ⊎ Φ₂ ≣ Φ
 
   -- separating conjunction
   infixr 10 _×⟨_⟩_

@@ -14,6 +14,7 @@ open import Relation.Unary hiding (_∈_) public
 open import Relation.Binary.PropositionalEquality hiding ([_]) public
 
 open import Relation.Unary.Separation public
+open import Relation.Unary.Separation.Construct.List public
 
 open RawUnitalSep ⦃...⦄ public
 open RawSep ⦃...⦄ public

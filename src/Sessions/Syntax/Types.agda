@@ -1,4 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
 module Sessions.Syntax.Types where
 
 open import Level
@@ -28,6 +27,7 @@ open import Relation.Binary.PropositionalEquality as P hiding ([_])
 
 open import Relation.Unary.Separation
 open import Relation.Unary.Separation.Construct.Product
+open import Relation.Unary.Separation.Construct.List
 
 open MonoidalSep ⦃...⦄ hiding (isEquivalence)
 open RawUnitalSep ⦃...⦄
@@ -101,36 +101,6 @@ module _ {t} {T : Set t} where
   private
     Ctx : Set t
     Ctx = List T
-
-  instance separation : RawSep Ctx
-  separation = record { _⊎_≣_ = Interleaving }
-
-  instance unital' : RawUnitalSep Ctx
-  unital' = record { ε = [] ; sep = separation }
-
-  instance ctx-has-sep : IsSep separation
-  ctx-has-sep = record { ⊎-comm = I.swap ; ⊎-assoc = {!!} }
-
-  instance ctx-hasUnitalSep : IsUnitalSep _
-  ctx-hasUnitalSep = record
-                       { unital = unital'
-                       ; isSep = ctx-has-sep
-                       ; ⊎-identityˡ = λ where refl → right (≡⇒≋ P.refl)
-                       ; ⊎-identity⁻ˡ = ?
-                       }
-
-  instance ctx-concattative : IsConcattative _
-  ctx-concattative = record
-    { sep = separation
-    ; _∙_ = _++_
-    ; ⊎-∙ = λ {Φₗ} {Φᵣ} → ++-disjoint (left (≡⇒≋ P.refl)) (right (≡⇒≋ P.refl))
-    }
-
-  instance ctx-resource : MonoidalSep _ _
-  ctx-resource = record
-    { set         = record { isEquivalence = ↭-isEquivalence }
-    ; isUnitalSep = ctx-hasUnitalSep
-    ; isConcat    = ctx-concattative }
 
   LPred : (p : Level) → Set (t ⊔ Level.suc p)
   LPred p = Ctx → Set p

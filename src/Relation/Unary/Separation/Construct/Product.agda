@@ -58,8 +58,6 @@ module _
                           refl → (IsUnitalSep.⊎-identityˡ u₁ refl) , ((IsUnitalSep.⊎-identityˡ u₂ refl))
                       ; ⊎-identity⁻ˡ = λ where
                           (fst , snd) → cong₂ _,_ (IsUnitalSep.⊎-identity⁻ˡ u₁ fst) (IsUnitalSep.⊎-identity⁻ˡ u₂ snd)
-                      ; ε-separateˡ = λ where
-                          (fst , snd) → cong₂ _,_ (IsUnitalSep.ε-separateˡ u₁ fst) (IsUnitalSep.ε-separateˡ u₂ snd)
                       }
 
 module _

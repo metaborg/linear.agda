@@ -7,11 +7,14 @@ open import Sessions.Syntax.Types
 open import Sessions.Syntax.Expr
 
 open import Data.List.Relation.Ternary.Interleaving
+open import Relation.Unary.Separation.Construct.List as L
 
 Chan : SType ∞ → Pred SCtx 0ℓ
 Chan = Just
 
 mutual
+  Env = LinearEnv.Env Val
+
   data Closure : Type ∞ → Type ∞ → Pred SCtx 0ℓ where
     closure : ∀ {a} → Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Closure a b ]
 
@@ -20,7 +23,3 @@ mutual
     chan  : ∀[ Chan α        ⇒ Val (chan α)   ]
     pairs : ∀[ Val a ✴ Val b ⇒ Val (prod a b) ]
     clos  : ∀[ Closure a b   ⇒ Val (a ⊸ b) ]
-
-  Env : List (Type ∞) → Pred SCtx 0ℓ
-  Env = Allstar Val
-
