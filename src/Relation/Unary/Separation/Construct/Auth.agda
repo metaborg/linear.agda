@@ -13,8 +13,6 @@ open import Relation.Binary hiding (_⇒_)
 open import Relation.Binary.PropositionalEquality as P
 
 module _ ⦃ A-sep : RawUnitalSep A ⦄ where
-  open RawUnitalSep A-sep
-  open RawSep sep
 
   data Auth : Set where
     _◐_ : ∀ (x y : A) → Auth
@@ -53,9 +51,6 @@ module _ ⦃ A-sep : RawUnitalSep A ⦄ where
   auth-raw-unital = record { ε = ◌ ε ; sep = auth-raw-sep }
 
 module _ ⦃ A-sep : RawUnitalSep A ⦄ ⦃ _ : IsSep (RawUnitalSep.sep A-sep) ⦄ where
-  open IsSep ⦃...⦄
-  open RawSep ⦃...⦄
-  open RawUnitalSep ⦃...⦄
 
   private instance A-raw = RawUnitalSep.sep A-sep
 
