@@ -210,7 +210,7 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
 record RawUnitalSep {c} (C : Set c) : Set (suc c) where
   field
     ε   : C
-    sep : RawSep C
+    overlap ⦃ sep ⦄ : RawSep C
 
   open RawSep sep
 
@@ -260,12 +260,12 @@ record RawUnitalSep {c} (C : Set c) : Set (suc c) where
 
 record IsUnitalSep {c} (C : Set c) : Set (suc c) where
   field
-    unital : RawUnitalSep C
+    overlap {{ unital }} : RawUnitalSep C
 
   open RawUnitalSep unital
 
   field
-    isSep  : IsSep sep
+    overlap {{ isSep }}  : IsSep sep
 
   open RawSep sep
 
@@ -415,40 +415,34 @@ record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   field
     set : Setoid ℓ₁ ℓ₂
 
-  open Setoid set public 
+  open Setoid set
 
   field
-    raw          : RawSep Carrier
-    isSep : IsSep raw
-
-  open RawSep raw
-  open IsSep isSep public
+    overlap {{ raw }}   : RawSep Carrier
+    overlap {{ isSep }} : IsSep raw
 
 record UnitalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   field
     set : Setoid ℓ₁ ℓ₂
 
-  open Setoid set public 
+  open Setoid set
 
   field
-    isUnitalSep : IsUnitalSep Carrier
-
-  open IsUnitalSep isUnitalSep public
+    overlap {{ isUnitalSep }} : IsUnitalSep Carrier
 
 record MonoidalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   field
     set : Setoid ℓ₁ ℓ₂
 
-  open Setoid set public 
+  open Setoid set
 
   field
-    isUnitalSep : IsUnitalSep Carrier
+    overlap {{ isUnitalSep }} : IsUnitalSep Carrier
+    overlap {{ isConcat }}    : IsConcattative Carrier
 
-  open IsUnitalSep isUnitalSep
-  open RawUnitalSep unital
-  open RawSep sep
-
-  field
-    isConcat    : IsConcattative Carrier
-
-  open IsConcattative isConcat public
+open RawSep ⦃...⦄ public
+open RawUnitalSep ⦃...⦄ public hiding (sep)
+open IsConcattative ⦃...⦄ public hiding (sep)
+open IsUnitalSep ⦃...⦄ public hiding (sep)
+open UnitalSep ⦃...⦄ public
+open IsSep ⦃...⦄ public

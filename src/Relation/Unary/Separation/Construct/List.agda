@@ -11,12 +11,6 @@ open import Relation.Binary.PropositionalEquality as P hiding ([_])
 open import Relation.Unary hiding (_∈_; _⊢_)
 open import Relation.Unary.Separation
 
-open RawSep ⦃...⦄
-open RawUnitalSep ⦃...⦄
-open IsConcattative ⦃...⦄
-open IsUnitalSep ⦃...⦄
-open IsSep ⦃...⦄
-
 module _ {a} {A : Set a} where
   private
     C = List A
@@ -55,6 +49,11 @@ module _ {a} {A : Set a} where
     ; _∙_ = _++_
     ; ⊎-∙ = λ {Φₗ} {Φᵣ} → ++-disjoint (left (≡⇒≋ P.refl)) (right (≡⇒≋ P.refl))
     }
+
+  instance ctx-unitalsep : UnitalSep _ _
+  ctx-unitalsep = record
+    { set = record { isEquivalence = ↭-isEquivalence }
+    ; isUnitalSep = ctx-hasUnitalSep }
 
   instance ctx-resource : MonoidalSep _ _
   ctx-resource = record
