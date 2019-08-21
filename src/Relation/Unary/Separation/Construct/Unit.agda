@@ -27,10 +27,9 @@ unit-has-unit = record
   { ε = tt
   ; sep = unit-raw-sep }
 
-instance unit-is-unital : IsUnitalSep ⊤
+instance unit-is-unital : IsUnitalSep _
 unit-is-unital = record
-  { unital = unit-has-unit
-  ; isSep = unit-has-sep
+  { isSep = unit-has-sep
   ; ⊎-identityˡ = λ x → tt
   ; ⊎-identity⁻ˡ = λ where tt → refl }
 

@@ -251,17 +251,14 @@ record RawUnitalSep {c} (C : Set c) : Set (suc c) where
   module _ {i ℓ} {I : Set i} where
     open import Data.List
     data Allstar (P : I → SPred ℓ) : List I → SPred (ℓ ⊔ c ⊔ i) where
-      nil  :            ∀[ Emp ⇒ Allstar P [] ]
+      nil  :            ε[ Allstar P [] ]
       cons : ∀ {x xs} → ∀[ P x ✴ Allstar P xs ⇒ Allstar P (x ∷ xs) ]
 
     -- not typed well..
     infixr 5 _:⟨_⟩:_
     pattern _:⟨_⟩:_ x p xs = cons (x ×⟨ p ⟩ xs)
 
-record IsUnitalSep {c} (C : Set c) : Set (suc c) where
-  field
-    overlap {{ unital }} : RawUnitalSep C
-
+record IsUnitalSep {c} {C : Set c} (unital : RawUnitalSep C) : Set (suc c) where
   open RawUnitalSep unital
 
   field
@@ -341,7 +338,7 @@ record IsUnitalSep {c} (C : Set c) : Set (suc c) where
   module _ {i ℓ} {I : Set i} {P : I → SPred ℓ} where
     open import Data.List
     singleton : ∀ {x} → ∀[ P x ⇒ Allstar P [ x ] ]
-    singleton v = cons (v ×⟨ ⊎-identityʳ P.refl ⟩ (nil P.refl))
+    singleton v = cons (v ×⟨ ⊎-identityʳ P.refl ⟩ nil)
 
   {- A free preorder -}
   module _ where
@@ -398,10 +395,7 @@ record IsUnitalSep {c} (C : Set c) : Set (suc c) where
       π₂ : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ (P ✴ Q) ⇒ Q ↑ ]
       π₂ (_ ×⟨ sep ⟩ qx) = qx ⇑ ⊎-comm sep
 
-record IsConcattative {c} (C : Set c) : Set (suc c) where
-  field
-    sep : RawSep C 
-
+record IsConcattative {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
   open RawSep sep
 
   field
@@ -428,7 +422,8 @@ record UnitalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   open Setoid set
 
   field
-    overlap {{ isUnitalSep }} : IsUnitalSep Carrier
+    {unital} : RawUnitalSep Carrier
+    overlap {{ isUnitalSep }} : IsUnitalSep unital
 
 record MonoidalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   field
@@ -437,12 +432,17 @@ record MonoidalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   open Setoid set
 
   field
-    overlap {{ isUnitalSep }} : IsUnitalSep Carrier
-    overlap {{ isConcat }}    : IsConcattative Carrier
+    overlap {{ unitalSep }} : UnitalSep ℓ₁ ℓ₂
+
+  open UnitalSep unitalSep
+  open RawUnitalSep unital
+
+  field
+    overlap {{ concat }}    : IsConcattative sep
 
 open RawSep ⦃...⦄ public
 open RawUnitalSep ⦃...⦄ public hiding (sep)
-open IsConcattative ⦃...⦄ public hiding (sep)
+open IsConcattative ⦃...⦄ public
 open IsUnitalSep ⦃...⦄ public hiding (sep)
 open UnitalSep ⦃...⦄ public
 open IsSep ⦃...⦄ public

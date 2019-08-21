@@ -36,13 +36,14 @@ data Exp : Ty → Ctx → Set where
   app : ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
   var : ∀[ Just a ⇒ Exp a ]
 
-rPred = ⊤ → Set
-
 module LinearReader {v c t}
   {T : Set t}        -- types
   {C : Set c}        -- the separation carrier
   {V : T → Pred C v} -- values
   {{usep : RawUnitalSep C}} where
+
+  CPred : (ℓ : Level) → Set (c ⊔ sucℓ ℓ)
+  CPred ℓ = C → Set ℓ
 
   open RawUnitalSep usep using (sep)
 
@@ -72,45 +73,59 @@ module LinearReader {v c t}
     --   (λ px s' → λ where (nil refl) s'' → E₂ ×⟨ subst (_ ⊎ _ ≣_) (⊎-identity⁻ʳ s'') s' ⟩ px)
     --   c eq₂ E₁ (⊎-comm eq₁)
 
-  ask : {{_ : IsUnitalSep C}} → ∀[ Reader Γ ε (Allstar V Γ) ]
-  ask env σ = nil refl ×⟨ {!⊎-identityˡ !} ⟩ env
+  ask : {{_ : IsUnitalSep usep}} → ε[ Reader Γ ε (Allstar V Γ) ]
+  ask env σ = nil ×⟨ σ ⟩ env
 
-mutual
-  Env : Ctx → rPred
-  Env = Allstar Val
+  asks : ∀ {p} {P : Pred C p} {{_ : IsUnitalSep usep}} → ∀[ (Allstar V Γ ─✴ P) ⇒ Reader Γ ε P ]
+  asks f env σ =
+    let px = f env σ
+    in (nil ×⟨ ⊎-identityˡ refl ⟩ px)
 
-  data Val : Ty → rPred where
-    num   : ℕ → ε[ Val nat ]
-    clos  : ∀ {Γ} → Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Val (a ⊸ b) ]
+  prepend : ∀[ Allstar V Γ₁ ⇒ Reader Γ₂ (Γ₁ ∙ Γ₂) Emp ]
+  prepend env₁ env₂ s = {!!} -- env-∙ (env₁ ×⟨ s ⟩ env₂) ×⟨ ⊎-identityʳ refl ⟩ refl
 
-  open LinearReader {V = Val} {{unit-raw-unital}} renaming (Reader to M)
+  append : ∀[ Allstar V Γ₁ ⇒ Reader Γ₂ (Γ₂ ∙ Γ₁) Emp ]
+  append env₁ env₂ s = {!!} -- env-∙ (env₂ ×⟨ ⊎-comm s ⟩ env₁) ×⟨ ⊎-identityʳ refl ⟩ refl
 
-  eval : ∀ {Γ} → Exp a Γ → ∀[ M Γ ε (Val a) ]
-  eval (add (e₁ ×⟨ Γ≺ ⟩ e₂)) =
-    frame Γ≺ (eval e₁) ⟪ _ ⟫= λ where
-      (num n₁) σ₁ → eval e₂ ⟪ _ ⟫= λ where
-        (num n₂) σ₂ → return (num (n₁ + n₂))
-  eval (num n) = return (num n)
-  eval (lam e) = ask ⟪ {!!} ⟫= λ where
-    env σ → return (clos e env)
-  eval (app f✴e) =
-    {!!} ⟪ {!!} ⟫= {!!}
-  eval (var x) = {!!}
+module _ {c}
+  {C : Set c}        -- the separation carrier
+  {{usep : RawUnitalSep C}} where
 
--- module Arrowic where
-  -- first : {P Q R : Pred Ctx 0ℓ} →
-  --         ∀[ P ⇒ Q ] →
-  --         ∀[ (P ✴ R) ⇒
-  --            (Q ✴ R) ]
-  -- first = {!!}
+  CPred : (ℓ : Level) → Set (c ⊔ sucℓ ℓ)
+  CPred ℓ = C → Set ℓ
 
-  -- _>>>_ : ∀ {P Q R : Pred Ctx 0ℓ} →
-  --         ∀[ P ⇒ Q ] →
-  --         ∀[ Q ⇒ R ] →
-  --         ∀[ P ⇒ R ]
-  -- x >>> y = {!!}
+  open RawUnitalSep usep using (sep)
 
-  -- mapM′ : ∀ {A B} →
-  --         (A → B) →
-  --         ∀[ M A ⇒ M B ]
-  -- mapM′ = {!!}
+  mutual
+    Env : Ctx → CPred _
+    Env = Allstar Val
+
+    data Val : Ty → CPred c where
+      num   : ℕ → ε[ Val nat ]
+      clos  : ∀ {Γ} → Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Val (a ⊸ b) ]
+
+    open LinearReader {V = Val} {{ usep }}
+
+    {-# TERMINATING #-}
+    eval : {{_ : IsUnitalSep usep }} → Exp a Γ → ε[ Reader Γ ε (Val a) ]
+
+    eval (add (e₁ ×⟨ Γ≺ ⟩ e₂)) =
+      frame Γ≺ (eval e₁) ⟪ ⊎-identityʳ refl ⟫= λ where
+        (num n₁) σ₁ → eval e₂ ⟪ σ₁ ⟫= λ where
+          (num n₂) σ₂ → return (subst (Val nat) (⊎-identity⁻ˡ σ₂) (num (n₁ + n₂)))
+
+    eval (num n) =
+      return (num n)
+
+    eval (lam e) =
+      asks λ env σ → subst (Val _) (⊎-identity⁻ˡ σ) (clos e env)
+
+    eval (app (f ×⟨ Γ≺ ⟩ e)) =
+      frame (⊎-comm Γ≺) (eval e) ⟪ ⊎-identityʳ refl ⟫= λ where
+        v σ₁ → eval f ⟪ ⊎-comm σ₁ ⟫= λ where
+          (clos e env) σ₂ → append (singleton v) ⟪ ⊎-comm σ₂ ⟫= λ where
+            refl σ₃ → append env ⟪ ⊎-comm σ₃ ⟫= λ where
+              refl σ₄ → subst (Reader _ _ _) (⊎-identity⁻ˡ σ₄) (eval e)
+
+    eval (var refl) = asks λ where
+      (cons (px ×⟨ σ₁ ⟩ nil)) σ₂ → subst (Val _) (trans (⊎-identity⁻ʳ σ₁) (⊎-identity⁻ˡ σ₂)) px 

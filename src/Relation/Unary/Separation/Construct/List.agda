@@ -37,16 +37,14 @@ module _ {a} {A : Set a} where
     }
 
   instance ctx-hasUnitalSep : IsUnitalSep _
-  IsUnitalSep.unital ctx-hasUnitalSep                    = unital'
   IsUnitalSep.isSep ctx-hasUnitalSep                     = ctx-has-sep
   IsUnitalSep.⊎-identityˡ ctx-hasUnitalSep refl          = right (≡⇒≋ P.refl)
   IsUnitalSep.⊎-identity⁻ˡ ctx-hasUnitalSep []           = refl
   IsUnitalSep.⊎-identity⁻ˡ ctx-hasUnitalSep (refl ∷ʳ px) = cong (_ ∷_) (⊎-identity⁻ˡ px)
 
-  instance ctx-concattative : IsConcattative _
+  instance ctx-concattative : IsConcattative separation
   ctx-concattative = record
-    { sep = separation
-    ; _∙_ = _++_
+    { _∙_ = _++_
     ; ⊎-∙ = λ {Φₗ} {Φᵣ} → ++-disjoint (left (≡⇒≋ P.refl)) (right (≡⇒≋ P.refl))
     }
 
@@ -57,9 +55,9 @@ module _ {a} {A : Set a} where
 
   instance ctx-resource : MonoidalSep _ _
   ctx-resource = record
-    { set         = record { isEquivalence = ↭-isEquivalence }
-    ; isUnitalSep = ctx-hasUnitalSep
-    ; isConcat    = ctx-concattative }
+    { set         = record { isEquivalence = ↭-isEquivalence {A = C} }
+    ; unitalSep   = ctx-unitalsep
+    ; concat      = ctx-concattative }
 
 {- We can split All P xs over a split of xs -}
 module All {t v} {T : Set t} {V : T → Set v} where
@@ -78,14 +76,14 @@ module LinearEnv where
 
   module _ {s t v} {S : Set s} {T : Set t} {V : T → Pred (List S) v} where
     env-∙ : ∀ {Γ₁ Γ₂} → ∀[ Env V Γ₁ ✴ Env V Γ₂ ⇒ Env V (Γ₁ ∙ Γ₂) ] 
-    env-∙ (nil refl ×⟨ s ⟩ env₂) rewrite ⊎-identity⁻ˡ s = env₂
+    env-∙ (nil ×⟨ s ⟩ env₂) rewrite ⊎-identity⁻ˡ s = env₂
     env-∙ (cons (v ×⟨ s ⟩ env₁) ×⟨ s' ⟩ env₂) =
         let _ , eq₁ , eq₂ = ⊎-assoc s s' in
         cons (v ×⟨ eq₁ ⟩ (env-∙ (env₁ ×⟨ eq₂ ⟩ env₂)))
 
     -- Environments can be split along context splittings
     env-split : ∀ {Γ₁ Γ₂ Γ} → Γ₁ ⊎ Γ₂ ≣ Γ → ∀[ Env V Γ ⇒ Env V Γ₁ ✴ Env V Γ₂ ] 
-    env-split [] (nil refl) = (nil refl) ×⟨ ⊎-identityˡ refl ⟩ (nil refl)
+    env-split [] nil = nil ×⟨ ⊎-identityˡ refl ⟩ nil
     env-split (refl ∷ˡ s) (px :⟨ σ₁ ⟩: sx) with env-split s sx
     ... | l ×⟨ σ₂ ⟩ r with ⊎-unassoc σ₁ σ₂
     ... | (Δ , p , q) = cons (px ×⟨ p ⟩ l) ×⟨ q ⟩ r
