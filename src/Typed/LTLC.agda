@@ -38,7 +38,7 @@ data Exp : Ty → Ctx → Set where
 
 rPred = ⊤ → Set
 
-module LinearReader {p v c t}
+module LinearReader {v c t}
   {T : Set t}        -- types
   {C : Set c}        -- the separation carrier
   {V : T → Pred C v} -- values
@@ -46,14 +46,14 @@ module LinearReader {p v c t}
 
   open RawUnitalSep usep using (sep)
 
-  Reader : List T → List T → Pred C p → Pred C (c ⊔ t ⊔ v ⊔ p)
+  Reader : ∀ {p} → List T → List T → Pred C p → Pred C (c ⊔ t ⊔ v ⊔ p)
   Reader Γ₁ Γ₂ P = Allstar V Γ₁ ─✴ (Allstar V Γ₂ ✴ P)
 
-  return : ∀ {P} {{_ : IsSep sep}} →
+  return : ∀ {p} {P : Pred C p} {{_ : IsSep sep}} →
            ∀[ P ⇒ Reader Γ Γ P ]
   return px e s = e ×⟨ ⊎-comm s ⟩ px
 
-  bind : ∀ {P Q} {{_ : IsSep sep}} →
+  bind : ∀ {p q} {P : Pred C p} {Q : Pred C q} {{_ : IsSep sep}} →
          ∀[ (P ─✴ Reader Γ₂ Γ₃ Q) ⇒ (Reader Γ₁ Γ₂ P ─✴ Reader Γ₁ Γ₃ Q) ]
   bind f mp σ₁ env σ₂ =
     let
@@ -63,7 +63,7 @@ module LinearReader {p v c t}
 
   syntax bind f p s = p ⟪ s ⟫= f
 
-  frame : ∀ {P} → Γ₁ ⊎ Γ₃ ≣ Γ₂ → ∀[ Reader Γ₁ ε P ⇒ Reader Γ₂ Γ₃ P ]
+  frame : ∀ {p} {P : Pred C p} → Γ₁ ⊎ Γ₃ ≣ Γ₂ → ∀[ Reader Γ₁ ε P ⇒ Reader Γ₂ Γ₃ P ]
   frame sep c env s = {!!}
     -- let
     --   (E₁ ×⟨ E≺ ⟩ E₂) = LinearEnv.env-split sep env
@@ -71,6 +71,9 @@ module LinearReader {p v c t}
     -- in bind
     --   (λ px s' → λ where (nil refl) s'' → E₂ ×⟨ subst (_ ⊎ _ ≣_) (⊎-identity⁻ʳ s'') s' ⟩ px)
     --   c eq₂ E₁ (⊎-comm eq₁)
+
+  ask : {{_ : IsUnitalSep C}} → ∀[ Reader Γ ε (Allstar V Γ) ]
+  ask env σ = nil refl ×⟨ {!⊎-identityˡ !} ⟩ env
 
 mutual
   Env : Ctx → rPred
@@ -80,17 +83,19 @@ mutual
     num   : ℕ → ε[ Val nat ]
     clos  : ∀ {Γ} → Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Val (a ⊸ b) ]
 
-  open LinearReader renaming (Reader to M)
+  open LinearReader {V = Val} {{unit-raw-unital}} renaming (Reader to M)
 
-  -- eval : ∀ {Γ} → Exp a Γ → ∀[ M Γ ε (Val a) ]
-  -- eval (add (e₁ ×⟨ Γ≺ ⟩ e₂)) =
-  --   frame Γ≺ (eval e₁) ⟪ ⊎-identityˡ refl ⟫= λ where
-  --     (num n) σ₁ → eval e₂ ⟪ σ₁ ⟫= λ where
-  --       (num m) σ₂ → return (num (n + m))
-  -- eval (num n) = return (num n)
-  -- eval (lam e) = {!!}
-  -- eval (app f✴e) = {!!}
-  -- eval (var x) = {!!}
+  eval : ∀ {Γ} → Exp a Γ → ∀[ M Γ ε (Val a) ]
+  eval (add (e₁ ×⟨ Γ≺ ⟩ e₂)) =
+    frame Γ≺ (eval e₁) ⟪ _ ⟫= λ where
+      (num n₁) σ₁ → eval e₂ ⟪ _ ⟫= λ where
+        (num n₂) σ₂ → return (num (n₁ + n₂))
+  eval (num n) = return (num n)
+  eval (lam e) = ask ⟪ {!!} ⟫= λ where
+    env σ → return (clos e env)
+  eval (app f✴e) =
+    {!!} ⟪ {!!} ⟫= {!!}
+  eval (var x) = {!!}
 
 -- module Arrowic where
   -- first : {P Q R : Pred Ctx 0ℓ} →
