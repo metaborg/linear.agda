@@ -91,7 +91,7 @@ module Free where
 
   eval (app (f ×⟨ Γ≺ ⟩ e)) env =
     -- split the environment in two (disjoint) parts according to the Γ separation
-    let (E₁ ×⟨ E≺ ⟩ E₂) = LinearEnv.env-split Γ≺ env in
+    let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
     eval f E₁ split (⊎-comm E≺) bind λ where
       (clos (closure body closure-env)) clo◆E₂ →
         eval e E₂ split (⊎-comm clo◆E₂) bind λ where
@@ -100,13 +100,13 @@ module Free where
             in eval body closure'
 
   eval (pairs (px ×⟨ Γ≺ ⟩ qx)) env =
-    let (E₁ ×⟨ E≺ ⟩ E₂) = LinearEnv.env-split Γ≺ env in
+    let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
     eval px E₁ split (⊎-comm E≺) bind λ v v◆E₁ →
       eval qx E₂ split (⊎-comm v◆E₁) bind λ w dj →
         f-return (pairs (v ×⟨ dj ⟩ w))
 
   eval (letpair (p ×⟨ Γ≺ ⟩ k)) env =
-    let (E₁ ×⟨ E≺ ⟩ E₂) = LinearEnv.env-split Γ≺ env in
+    let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
     (eval p E₁) split (⊎-comm E≺) bind λ where
       (pairs (v ×⟨ v◆w ⟩ w)) pr◆E₂ →
         let -- extend the environment with the two values
@@ -115,7 +115,7 @@ module Free where
         in eval k Eₖ
 
   eval (send (e ×⟨ Γ≺ ⟩ ch)) env =
-    let (E₁ ×⟨ E≺ ⟩ E₂) = LinearEnv.env-split Γ≺ env in
+    let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
     (eval ch E₂) split E≺ bind λ where
     (chan φ) φ◆E₁ →
       (eval e E₁) split (⊎-comm φ◆E₁) bind λ v φ◆v →

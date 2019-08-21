@@ -1,7 +1,7 @@
 -- | An implementation of the Authoritative PCM
 module Relation.Unary.Separation.Construct.Auth (A : Set) where
 
-open import Level
+open import Level hiding (Lift)
 open import Data.Product
 open import Data.Maybe
 
@@ -37,10 +37,13 @@ module _ ⦃ A-sep : RawUnitalSep A ⦄ where
                Split (◌ y) (◌ y') (◌ z)
 
   data ● {p} (P : Pred A p) : Pred Auth p where
-    whole : ∀ {x} → P x → ● P (x ◐ x)
+    whole : ∀ {x} → P x → ● P (x ◐ ε)
 
   data ○ {p} (P : Pred A p) : Pred Auth p where
     frag : ∀ {x} → P x → ○ P (◌ x)
+
+  data Lift {p} (P : A → A → Set p) : Pred Auth p where
+    lift : ∀ {x y} → P x y → Lift P (x ◐ y)
 
   open RawSep
   instance auth-raw-sep : RawSep Auth

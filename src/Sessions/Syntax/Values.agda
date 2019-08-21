@@ -7,7 +7,7 @@ open import Sessions.Syntax.Types
 open import Sessions.Syntax.Expr
 
 open import Data.List.Relation.Ternary.Interleaving
-open import Relation.Unary.Separation.Construct.List as L
+open import Relation.Unary.Separation.Construct.List
 
 Chan : SType ∞ → Pred SCtx 0ℓ
 Chan = Just
@@ -23,3 +23,5 @@ mutual
     chan  : ∀[ Chan α        ⇒ Val (chan α)   ]
     pairs : ∀[ Val a ✴ Val b ⇒ Val (prod a b) ]
     clos  : ∀[ Closure a b   ⇒ Val (a ⊸ b) ]
+
+open LinearEnv public using (env-split; env-∙)
