@@ -54,6 +54,10 @@ module LinearReader {v c t}
            ∀[ P ⇒ Reader Γ Γ P ]
   return px e s = e ×⟨ ⊎-comm s ⟩ px
 
+  return' : ∀ {p} {P : Pred C p} {{_ : IsUnitalSep usep}} →
+            ε[ P ─✴ Reader Γ Γ P ]
+  return' px σ₁ e σ₂ rewrite ⊎-identity⁻ˡ σ₁ = e ×⟨ ⊎-comm σ₂ ⟩ px
+
   bind : ∀ {p q} {P : Pred C p} {Q : Pred C q} {{_ : IsSep sep}} →
          ∀[ (P ─✴ Reader Γ₂ Γ₃ Q) ⇒ (Reader Γ₁ Γ₂ P ─✴ Reader Γ₁ Γ₃ Q) ]
   bind f mp σ₁ env σ₂ =
@@ -62,7 +66,10 @@ module LinearReader {v c t}
       px✴env      = mp env σ₄
     in ✴-curry f (✴-swap px✴env) σ₃
 
-  syntax bind f p s = p ⟪ s ⟫= f
+  bind' = bind
+
+  syntax bind  f p s = p ⟪ s ⟫= f
+  syntax bind' f p = p ⟫= f
 
   frame : ∀ {p} {P : Pred C p} → Γ₁ ⊎ Γ₃ ≣ Γ₂ → ∀[ Reader Γ₁ ε P ⇒ Reader Γ₂ Γ₃ P ]
   frame sep c env s = {!!}
@@ -79,7 +86,7 @@ module LinearReader {v c t}
   asks : ∀ {p} {P : Pred C p} {{_ : IsUnitalSep usep}} → ∀[ (Allstar V Γ ─✴ P) ⇒ Reader Γ ε P ]
   asks f env σ =
     let px = f env σ
-    in (nil ×⟨ ⊎-identityˡ refl ⟩ px)
+    in (nil ×⟨ ⊎-identityˡ ⟩ px)
 
   prepend : ∀[ Allstar V Γ₁ ⇒ Reader Γ₂ (Γ₁ ∙ Γ₂) Emp ]
   prepend env₁ env₂ s = {!!} -- env-∙ (env₁ ×⟨ s ⟩ env₂) ×⟨ ⊎-identityʳ refl ⟩ refl
@@ -106,26 +113,31 @@ module _ {c}
 
     open LinearReader {V = Val} {{ usep }}
 
+    postulate lem : ∀ {x y y' z : C} → ε ⊎ y' ≣ y → x ⊎ y ≣ z → x ⊎ y' ≣ z
+
     {-# TERMINATING #-}
     eval : {{_ : IsUnitalSep usep }} → Exp a Γ → ε[ Reader Γ ε (Val a) ]
 
     eval (add (e₁ ×⟨ Γ≺ ⟩ e₂)) =
-      frame Γ≺ (eval e₁) ⟪ ⊎-identityʳ refl ⟫= λ where
-        (num n₁) σ₁ → eval e₂ ⟪ σ₁ ⟫= λ where
-          (num n₂) σ₂ → return (subst (Val nat) (⊎-identity⁻ˡ σ₂) (num (n₁ + n₂)))
+      frame Γ≺ (eval e₁) ⟪ ⊎-identityʳ ⟫= λ where
+        (num n₁) → eval e₂ ⟫= λ where
+          (num n₂) → return' (num (n₁ + n₂))  
 
     eval (num n) =
       return (num n)
 
     eval (lam e) =
-      asks λ env σ → subst (Val _) (⊎-identity⁻ˡ σ) (clos e env)
+      ask ⟪ ⊎-identityˡ ⟫= λ
+        env → return' (clos e env)
 
     eval (app (f ×⟨ Γ≺ ⟩ e)) =
-      frame (⊎-comm Γ≺) (eval e) ⟪ ⊎-identityʳ refl ⟫= λ where
+      frame (⊎-comm Γ≺) (eval e) ⟪ ⊎-identityʳ ⟫= λ where
         v σ₁ → eval f ⟪ ⊎-comm σ₁ ⟫= λ where
           (clos e env) σ₂ → append (singleton v) ⟪ ⊎-comm σ₂ ⟫= λ where
             refl σ₃ → append env ⟪ ⊎-comm σ₃ ⟫= λ where
-              refl σ₄ → subst (Reader _ _ _) (⊎-identity⁻ˡ σ₄) (eval e)
+              refl σ₄ → case (⊎-identity⁻ˡ σ₄) of λ where
+                refl → eval e
 
-    eval (var refl) = asks λ where
-      (cons (px ×⟨ σ₁ ⟩ nil)) σ₂ → subst (Val _) (trans (⊎-identity⁻ʳ σ₁) (⊎-identity⁻ˡ σ₂)) px 
+    eval (var refl) = ask ⟪ ⊎-identityˡ ⟫= λ where
+      (cons (px ×⟨ σ₁ ⟩ nil)) → case (⊎-identity⁻ʳ σ₁) of λ where
+         refl → return' px

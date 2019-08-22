@@ -30,7 +30,7 @@ unit-has-unit = record
 instance unit-is-unital : IsUnitalSep _
 unit-is-unital = record
   { isSep = unit-has-sep
-  ; ⊎-identityˡ = λ x → tt
+  ; ⊎-identityˡ = tt
   ; ⊎-identity⁻ˡ = λ where tt → refl }
 
 instance unit-sep : Separation _ _

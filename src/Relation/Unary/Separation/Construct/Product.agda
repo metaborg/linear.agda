@@ -5,6 +5,7 @@ module Relation.Unary.Separation.Construct.Product where
 open import Level
 open import Data.Product
 
+open import Relation.Unary
 open import Relation.Unary.Separation
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality
@@ -30,6 +31,24 @@ module _ {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂} where
     let open RawUnitalSep in
     record { ε = ε R₁ , ε R₂ ; sep = sep R₁ ×-⊎ sep R₂ }
 
+module _ {ℓ} {C : Set ℓ} where
+  private C² = C × C
+
+  data ▣ {p} (P : Pred C² p) : Pred C² (ℓ ⊔ p) where
+    box : ∀ {Φ} → P (Φ , Φ) → ▣ P (Φ , Φ)
+
+module _ {ℓ} {C : Set ℓ} ⦃ _ : RawSep C ⦄ where
+  private C² = C × C
+
+  data ◄ {p} (P : Pred C² p) : Pred C² (ℓ ⊔ p) where
+    tri : ∀ {Φ Φ'} → P (Φ , Φ') → Φ' ≤ Φ → ◄ P (Φ , Φ')
+
+module _ {ℓ} {C : Set ℓ} ⦃ _ : RawUnitalSep C ⦄ where
+  private C² = C × C
+
+  data □ {p} (P : Pred C² p) : Pred C² (ℓ ⊔ p) where
+    cli : ∀ {Φ} → P (ε , Φ) → □ P (ε , Φ)
+
 module _
   {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂}
   {R₁ : RawSep C₁} {R₂ : RawSep C₂}
@@ -40,20 +59,13 @@ module _
 
 module _
   {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂}
-  ⦃ u₁ : IsUnitalSep C₁ ⦄ ⦃ u₂ : IsUnitalSep C₂ ⦄
+  ⦃ us₁ : RawUnitalSep C₁ ⦄ ⦃ us₂ : RawUnitalSep C₂ ⦄
+  ⦃ u₁ : IsUnitalSep us₁ ⦄ ⦃ u₂ : IsUnitalSep us₂ ⦄
   where
 
-  private
-    instance
-      _ = IsUnitalSep.unital u₁
-      _ = IsUnitalSep.unital u₂
-      u₁-isSep = IsUnitalSep.isSep u₁
-      u₂-isSep = IsUnitalSep.isSep u₂
-
-  instance ×-isUnitalSep : IsUnitalSep (C₁ × C₂)
+  instance ×-isUnitalSep : IsUnitalSep ×-rawunitalsep
   ×-isUnitalSep = record
-                      { unital = ×-rawunitalsep
-                      ; isSep = ×-isSep
+                      { isSep = ×-isSep
                       ; ⊎-identityˡ = λ where
                           refl → (IsUnitalSep.⊎-identityˡ u₁ refl) , ((IsUnitalSep.⊎-identityˡ u₂ refl))
                       ; ⊎-identity⁻ˡ = λ where
@@ -83,10 +95,6 @@ module _
     module S₁ = UnitalSep s₁
     module S₂ = UnitalSep s₂
 
-    instance
-      _ = S₁.isUnitalSep
-      _ = S₂.isUnitalSep
-
   instance _×-ε-separation_ : UnitalSep _ _
   _×-ε-separation_ = record
     { set         = ×-setoid S₁.set S₂.set
@@ -95,18 +103,15 @@ module _
 module _
   {ℓ₁ ℓ₂}
   {C₁ : Set ℓ₁} {C₂ : Set ℓ₂}
-  ⦃ s₁ : IsConcattative C₁ ⦄ ⦃ s₂ : IsConcattative C₂ ⦄
+  ⦃ sep₁ : RawSep C₁ ⦄ ⦃ sep₂ : RawSep C₂ ⦄
+  ⦃ s₁ : IsConcattative sep₁ ⦄ ⦃ s₂ : IsConcattative sep₂ ⦄
   where
 
   private
     module S₁ = IsConcattative s₁
     module S₂ = IsConcattative s₂
-    instance
-      _ = S₁.sep
-      _ = S₂.sep
 
-  instance ×-concat : IsConcattative (C₁ × C₂)
+  instance ×-concat : IsConcattative ×-rawsep
   ×-concat = record
-    { sep = ×-rawsep
-    ; _∙_ = (λ where (a , b) (c , d) → (a S₁.∙ c , b S₂.∙ d))
+    { _∙_ = (λ where (a , b) (c , d) → (a S₁.∙ c , b S₂.∙ d))
     ; ⊎-∙ = S₁.⊎-∙ , S₂.⊎-∙ }

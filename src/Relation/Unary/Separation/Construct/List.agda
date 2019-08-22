@@ -38,7 +38,7 @@ module _ {a} {A : Set a} where
 
   instance ctx-hasUnitalSep : IsUnitalSep _
   IsUnitalSep.isSep ctx-hasUnitalSep                     = ctx-has-sep
-  IsUnitalSep.⊎-identityˡ ctx-hasUnitalSep refl          = right (≡⇒≋ P.refl)
+  IsUnitalSep.⊎-identityˡ ctx-hasUnitalSep               = right (≡⇒≋ P.refl)
   IsUnitalSep.⊎-identity⁻ˡ ctx-hasUnitalSep []           = refl
   IsUnitalSep.⊎-identity⁻ˡ ctx-hasUnitalSep (refl ∷ʳ px) = cong (_ ∷_) (⊎-identity⁻ˡ px)
 
@@ -83,7 +83,7 @@ module LinearEnv where
 
     -- Environments can be split along context splittings
     env-split : ∀ {Γ₁ Γ₂ Γ} → Γ₁ ⊎ Γ₂ ≣ Γ → ∀[ Env V Γ ⇒ Env V Γ₁ ✴ Env V Γ₂ ] 
-    env-split [] nil = nil ×⟨ ⊎-identityˡ refl ⟩ nil
+    env-split [] nil = nil ×⟨ ⊎-identityˡ ⟩ nil
     env-split (refl ∷ˡ s) (px :⟨ σ₁ ⟩: sx) with env-split s sx
     ... | l ×⟨ σ₂ ⟩ r with ⊎-unassoc σ₁ σ₂
     ... | (Δ , p , q) = cons (px ×⟨ p ⟩ l) ×⟨ q ⟩ r

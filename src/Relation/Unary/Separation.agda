@@ -36,6 +36,10 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
   _≤_ : Rel Carrier _
   Φ₁ ≤ Φ = ∃ λ Φ₂ → Φ₁ ⊎ Φ₂ ≣ Φ
 
+  -- remainder
+  rem : ∀ {x y} → x ≤ y → Carrier
+  rem (z , _) = z
+
   -- separating conjunction
   infixr 10 _×⟨_⟩_
   record Conj {p q} (P : SPred p) (Q : ∀ {Φ} → P Φ → SPred q) Φ : Set (p ⊔ q ⊔ a) where
@@ -203,6 +207,8 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
     ⤇-& = ⤇-map ✴-swap ∘ &-⤇ ∘ ✴-swap
 
   module _ where
+    postulate ≤-⊎ : ∀ {Φ₁ Φ₂ Φ Φ'} → Φ₁ ⊎ Φ₂ ≣ Φ → Φ₁ ≤ Φ' → Φ₂ ≤ Φ' → Φ ≤ Φ'
+
     ≤-trans : Φ₁ ≤ Φ₂ → Φ₂ ≤ Φ₃ → Φ₁ ≤ Φ₃
     ≤-trans (τ₁ , Φ₁⊎τ₁=Φ₂) (τ₂ , Φ₂⊎τ₂=Φ₃) =
       let τ₃ , p , q = ⊎-assoc Φ₁⊎τ₁=Φ₂ Φ₂⊎τ₂=Φ₃ in τ₃ , p
@@ -267,13 +273,13 @@ record IsUnitalSep {c} {C : Set c} (unital : RawUnitalSep C) : Set (suc c) where
   open RawSep sep
 
   field
-    ⊎-identityˡ    : ∀ {Φ} → ∀[ (Φ ≡_) ⇒ (ε ⊎ Φ) ]
+    ⊎-identityˡ    : ∀ {Φ} →  ε ⊎ Φ ≣ Φ
     ⊎-identity⁻ˡ   : ∀ {Φ} → ∀[ (ε ⊎ Φ) ⇒ (Φ ≡_) ]
 
   open IsSep isSep
 
-  ⊎-identityʳ : ∀ {Φ} → ∀[ (Φ ≡_) ⇒ (Φ ⊎ ε) ]
-  ⊎-identityʳ = ⊎-comm ∘ ⊎-identityˡ
+  ⊎-identityʳ : ∀ {Φ} → Φ ⊎ ε ≣ Φ
+  ⊎-identityʳ = ⊎-comm ⊎-identityˡ
 
   ⊎-identity⁻ʳ : ∀ {Φ} → ∀[ (Φ ⊎ ε) ⇒ (Φ ≡_) ]
   ⊎-identity⁻ʳ = ⊎-identity⁻ˡ ∘ ⊎-comm
@@ -284,7 +290,7 @@ record IsUnitalSep {c} {C : Set c} (unital : RawUnitalSep C) : Set (suc c) where
     ... | P.refl = P.refl
 
     ⋆-identityʳ : ∀ {P : SPred 0ℓ} → ∀[ P ⇒ P ✴ Emp ]
-    ⋆-identityʳ px = px ×⟨ ⊎-identityʳ P.refl ⟩ P.refl
+    ⋆-identityʳ px = px ×⟨ ⊎-identityʳ ⟩ P.refl
 
     -- a resource-polymorphic function is a pure wand
     wandit : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ P ⇒ Q ] → ε[ P ─✴ Q ]
@@ -292,7 +298,7 @@ record IsUnitalSep {c} {C : Set c} (unital : RawUnitalSep C) : Set (suc c) where
 
     -- a pure wand is a resource-polymorphic function
     unwand : ∀ {p q} {P : SPred p} {Q : SPred q} → ε[ P ─✴ Q ] → ∀[ P ⇒ Q ]
-    unwand f p = f p (⊎-identityˡ P.refl)
+    unwand f p = f p ⊎-identityˡ
 
   ─[id] : ∀ {p} {P : Pred _ p} → ε[ P ─✴ P ]
   ─[id] px σ rewrite ⊎-identity⁻ˡ σ = px
@@ -338,13 +344,13 @@ record IsUnitalSep {c} {C : Set c} (unital : RawUnitalSep C) : Set (suc c) where
   module _ {i ℓ} {I : Set i} {P : I → SPred ℓ} where
     open import Data.List
     singleton : ∀ {x} → ∀[ P x ⇒ Allstar P [ x ] ]
-    singleton v = cons (v ×⟨ ⊎-identityʳ P.refl ⟩ nil)
+    singleton v = cons (v ×⟨ ⊎-identityʳ ⟩ nil)
 
   {- A free preorder -}
   module _ where
 
     ≤-reflexive : Φ₁ ≡ Φ₂ → Φ₁ ≤ Φ₂
-    ≤-reflexive p = ε , ⊎-identityʳ p
+    ≤-reflexive P.refl = ε , ⊎-identityʳ
 
     ≤-isPreorder : IsPreorder _≡_ _≤_
     ≤-isPreorder = record
@@ -356,7 +362,7 @@ record IsUnitalSep {c} {C : Set c} (unital : RawUnitalSep C) : Set (suc c) where
     ≤-preorder = record { isPreorder = ≤-isPreorder }
 
     ε-minimal : ∀ {Φ} → ε ≤ Φ
-    ε-minimal {Φ} = Φ , ⊎-identityˡ P.refl
+    ε-minimal {Φ} = Φ , ⊎-identityˡ
 
   {- Framing where we forget the actual resource owned -}
   module ↑-Frames where
@@ -370,7 +376,7 @@ record IsUnitalSep {c} {C : Set c} (unital : RawUnitalSep C) : Set (suc c) where
     module _ {ℓ} {P : SPred ℓ} where
 
       return : ∀[ P ⇒ P ↑ ]
-      return p = p ×⟨ ⊎-identityʳ P.refl ⟩ tt
+      return p = p ×⟨ ⊎-identityʳ ⟩ tt
 
       join : ∀[ (P ↑) ↑ ⇒ P ↑ ]
       join ((p ×⟨ σ₁ ⟩ tt) ×⟨ σ₂ ⟩ tt) = 
@@ -422,7 +428,7 @@ record UnitalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   open Setoid set
 
   field
-    {unital} : RawUnitalSep Carrier
+    overlap {{unital}} : RawUnitalSep Carrier
     overlap {{ isUnitalSep }} : IsUnitalSep unital
 
 record MonoidalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
