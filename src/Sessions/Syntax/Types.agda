@@ -29,9 +29,6 @@ open import Relation.Unary.Separation
 open import Relation.Unary.Separation.Construct.Product
 open import Relation.Unary.Separation.Construct.List
 
-open MonoidalSep ⦃...⦄ hiding (isEquivalence)
-open RawUnitalSep ⦃...⦄
-
 {- Unrestricted-, Session- and Expression types-}
 module _ where
   mutual

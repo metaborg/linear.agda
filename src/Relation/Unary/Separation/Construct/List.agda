@@ -18,9 +18,6 @@ module _ {a} {A : Set a} where
   instance separation : RawSep C
   separation = record { _⊎_≣_ = Interleaving }
 
-  instance unital' : RawUnitalSep C
-  unital' = record { ε = [] ; sep = separation }
-
   -- TODO add to stdlib
   reassoc : ∀ {a b ab c abc : List A} →
             Interleaving a b ab → Interleaving ab c abc →
@@ -38,6 +35,7 @@ module _ {a} {A : Set a} where
 
   instance ctx-hasUnitalSep : IsUnitalSep _
   IsUnitalSep.isSep ctx-hasUnitalSep                     = ctx-has-sep
+  IsUnitalSep.ε ctx-hasUnitalSep                         = []
   IsUnitalSep.⊎-identityˡ ctx-hasUnitalSep               = right (≡⇒≋ P.refl)
   IsUnitalSep.⊎-identity⁻ˡ ctx-hasUnitalSep []           = refl
   IsUnitalSep.⊎-identity⁻ˡ ctx-hasUnitalSep (refl ∷ʳ px) = cong (_ ∷_) (⊎-identity⁻ˡ px)
@@ -53,11 +51,12 @@ module _ {a} {A : Set a} where
     { set = record { isEquivalence = ↭-isEquivalence }
     ; isUnitalSep = ctx-hasUnitalSep }
 
-  instance ctx-resource : MonoidalSep _ _
+  instance ctx-resource : MonoidalSep _
   ctx-resource = record
-    { set         = record { isEquivalence = ↭-isEquivalence {A = C} }
-    ; unitalSep   = ctx-unitalsep
-    ; concat      = ctx-concattative }
+    { sep = separation
+    ; isSep = ctx-has-sep
+    ; isUnitalSep   = ctx-hasUnitalSep
+    ; isConcat      = ctx-concattative }
 
 {- We can split All P xs over a split of xs -}
 module All {t v} {T : Set t} {V : T → Set v} where
@@ -69,24 +68,3 @@ module All {t v} {T : Set t} {V : T → Set v} where
   all-split (consˡ s) (px ∷ vs) = let xs , ys = all-split s vs in px ∷ xs , ys
   all-split (consʳ s) (px ∷ vs) = let xs , ys = all-split s vs in xs , px ∷ ys
 
-{- This gives rise to a notion of linear, typed environments -}
-module LinearEnv where
-
-  Env = Allstar
-
-  module _ {s t v} {S : Set s} {T : Set t} {V : T → Pred (List S) v} where
-    env-∙ : ∀ {Γ₁ Γ₂} → ∀[ Env V Γ₁ ✴ Env V Γ₂ ⇒ Env V (Γ₁ ∙ Γ₂) ] 
-    env-∙ (nil ×⟨ s ⟩ env₂) rewrite ⊎-identity⁻ˡ s = env₂
-    env-∙ (cons (v ×⟨ s ⟩ env₁) ×⟨ s' ⟩ env₂) =
-        let _ , eq₁ , eq₂ = ⊎-assoc s s' in
-        cons (v ×⟨ eq₁ ⟩ (env-∙ (env₁ ×⟨ eq₂ ⟩ env₂)))
-
-    -- Environments can be split along context splittings
-    env-split : ∀ {Γ₁ Γ₂ Γ} → Γ₁ ⊎ Γ₂ ≣ Γ → ∀[ Env V Γ ⇒ Env V Γ₁ ✴ Env V Γ₂ ] 
-    env-split [] nil = nil ×⟨ ⊎-identityˡ ⟩ nil
-    env-split (refl ∷ˡ s) (px :⟨ σ₁ ⟩: sx) with env-split s sx
-    ... | l ×⟨ σ₂ ⟩ r with ⊎-unassoc σ₁ σ₂
-    ... | (Δ , p , q) = cons (px ×⟨ p ⟩ l) ×⟨ q ⟩ r
-    env-split (refl ∷ʳ s) (px :⟨ σ₁ ⟩: sx) with env-split s sx
-    ... | l ×⟨ σ₂ ⟩ r with ⊎-assoc σ₂ (⊎-comm σ₁)
-    ... | (Δ , p , q) = l ×⟨ p ⟩ (cons (px ×⟨ ⊎-comm q ⟩ r))

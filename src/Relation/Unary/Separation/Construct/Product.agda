@@ -31,24 +31,6 @@ module _ {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂} where
     let open RawUnitalSep in
     record { ε = ε R₁ , ε R₂ ; sep = sep R₁ ×-⊎ sep R₂ }
 
-module _ {ℓ} {C : Set ℓ} where
-  private C² = C × C
-
-  data ▣ {p} (P : Pred C² p) : Pred C² (ℓ ⊔ p) where
-    box : ∀ {Φ} → P (Φ , Φ) → ▣ P (Φ , Φ)
-
-module _ {ℓ} {C : Set ℓ} ⦃ _ : RawSep C ⦄ where
-  private C² = C × C
-
-  data ◄ {p} (P : Pred C² p) : Pred C² (ℓ ⊔ p) where
-    tri : ∀ {Φ Φ'} → P (Φ , Φ') → Φ' ≤ Φ → ◄ P (Φ , Φ')
-
-module _ {ℓ} {C : Set ℓ} ⦃ _ : RawUnitalSep C ⦄ where
-  private C² = C × C
-
-  data □ {p} (P : Pred C² p) : Pred C² (ℓ ⊔ p) where
-    cli : ∀ {Φ} → P (ε , Φ) → □ P (ε , Φ)
-
 module _
   {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂}
   {R₁ : RawSep C₁} {R₂ : RawSep C₂}
@@ -66,8 +48,7 @@ module _
   instance ×-isUnitalSep : IsUnitalSep ×-rawunitalsep
   ×-isUnitalSep = record
                       { isSep = ×-isSep
-                      ; ⊎-identityˡ = λ where
-                          refl → (IsUnitalSep.⊎-identityˡ u₁ refl) , ((IsUnitalSep.⊎-identityˡ u₂ refl))
+                      ; ⊎-identityˡ = IsUnitalSep.⊎-identityˡ u₁ , (IsUnitalSep.⊎-identityˡ u₂)
                       ; ⊎-identity⁻ˡ = λ where
                           (fst , snd) → cong₂ _,_ (IsUnitalSep.⊎-identity⁻ˡ u₁ fst) (IsUnitalSep.⊎-identity⁻ˡ u₂ snd)
                       }

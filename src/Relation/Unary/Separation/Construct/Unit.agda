@@ -13,19 +13,11 @@ open RawSep
 instance unit-raw-sep : RawSep ⊤
 _⊎_≣_ unit-raw-sep = λ _ _ _ → ⊤
 
-instance unit-raw-unital : RawUnitalSep ⊤
-unit-raw-unital = record { ε = tt ; sep = unit-raw-sep }
-
 instance unit-has-sep : IsSep unit-raw-sep
 unit-has-sep = record
   { ⊎-comm  = λ _   → tt
   ; ⊎-assoc = λ _ _ → tt , tt , tt
   }
-
-instance unit-has-unit : RawUnitalSep ⊤
-unit-has-unit = record
-  { ε = tt
-  ; sep = unit-raw-sep }
 
 instance unit-is-unital : IsUnitalSep _
 unit-is-unital = record

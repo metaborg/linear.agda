@@ -63,7 +63,7 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
 
   infixr 8 _─✴_
   _─✴_ : ∀ {p q} (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
-  P ─✴ Q = λ Φᵢ → ∀ {Φₚ} → P Φₚ → ∀[ Φᵢ ⊎ Φₚ ⇒ Q ]
+  P ─✴ Q = λ Φᵢ → ∀ {Φₚ Φ} → P Φₚ → Φᵢ ⊎ Φₚ ≣ Φ → Q Φ
 
   -- | The update modality
 
@@ -213,12 +213,24 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
     ≤-trans (τ₁ , Φ₁⊎τ₁=Φ₂) (τ₂ , Φ₂⊎τ₂=Φ₃) =
       let τ₃ , p , q = ⊎-assoc Φ₁⊎τ₁=Φ₂ Φ₂⊎τ₂=Φ₃ in τ₃ , p
 
-record RawUnitalSep {c} (C : Set c) : Set (suc c) where
+record IsUnitalSep {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
   field
-    ε   : C
-    overlap ⦃ sep ⦄ : RawSep C
+    overlap {{ isSep }}  : IsSep sep
 
   open RawSep sep
+
+  field
+    ε              : C
+    ⊎-identityˡ    : ∀ {Φ} →  ε ⊎ Φ ≣ Φ
+    ⊎-identity⁻ˡ   : ∀ {Φ} → ∀[ (ε ⊎ Φ) ⇒ (Φ ≡_) ]
+
+  open IsSep isSep
+
+  ⊎-identityʳ : ∀ {Φ} → Φ ⊎ ε ≣ Φ
+  ⊎-identityʳ = ⊎-comm ⊎-identityˡ
+
+  ⊎-identity⁻ʳ : ∀ {Φ} → ∀[ (Φ ⊎ ε) ⇒ (Φ ≡_) ]
+  ⊎-identity⁻ʳ = ⊎-identity⁻ˡ ∘ ⊎-comm
 
   infix 10 ε[_]
   ε[_] : ∀ {ℓ} → Pred C ℓ → Set ℓ
@@ -251,7 +263,7 @@ record RawUnitalSep {c} (C : Set c) : Set (suc c) where
   module _ where
 
     data Bigstar {ℓ} (P : SPred ℓ) : SPred (ℓ ⊔ c) where
-      emp  : ∀[ Emp ⇒ Bigstar P ]
+      emp  : ε[ Bigstar P ]
       cons : ∀[ P ✴ Bigstar P ⇒ Bigstar P ]
 
   module _ {i ℓ} {I : Set i} where
@@ -264,32 +276,13 @@ record RawUnitalSep {c} (C : Set c) : Set (suc c) where
     infixr 5 _:⟨_⟩:_
     pattern _:⟨_⟩:_ x p xs = cons (x ×⟨ p ⟩ xs)
 
-record IsUnitalSep {c} {C : Set c} (unital : RawUnitalSep C) : Set (suc c) where
-  open RawUnitalSep unital
-
-  field
-    overlap {{ isSep }}  : IsSep sep
-
-  open RawSep sep
-
-  field
-    ⊎-identityˡ    : ∀ {Φ} →  ε ⊎ Φ ≣ Φ
-    ⊎-identity⁻ˡ   : ∀ {Φ} → ∀[ (ε ⊎ Φ) ⇒ (Φ ≡_) ]
-
-  open IsSep isSep
-
-  ⊎-identityʳ : ∀ {Φ} → Φ ⊎ ε ≣ Φ
-  ⊎-identityʳ = ⊎-comm ⊎-identityˡ
-
-  ⊎-identity⁻ʳ : ∀ {Φ} → ∀[ (Φ ⊎ ε) ⇒ (Φ ≡_) ]
-  ⊎-identity⁻ʳ = ⊎-identity⁻ˡ ∘ ⊎-comm
 
   module _ where
     ε⊎ε : ∀[ ε ⊎ ε ⇒ Emp ]
     ε⊎ε p with ⊎-identity⁻ˡ p
     ... | P.refl = P.refl
 
-    ⋆-identityʳ : ∀ {P : SPred 0ℓ} → ∀[ P ⇒ P ✴ Emp ]
+    ⋆-identityʳ : ∀ {p} {P : SPred p} → ∀[ P ⇒ P ✴ Emp ]
     ⋆-identityʳ px = px ×⟨ ⊎-identityʳ ⟩ P.refl
 
     -- a resource-polymorphic function is a pure wand
@@ -297,25 +290,19 @@ record IsUnitalSep {c} {C : Set c} (unital : RawUnitalSep C) : Set (suc c) where
     wandit f p σ rewrite ⊎-identity⁻ˡ σ = f p
 
     -- a pure wand is a resource-polymorphic function
-    unwand : ∀ {p q} {P : SPred p} {Q : SPred q} → ε[ P ─✴ Q ] → ∀[ P ⇒ Q ]
-    unwand f p = f p ⊎-identityˡ
+    -- unwand : ε[ P ─✴ Q ] → ∀[ P ⇒ Q ]
+    -- unwand f p = f p ⊎-identityˡ
+    
+    -- ✴-pure : ∀ {p q} {P : SPred p} {Q : SPred q} → (∀ {Φ} → P Φ → ε ⊎ Φ ≣ Φ → Q Φ) → ε[ P ─✴ Q ]
+    -- ✴-pure f px σ rewrite ⊎-identity⁻ˡ σ = f px ⊎-identityˡ
+
+    -- ✴-flip : ∀ {p q r} {P : SPred p} {Q : SPred q} {R : SPred r} → ε[ (P ─✴ (Q ─✴ R)) ─✴ (Q ─✴ (P ─✴ R)) ]
+    -- ✴-flip {P = P} {Q} {R} = 
+    --   ✴-pure {P = P ─✴ (Q ─✴ R)} {Q = Q ─✴ (P ─✴ R)} λ f σ₁ q σ₂ p σ₃ → 
+    --   let _ , σ₃ , σ₄ = ⊎-assoc (⊎-comm σ₂) σ₃ in f p σ₄ q (⊎-comm σ₃)
 
   ─[id] : ∀ {p} {P : Pred _ p} → ε[ P ─✴ P ]
   ─[id] px σ rewrite ⊎-identity⁻ˡ σ = px
-
-  postulate _✧_ : ∀ {p q r}{P : Pred _ p}{Q : Pred _ q}{R : Pred _ r} →
-                  ε[ Q ─✴ R ] → ε[ P ─✴ Q ] → ε[ P ─✴ R ]
-
-  module _ where
-    ■-return : ∀ {p} {P : SPred p} → ∀[ P ⇒ ■ P ]
-    ■-return px σ rewrite ⊎-identity⁻ˡ σ = px
-
-    postulate ■-join : ∀ {p} {P : SPred p} → ∀[ ■ (■ P) ⇒ ■ P ]
-
-    postulate ■-bind  : ∀ {p q} {P : SPred p}{Q : SPred q} → ∀[ P ⇒ ■ Q ] → ∀[ ■ P ⇒ ■ Q ]
-    postulate ■-ibind : ∀ {p q} {P : SPred p}{Q : SPred q} → ∀[ (P ⇒ ■ Q) ─✴ (■ P ⇒ ■ Q) ]
-    postulate ■-cobind : ∀ {p q} {P : SPred p}{Q : SPred q} → ∀[ (■ P ⇒ Q) ─✴ (■ P ⇒ ■ Q) ]
-
 
   -- internal versions of the strong monadic structure on update
   module _ where
@@ -428,27 +415,20 @@ record UnitalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
   open Setoid set
 
   field
-    overlap {{unital}} : RawUnitalSep Carrier
-    overlap {{ isUnitalSep }} : IsUnitalSep unital
+    overlap {{ sep }}         : RawSep Carrier
+    overlap {{ isUnitalSep }} : IsUnitalSep sep
 
-record MonoidalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
+record MonoidalSep c : Set (suc c) where
   field
-    set : Setoid ℓ₁ ℓ₂
-
-  open Setoid set
-
-  field
-    overlap {{ unitalSep }} : UnitalSep ℓ₁ ℓ₂
-
-  open UnitalSep unitalSep
-  open RawUnitalSep unital
-
-  field
-    overlap {{ concat }}    : IsConcattative sep
+    Carrier : Set c
+    overlap {{ sep }}         : RawSep Carrier
+    overlap {{ isSep }}       : IsSep sep
+    overlap {{ isUnitalSep }} : IsUnitalSep sep
+    overlap {{ isConcat }}    : IsConcattative sep
 
 open RawSep ⦃...⦄ public
-open RawUnitalSep ⦃...⦄ public hiding (sep)
 open IsConcattative ⦃...⦄ public
-open IsUnitalSep ⦃...⦄ public hiding (sep)
+open IsUnitalSep ⦃...⦄ public
 open UnitalSep ⦃...⦄ public
 open IsSep ⦃...⦄ public
+open MonoidalSep ⦃...⦄ public hiding (Carrier)
