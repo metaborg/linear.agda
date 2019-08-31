@@ -42,7 +42,7 @@ module _ {{ sep : RawSep A }} {{ _ : IsSep sep }} where
 module _ {{s : RawUnitalSep A}} ⦃ _ : IsUnitalSep s ⦄ where
 
   data ● {p} (P : Pred A p) : Pred Auth p where
-    whole : ∀ {x} → P x → ● P (◐ {r = x} ⊎-identityʳ)
+    whole : ∀ {x} → P x → ● P (◐ {r = x} ⊎-idʳ)
 
   data ○ {p} (P : Pred A p) : Pred Auth p where
     frag : ∀ {x} → P x → ○ P (◌ x)
@@ -133,8 +133,8 @@ module _ ⦃ A-sep : RawUnitalSep A ⦄ ⦃ _ : IsUnitalSep A-sep ⦄ where
   module U = IsUnitalSep
   postulate instance auth-is-unital : IsUnitalSep auth-raw-unital
   -- U.isSep auth-is-unital                            = auth-has-sep
-  -- U.⊎-identityˡ auth-is-unital {◐ x y l} refl = on-right (⊎-identityʳ refl) l
-  -- U.⊎-identityˡ auth-is-unital {◌ x} refl      = neither (⊎-identityˡ refl)
+  -- U.⊎-idˡ auth-is-unital {◐ x y l} refl = on-right (⊎-idʳ refl) l
+  -- U.⊎-idˡ auth-is-unital {◌ x} refl      = neither (⊎-idˡ refl)
 
 -- The thing is not quite unital, because the inclusion between a part and the whole
 -- is part of the split relation and does not necessarily hold for a given carrier pair.
@@ -152,8 +152,8 @@ module _ ⦃ A-sep : RawUnitalSep A ⦄ ⦃ _ : IsUnitalSep A-sep ⦄ where
   -- instance auth-is-unital : IsUnitalSep {C = Auth} _≡_
   -- U.unital auth-is-unital                           = auth-raw-unital
   -- U.isSep auth-is-unital                            = auth-has-sep
-  -- U.⊎-identityˡ auth-is-unital {x ◐  y x₁} refl = {!!} -- on-right {!!} {!!} (⊎-identityʳ refl)
-  -- U.⊎-identityˡ auth-is-unital {◌ x} refl      = neither (⊎-identityˡ refl)
-  -- U.⊎-identity⁻ˡ auth-is-unital (on-right x) rewrite ⊎-identity⁻ʳ x = refl
-  -- U.⊎-identity⁻ˡ auth-is-unital (neither x) rewrite ⊎-identity⁻ˡ x  = refl 
+  -- U.⊎-idˡ auth-is-unital {x ◐  y x₁} refl = {!!} -- on-right {!!} {!!} (⊎-idʳ refl)
+  -- U.⊎-idˡ auth-is-unital {◌ x} refl      = neither (⊎-idˡ refl)
+  -- U.⊎-id⁻ˡ auth-is-unital (on-right x) rewrite ⊎-id⁻ʳ x = refl
+  -- U.⊎-id⁻ˡ auth-is-unital (neither x) rewrite ⊎-id⁻ˡ x  = refl 
   -- U.ε-separateˡ auth-is-unital (neither x)          = cong ◌ (ε-separateˡ x)

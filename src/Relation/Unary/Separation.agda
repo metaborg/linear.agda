@@ -1,4 +1,4 @@
-{-# OPTIONS --without-K --rewriting #-}
+{-# OPTIONS --without-K #-}
 
 -- A separation algebra.
 -- Axiomatization based on
@@ -8,12 +8,12 @@ module Relation.Unary.Separation where
 open import Function
 open import Level
 
-open import Data.Unit using (tt)
+open import Data.Unit using (tt; ⊤)
 open import Data.Product hiding (map)
 open import Data.List.Relation.Ternary.Interleaving.Propositional hiding (map)
 open import Data.List.Relation.Binary.Equality.Propositional
 
-open import Relation.Unary
+open import Relation.Unary hiding (Empty)
 open import Relation.Unary.PredicateTransformer using (Pt)
 open import Relation.Binary hiding (_⇒_)
 open import Relation.Binary.PropositionalEquality as P using (_≡_)
@@ -221,16 +221,16 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
 
   field
     ε              : C
-    ⊎-identityˡ    : ∀ {Φ} →  ε ⊎ Φ ≣ Φ
-    ⊎-identity⁻ˡ   : ∀ {Φ} → ∀[ (ε ⊎ Φ) ⇒ (Φ ≡_) ]
+    ⊎-idˡ    : ∀ {Φ} →  ε ⊎ Φ ≣ Φ
+    ⊎-id⁻ˡ   : ∀ {Φ} → ∀[ (ε ⊎ Φ) ⇒ (Φ ≡_) ]
 
   open IsSep isSep
 
-  ⊎-identityʳ : ∀ {Φ} → Φ ⊎ ε ≣ Φ
-  ⊎-identityʳ = ⊎-comm ⊎-identityˡ
+  ⊎-idʳ : ∀ {Φ} → Φ ⊎ ε ≣ Φ
+  ⊎-idʳ = ⊎-comm ⊎-idˡ
 
-  ⊎-identity⁻ʳ : ∀ {Φ} → ∀[ (Φ ⊎ ε) ⇒ (Φ ≡_) ]
-  ⊎-identity⁻ʳ = ⊎-identity⁻ˡ ∘ ⊎-comm
+  ⊎-id⁻ʳ : ∀ {Φ} → ∀[ (Φ ⊎ ε) ⇒ (Φ ≡_) ]
+  ⊎-id⁻ʳ = ⊎-id⁻ˡ ∘ ⊎-comm
 
   infix 10 ε[_]
   ε[_] : ∀ {ℓ} → Pred C ℓ → Set ℓ
@@ -248,16 +248,23 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
 
   {- Emptyness -}
   module _ where
+  
+    data Empty {p} (P : Set p) : SPred (c ⊔ p) where
+      emp : P → Empty P ε
+      
+    pattern empty = emp tt
 
     Emp : SPred c
-    Emp = Exactly ε
+    Emp = Empty ⊤
 
-    Emp' : SPred c
-    Emp' = ε ⊎ ε
+    -- Arr : ∀ {a p} → Set a → SPred p → SPred (c ⊔ a ⊔ p)
+    -- Arr A P = λ Φ → ∀ {e} → Empty A e → P Φ
 
-    -- ∀[ P ⇒ ■ Q ] ≡ ε[ P ─✴ Q  ] and isomorph (but not def. equal) to ∀[ P ⇒ Q ]
-    ■ : ∀ {p} → SPred p → SPred (c ⊔ p)
-    ■ P Φₚ = ∀ {Φ} → ε ⊎ Φₚ ≣ Φ → P Φ
+    -- pure : ∀ {a p} {A : Set a} {P : SPred p} → ε[ P ─✴ Arr A P ]
+    -- pure px σ (emp a) rewrite ⊎-id⁻ˡ σ = px
+
+    -- app : ∀ {a p q} {A : Set a} {P : SPred p} {Q : SPred q} → ∀[ Arr A (P ─✴ Q) ⇒ Arr A P ⇒ Arr A Q ]
+    -- app f p (emp a) = {!!}
 
   {- Big seperating conjunction over an SPred -}
   module _ where
@@ -276,25 +283,27 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
     infixr 5 _:⟨_⟩:_
     pattern _:⟨_⟩:_ x p xs = cons (x ×⟨ p ⟩ xs)
 
-
   module _ where
     ε⊎ε : ∀[ ε ⊎ ε ⇒ Emp ]
-    ε⊎ε p with ⊎-identity⁻ˡ p
-    ... | P.refl = P.refl
+    ε⊎ε p with ⊎-id⁻ˡ p
+    ... | (P.refl) = empty
 
-    ⋆-identityʳ : ∀ {p} {P : SPred p} → ∀[ P ⇒ P ✴ Emp ]
-    ⋆-identityʳ px = px ×⟨ ⊎-identityʳ ⟩ P.refl
+    ⋆-idʳ : ∀ {p} {P : SPred p} → ∀[ P ⇒ P ✴ Emp ]
+    ⋆-idʳ px = px ×⟨ ⊎-idʳ ⟩ empty
 
     -- a resource-polymorphic function is a pure wand
     wandit : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ P ⇒ Q ] → ε[ P ─✴ Q ]
-    wandit f p σ rewrite ⊎-identity⁻ˡ σ = f p
+    wandit f p σ rewrite ⊎-id⁻ˡ σ = f p
 
+    -- pure : ∀ {p q} {P : SPred p} {Q : SPred q} → (P ε → Q Φ) → (P ─✴ Q) Φ
+    -- pure f px = {!!}
+    -- -- pure = {!!}
     -- a pure wand is a resource-polymorphic function
     -- unwand : ε[ P ─✴ Q ] → ∀[ P ⇒ Q ]
-    -- unwand f p = f p ⊎-identityˡ
+    -- unwand f p = f p ⊎-idˡ
     
     -- ✴-pure : ∀ {p q} {P : SPred p} {Q : SPred q} → (∀ {Φ} → P Φ → ε ⊎ Φ ≣ Φ → Q Φ) → ε[ P ─✴ Q ]
-    -- ✴-pure f px σ rewrite ⊎-identity⁻ˡ σ = f px ⊎-identityˡ
+    -- ✴-pure f px σ rewrite ⊎-id⁻ˡ σ = f px ⊎-idˡ
 
     -- ✴-flip : ∀ {p q r} {P : SPred p} {Q : SPred q} {R : SPred r} → ε[ (P ─✴ (Q ─✴ R)) ─✴ (Q ─✴ (P ─✴ R)) ]
     -- ✴-flip {P = P} {Q} {R} = 
@@ -302,17 +311,17 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
     --   let _ , σ₃ , σ₄ = ⊎-assoc (⊎-comm σ₂) σ₃ in f p σ₄ q (⊎-comm σ₃)
 
   ─[id] : ∀ {p} {P : Pred _ p} → ε[ P ─✴ P ]
-  ─[id] px σ rewrite ⊎-identity⁻ˡ σ = px
+  ─[id] px σ rewrite ⊎-id⁻ˡ σ = px
 
   -- internal versions of the strong monadic structure on update
   module _ where
 
     ⤇-return : ∀ {p} {P : SPred p} → ε[ P ─✴ (⤇ P) ]
-    ⤇-return px σ fr with ⊎-identity⁻ˡ σ
+    ⤇-return px σ fr with ⊎-id⁻ˡ σ
     ... | P.refl = -, -, fr , px
 
     ⤇-bind : ∀ {p q}{P : SPred p}{Q : SPred q} → ε[ (P ─✴ ⤇ Q) ─✴ ((⤇ P) ─✴ ⤇ Q) ]
-    ⤇-bind f σf p σₚ fr with ⊎-identity⁻ˡ σf
+    ⤇-bind f σf p σₚ fr with ⊎-id⁻ˡ σf
     ... | P.refl with ⊎-assoc (⊎-comm σₚ) fr
     ... | _ , σ₁ , σ₂ with p σ₁
     ... | Δ , Σ , σ₃ , px with ⊎-assoc (⊎-comm σ₂) (⊎-comm σ₃)
@@ -322,22 +331,22 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
 
   module _ {p q} {P : SPred p} {Q : SPred q} where
     pair : ε[ P ◇─ (Q ◇─ P ✴ Q) ]
-    pair ⟪ px , σ₁ ⟫ ⟪ qx , σ₂ ⟫ rewrite ⊎-identity⁻ˡ σ₁ = px ×⟨ σ₂ ⟩ qx
+    pair ⟪ px , σ₁ ⟫ ⟪ qx , σ₂ ⟫ rewrite ⊎-id⁻ˡ σ₁ = px ×⟨ σ₂ ⟩ qx
 
   module _ {p} {P : SPred p} where
     ◇-ε : ∀[ P ◇ ε ⇒ P ]
-    ◇-ε ⟪ px , σ ⟫ rewrite ⊎-identity⁻ˡ σ = px
+    ◇-ε ⟪ px , σ ⟫ rewrite ⊎-id⁻ˡ σ = px
 
   module _ {i ℓ} {I : Set i} {P : I → SPred ℓ} where
     open import Data.List
     singleton : ∀ {x} → ∀[ P x ⇒ Allstar P [ x ] ]
-    singleton v = cons (v ×⟨ ⊎-identityʳ ⟩ nil)
+    singleton v = cons (v ×⟨ ⊎-idʳ ⟩ nil)
 
   {- A free preorder -}
   module _ where
 
     ≤-reflexive : Φ₁ ≡ Φ₂ → Φ₁ ≤ Φ₂
-    ≤-reflexive P.refl = ε , ⊎-identityʳ
+    ≤-reflexive P.refl = ε , ⊎-idʳ
 
     ≤-isPreorder : IsPreorder _≡_ _≤_
     ≤-isPreorder = record
@@ -349,7 +358,7 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
     ≤-preorder = record { isPreorder = ≤-isPreorder }
 
     ε-minimal : ∀ {Φ} → ε ≤ Φ
-    ε-minimal {Φ} = Φ , ⊎-identityˡ
+    ε-minimal {Φ} = Φ , ⊎-idˡ
 
   {- Framing where we forget the actual resource owned -}
   module ↑-Frames where
@@ -363,7 +372,7 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
     module _ {ℓ} {P : SPred ℓ} where
 
       return : ∀[ P ⇒ P ↑ ]
-      return p = p ×⟨ ⊎-identityʳ ⟩ tt
+      return p = p ×⟨ ⊎-idʳ ⟩ tt
 
       join : ∀[ (P ↑) ↑ ⇒ P ↑ ]
       join ((p ×⟨ σ₁ ⟩ tt) ×⟨ σ₂ ⟩ tt) = 

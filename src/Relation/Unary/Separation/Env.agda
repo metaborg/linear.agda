@@ -12,14 +12,14 @@ open import Data.List.Relation.Ternary.Interleaving.Propositional as I
 open import Relation.Binary.PropositionalEquality as P hiding ([_])
 
 env-∙ : ∀ {Γ₁ Γ₂ : List T} → ∀[ Allstar V Γ₁ ✴ Allstar V Γ₂ ⇒ Allstar V (Γ₁ ∙ Γ₂) ] 
-env-∙ (nil ×⟨ s ⟩ env₂) rewrite ⊎-identity⁻ˡ s = env₂
+env-∙ (nil ×⟨ s ⟩ env₂) rewrite ⊎-id⁻ˡ s = env₂
 env-∙ (cons (v ×⟨ s ⟩ env₁) ×⟨ s' ⟩ env₂) =
   let _ , eq₁ , eq₂ = ⊎-assoc s s' in
   cons (v ×⟨ eq₁ ⟩ (env-∙ (env₁ ×⟨ eq₂ ⟩ env₂)))
 
 -- Allstarironments can be split along context splittings
 env-split : ∀ {Γ₁ Γ₂ Γ} → Γ₁ ⊎ Γ₂ ≣ Γ → ∀[ Allstar V Γ ⇒ Allstar V Γ₁ ✴ Allstar V Γ₂ ] 
-env-split [] nil = nil ×⟨ ⊎-identityˡ ⟩ nil
+env-split [] nil = nil ×⟨ ⊎-idˡ ⟩ nil
 env-split (refl ∷ˡ s) (px :⟨ σ₁ ⟩: sx) with env-split s sx
 ... | l ×⟨ σ₂ ⟩ r with ⊎-unassoc σ₁ σ₂
 ... | (Δ , p , q) = cons (px ×⟨ p ⟩ l) ×⟨ q ⟩ r

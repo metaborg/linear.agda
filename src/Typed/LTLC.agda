@@ -1,7 +1,6 @@
 module Typed.LTLC where
 
 open import Prelude
-open import Relation.Unary hiding (_∈_)
 open import Function
 open import Level
 open import Category.Monad
@@ -51,13 +50,20 @@ module LinearReader {v c t}
   Reader : ∀ {p} → List T → List T → CPred p → CPred (c ⊔ t ⊔ v ⊔ p)
   Reader Γ₁ Γ₂ P = Allstar V Γ₁ ─✴ (Allstar V Γ₂ ✴ P)
 
-  return : ∀ {p} {P : CPred p} →
-           ∀[ P ⇒ Reader Γ Γ P ]
-  return px e s = e ×⟨ ⊎-comm s ⟩ px
+  ereturn : ∀ {p} {P : CPred p} → ∀[ P ⇒ Reader Γ Γ P ]
+  ereturn px e s = e ×⟨ ⊎-comm s ⟩ px
 
-  return' : ∀ {p} {P : CPred p}  →
+  ireturn : ∀ {p} {P : CPred p}  →
             ε[ P ─✴ Reader Γ Γ P ]
-  return' px σ₁ e σ₂ rewrite ⊎-identity⁻ˡ σ₁ = e ×⟨ ⊎-comm σ₂ ⟩ px
+  ireturn px σ₁ e σ₂ rewrite ⊎-id⁻ˡ σ₁ = e ×⟨ ⊎-comm σ₂ ⟩ px
+
+  _<<=_ : ∀ {p q} {P : CPred p} {Q : CPred q} → 
+          ∀[ P ⇒ Reader Γ₂ Γ₃ Q ] → ∀[ Reader Γ₁ Γ₂ P ⇒ Reader Γ₁ Γ₃ Q ]
+  _<<=_ f mp env σ = let (env ×⟨ σ' ⟩ px) = mp env σ in f px env (⊎-comm σ')
+
+  _>>=_ : ∀ {p q} {P : CPred p} {Q : CPred q} {Φ} → 
+          Reader Γ₁ Γ₂ P Φ → ∀[ P ⇒ Reader Γ₂ Γ₃ Q ] → Reader Γ₁ Γ₃ Q Φ
+  mp >>= f = f <<= mp
 
   bind : ∀ {p q} {P : CPred p} {Q : CPred q} → 
          ∀[ (P ─✴ Reader Γ₂ Γ₃ Q) ⇒ (Reader Γ₁ Γ₂ P ─✴ Reader Γ₁ Γ₃ Q) ]
@@ -69,7 +75,7 @@ module LinearReader {v c t}
 
   bind′ : ∀ {p q} {P : SPred p} {Q : SPred q}  →
          ε[ (P ─✴ Reader Γ₂ Γ₃ Q) ─✴ Reader Γ₁ Γ₂ P ─✴ Reader Γ₁ Γ₃ Q ]
-  bind′ f σ₀ mp σ₁ env σ₂ rewrite ⊎-identity⁻ˡ σ₀ =
+  bind′ f σ₀ mp σ₁ env σ₂ rewrite ⊎-id⁻ˡ σ₀ =
     let
       _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂
       px✴env      = mp env σ₄
@@ -77,17 +83,31 @@ module LinearReader {v c t}
 
   bind' = bind
 
+  -- strength
+  _^_ : ∀ {p q} {P : SPred p} {Q : SPred q} →
+        ε[ Reader Γ₁ Γ₂ P ] → ∀[ Q ⇒ Reader Γ₁ Γ₂ (P ✴ Q)]
+  (mp ^ qx) env σ with mp env ⊎-idˡ
+  ... | env' ×⟨ σ' ⟩ px with ⊎-assoc σ' (⊎-comm σ)
+  ... | _ , σ₂ , σ₃ = env' ×⟨ σ₂ ⟩ px  ×⟨ σ₃ ⟩ qx
+
+  str : ∀ {p q} {P : SPred p} {Q : SPred q} →
+        ∀[ Reader Γ₁ Γ₂ P ✴ Q ⇒ Reader Γ₁ Γ₂ (P ✴ Q)]
+  str = {!!}
+
   syntax bind  f p s = p ⟪ s ⟫= f
   syntax bind' f p = p ⟫= f
 
   frame : ∀ {p} {P : CPred p} → Γ₁ ⊎ Γ₃ ≣ Γ₂ → ∀[ Reader Γ₁ ε P ⇒ Reader Γ₂ Γ₃ P ]
-  frame sep c env s = {!!}
-    -- let
-    --   (E₁ ×⟨ E≺ ⟩ E₂) = LinearEnv.env-split sep env
-    --   (Φ , eq₁ , eq₂) = ⊎-assoc E≺ (⊎-comm s)
-    -- in bind
-    --   (λ px s' → λ where (nil refl) s'' → E₂ ×⟨ subst (_ ⊎ _ ≣_) (⊎-identity⁻ʳ s'') s' ⟩ px)
-    --   c eq₂ E₁ (⊎-comm eq₁)
+  frame sep c env s = 
+    let
+      (E₁ ×⟨ E≺ ⟩ E₂) = env-split sep env
+      (Φ , eq₁ , eq₂) = ⊎-assoc E≺ (⊎-comm s)
+    in bind
+      (λ px s' → λ where nil s'' → E₂ ×⟨ subst (_ ⊎ _ ≣_) (⊎-id⁻ʳ s'') s' ⟩ px)
+      c eq₂ E₁ (⊎-comm eq₁)
+
+  iask : ε[ Emp ─✴ Reader Γ ε (Allstar V Γ) ]
+  iask empty σ env σ' = nil ×⟨ {!!} ⟩ env -- nil ×⟨ σ ⟩ env
 
   ask : ε[ Reader Γ ε (Allstar V Γ) ]
   ask env σ = nil ×⟨ σ ⟩ env
@@ -95,13 +115,13 @@ module LinearReader {v c t}
   asks : ∀ {p} {P : CPred p} → ∀[ (Allstar V Γ ─✴ P) ⇒ Reader Γ ε P ]
   asks f env σ =
     let px = f env σ
-    in (nil ×⟨ ⊎-identityˡ ⟩ px)
+    in (nil ×⟨ ⊎-idˡ ⟩ px)
 
   prepend : ∀[ Allstar V Γ₁ ⇒ Reader Γ₂ (Γ₁ ∙ Γ₂) Emp ]
-  prepend env₁ env₂ s = env-∙ (env₁ ×⟨ s ⟩ env₂) ×⟨ ⊎-identityʳ ⟩ refl
+  prepend env₁ env₂ s = env-∙ (env₁ ×⟨ s ⟩ env₂) ×⟨ ⊎-idʳ ⟩ empty
 
   append : ∀[ Allstar V Γ₁ ⇒ Reader Γ₂ (Γ₂ ∙ Γ₁) Emp ]
-  append env₁ env₂ s = {!!} -- env-∙ (env₂ ×⟨ ⊎-comm s ⟩ env₁) ×⟨ ⊎-identityʳ refl ⟩ refl
+  append env₁ env₂ s = env-∙ (env₂ ×⟨ ⊎-comm s ⟩ env₁) ×⟨ ⊎-idʳ ⟩ empty
 
 module _ {c} {{m : MonoidalSep c}} where
   open MonoidalSep m using (Carrier)
@@ -119,31 +139,60 @@ module _ {c} {{m : MonoidalSep c}} where
 
     open LinearReader {V = Val}
 
-    -- postulate lem : ∀ {x y y' z : C} → ε ⊎ y' ≣ y → x ⊎ y ≣ z → x ⊎ y' ≣ z
+    {-# TERMINATING #-}
+    eval : ε[ Empty (Exp a Γ) ─✴ Reader Γ ε (Val a) ]
+
+    eval (emp (add (e₁ ×⟨ Γ≺ ⟩ e₂))) σ = {!!}
+      -- bind′ {!!} {!!} (frame Γ≺ (eval (emp e₁) ⊎-idʳ) ⊎-idʳ) ⊎-idʳ
+      -- frame Γ≺ (eval e₁) ⟪ ? ⟫= λ where
+      --   (num n₁) → eval e₂ ⟫= λ where
+      --     (num n₂) → return' (num (n₁ + n₂))  
+
+    eval (emp (num n)) =
+      ireturn (num n)
+
+    eval (emp (lam e)) = 
+      bind′ (λ env → ireturn (clos e env)) ⊎-idʳ (iask empty ⊎-idʳ)
+      -- ask ⟪ ⊎-idˡ ⟫= λ
+      --   env → return' (clos e env)
+
+    eval (emp (app (f ×⟨ Γ≺ ⟩ e))) = {!!}
+      -- frame (⊎-comm Γ≺) (eval e) ⟪ ⊎-idʳ ⟫= λ where
+      --   v σ₁ → eval f ⟪ ⊎-comm σ₁ ⟫= λ where
+      --     (clos e env) σ₂ → append (singleton v) ⟪ ⊎-comm σ₂ ⟫= λ where
+      --       refl σ₃ → append env ⟪ ⊎-comm σ₃ ⟫= {!!} -- pure λ where
+      --         -- refl → {!eval e!} -- case (⊎-id⁻ˡ σ₄) of λ where
+                -- refl → eval e
+
+    eval (emp (var refl)) = bind′ (λ where (cons (px ×⟨ σ₁ ⟩ nil)) → case (⊎-id⁻ʳ σ₁) of λ where refl → ireturn px) ⊎-idʳ (iask empty ⊎-idʳ) -- ask ⟪ ⊎-idˡ ⟫= λ where
+      -- (cons (px ×⟨ σ₁ ⟩ nil)) → case (⊎-id⁻ʳ σ₁) of λ where
+      --    refl → return' px
 
     {-# TERMINATING #-}
-    eval : Exp a Γ → ε[ Reader Γ ε (Val a) ]
+    eval' : Exp a Γ → ε[ Reader Γ ε (Val a) ]
 
-    eval (add (e₁ ×⟨ Γ≺ ⟩ e₂)) =
-      frame Γ≺ (eval e₁) ⟪ ⊎-identityʳ ⟫= λ where
-        (num n₁) → eval e₂ ⟫= λ where
-          (num n₂) → return' (num (n₁ + n₂))  
+    eval' (num n) =
+      ereturn (num n)
 
-    eval (num n) =
-      return (num n)
+    eval' (add (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
+      (num n₁) ← frame Γ≺ (eval' e₁)
+      (num n₂) ← eval' e₂
+      ereturn (num (n₁ + n₂))
 
-    eval (lam e) =
-      ask ⟪ ⊎-identityˡ ⟫= λ
-        env → return' (clos e env)
+    eval' (lam e) = do
+      env ← ask
+      ereturn (clos e env)
 
-    eval (app (f ×⟨ Γ≺ ⟩ e)) =
-      frame (⊎-comm Γ≺) (eval e) ⟪ ⊎-identityʳ ⟫= λ where
-        v σ₁ → eval f ⟪ ⊎-comm σ₁ ⟫= λ where
-          (clos e env) σ₂ → append (singleton v) ⟪ ⊎-comm σ₂ ⟫= λ where
-            refl σ₃ → append env ⟪ ⊎-comm σ₃ ⟫= λ where
-              refl σ₄ → case (⊎-identity⁻ˡ σ₄) of λ where
-                refl → eval e
+    eval' (app (f ×⟨ Γ≺ ⟩ e)) = do
+      v                   ← frame (⊎-comm Γ≺) (eval' e)
+      clos e env ×⟨ σ ⟩ v ← str (eval' f ×⟨ ⊎-idˡ ⟩ v)
+      empty ×⟨ σ ⟩ env    ← str {Q = Allstar _ _} (append (singleton v) ×⟨ ⊎-comm σ ⟩ env)
+      case (⊎-id⁻ˡ σ) of λ where
+        refl → do
+          empty ← append env
+          eval' e
 
-    eval (var refl) = ask ⟪ ⊎-identityˡ ⟫= λ where
-      (cons (px ×⟨ σ₁ ⟩ nil)) → case (⊎-identity⁻ʳ σ₁) of λ where
-         refl → return' px
+    eval' (var refl) = do
+      cons (v ×⟨ σ ⟩ nil) ← ask
+      case (⊎-id⁻ʳ σ) of λ where
+        refl → ereturn v

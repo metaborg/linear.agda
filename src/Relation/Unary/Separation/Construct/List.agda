@@ -36,9 +36,9 @@ module _ {a} {A : Set a} where
   instance ctx-hasUnitalSep : IsUnitalSep _
   IsUnitalSep.isSep ctx-hasUnitalSep                     = ctx-has-sep
   IsUnitalSep.ε ctx-hasUnitalSep                         = []
-  IsUnitalSep.⊎-identityˡ ctx-hasUnitalSep               = right (≡⇒≋ P.refl)
-  IsUnitalSep.⊎-identity⁻ˡ ctx-hasUnitalSep []           = refl
-  IsUnitalSep.⊎-identity⁻ˡ ctx-hasUnitalSep (refl ∷ʳ px) = cong (_ ∷_) (⊎-identity⁻ˡ px)
+  IsUnitalSep.⊎-idˡ ctx-hasUnitalSep               = right (≡⇒≋ P.refl)
+  IsUnitalSep.⊎-id⁻ˡ ctx-hasUnitalSep []           = refl
+  IsUnitalSep.⊎-id⁻ˡ ctx-hasUnitalSep (refl ∷ʳ px) = cong (_ ∷_) (⊎-id⁻ˡ px)
 
   instance ctx-concattative : IsConcattative separation
   ctx-concattative = record

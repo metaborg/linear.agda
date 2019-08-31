@@ -48,9 +48,9 @@ module _
   instance ×-isUnitalSep : IsUnitalSep ×-rawunitalsep
   ×-isUnitalSep = record
                       { isSep = ×-isSep
-                      ; ⊎-identityˡ = IsUnitalSep.⊎-identityˡ u₁ , (IsUnitalSep.⊎-identityˡ u₂)
-                      ; ⊎-identity⁻ˡ = λ where
-                          (fst , snd) → cong₂ _,_ (IsUnitalSep.⊎-identity⁻ˡ u₁ fst) (IsUnitalSep.⊎-identity⁻ˡ u₂ snd)
+                      ; ⊎-idˡ = IsUnitalSep.⊎-idˡ u₁ , (IsUnitalSep.⊎-idˡ u₂)
+                      ; ⊎-id⁻ˡ = λ where
+                          (fst , snd) → cong₂ _,_ (IsUnitalSep.⊎-id⁻ˡ u₁ fst) (IsUnitalSep.⊎-id⁻ˡ u₂ snd)
                       }
 
 module _
