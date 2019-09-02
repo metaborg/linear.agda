@@ -1,11 +1,11 @@
+{-# OPTIONS --allow-unsolved-metas #-}
+
 -- | An implementation of the Authoritative PCM
 module Relation.Unary.Separation.Construct.Auth (A : Set) where
 
 open import Level hiding (Lift)
 open import Data.Product
 open import Data.Maybe
-
-import Data.Sum as Sum
 
 open import Relation.Unary
 open import Relation.Unary.Separation
@@ -28,18 +28,20 @@ module _ {{ sep : RawSep A }} {{ _ : IsSep sep }} where
     on-left : ∀ {r₁ r₂ l₁ l₂ p}
               {σ₁ : r₁ ⊎ l₁ ≣ p} →
               (σ₂ : r₂ ⊎ l₂ ≣ l₁) →
-              Split (◐ σ₁) (◌ r₂) (◐ σ₂)
+              let _ , _ , σ = ⊎-assoc σ₂ (⊎-comm σ₁) in
+              Split (◐ σ₁) (◌ r₂) (◐ σ)
 
     on-right : ∀ {r₁ r₂ l₁ l₂ p}
                {σ₁ : r₁ ⊎ l₁ ≣ p} →
                (σ₂ : r₂ ⊎ l₂ ≣ l₁) →
-               Split (◌ r₂) (◐ σ₁) (◐ σ₂)
+               let _ , _ , σ = ⊎-assoc σ₂ (⊎-comm σ₁) in
+               Split (◌ r₂) (◐ σ₁) (◐ σ)
 
     neither  : ∀ {y y' z} →
                y ⊎ y' ≣ z →
                Split (◌ y) (◌ y') (◌ z)
 
-module _ {{s : RawUnitalSep A}} ⦃ _ : IsUnitalSep s ⦄ where
+module _ {{s : RawSep A}} {{ _ : IsUnitalSep s }} where
 
   data ● {p} (P : Pred A p) : Pred Auth p where
     whole : ∀ {x} → P x → ● P (◐ {r = x} ⊎-idʳ)
@@ -50,20 +52,12 @@ module _ {{s : RawUnitalSep A}} ⦃ _ : IsUnitalSep s ⦄ where
   data Lift {p} (P : A × A → Set p) : Pred Auth p where
     lift : ∀ {p r l} → P (p , r) → ∀ le → Lift P (◐ {r} {l} {p} le)
 
-  open RawSep
   instance auth-raw-sep : RawSep Auth
-  _⊎_≣_ auth-raw-sep = Split
-
-  instance auth-raw-unital : RawUnitalSep Auth
-  auth-raw-unital = record { ε = ◌ ε ; sep = auth-raw-sep }
-
-module _ ⦃ A-sep : RawUnitalSep A ⦄ ⦃ _ : IsUnitalSep A-sep ⦄ where
-
-  private instance A-raw = RawUnitalSep.sep A-sep
+  RawSep._⊎_≣_ auth-raw-sep = Split
 
   comm : ∀ {Φ₁ Φ₂ Φ} → Split Φ₁ Φ₂ Φ → Split Φ₂ Φ₁ Φ
-  comm (on-right l) = on-left l
-  comm (on-left l)  = on-right l
+  comm (on-right l) = {!!}
+  comm (on-left l)  = {!!}
   comm (neither x)  = neither (⊎-comm x)
 
   {-
@@ -131,10 +125,14 @@ module _ ⦃ A-sep : RawUnitalSep A ⦄ ⦃ _ : IsUnitalSep A-sep ⦄ where
   ○-map f (frag p) (neither σ) = frag (f p σ)
 
   module U = IsUnitalSep
-  postulate instance auth-is-unital : IsUnitalSep auth-raw-unital
-  -- U.isSep auth-is-unital                            = auth-has-sep
-  -- U.⊎-idˡ auth-is-unital {◐ x y l} refl = on-right (⊎-idʳ refl) l
-  -- U.⊎-idˡ auth-is-unital {◌ x} refl      = neither (⊎-idˡ refl)
+  instance auth-is-unital : IsUnitalSep auth-raw-sep
+  U.ε auth-is-unital      = ◌ ε
+  U.isSep auth-is-unital  = auth-has-sep
+  U.⊎-idˡ auth-is-unital {◐ x} = {!on-right ?!}
+  U.⊎-idˡ auth-is-unital {◌ r} = neither ⊎-idˡ
+  U.⊎-id⁻ˡ auth-is-unital (on-right σ) with ⊎-id⁻ˡ σ 
+  ... | refl = {!!}
+  U.⊎-id⁻ˡ auth-is-unital (neither σ) = cong ◌ (⊎-id⁻ˡ σ)
 
 -- The thing is not quite unital, because the inclusion between a part and the whole
 -- is part of the split relation and does not necessarily hold for a given carrier pair.

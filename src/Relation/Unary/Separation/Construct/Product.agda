@@ -26,11 +26,6 @@ module _ {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂} where
   instance ×-rawsep : ⦃ _ : RawSep C₁ ⦄ ⦃ _ : RawSep C₂ ⦄ → RawSep (C₁ × C₂)
   ×-rawsep ⦃ R₁ ⦄ ⦃ R₂ ⦄ = R₁ ×-⊎ R₂
 
-  instance ×-rawunitalsep : ⦃ _ : RawUnitalSep C₁ ⦄ ⦃ _ : RawUnitalSep C₂ ⦄ → RawUnitalSep (C₁ × C₂)
-  ×-rawunitalsep ⦃ R₁ ⦄ ⦃ R₂ ⦄ =
-    let open RawUnitalSep in
-    record { ε = ε R₁ , ε R₂ ; sep = sep R₁ ×-⊎ sep R₂ }
-
 module _
   {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂}
   {R₁ : RawSep C₁} {R₂ : RawSep C₂}
@@ -41,17 +36,17 @@ module _
 
 module _
   {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂}
-  ⦃ us₁ : RawUnitalSep C₁ ⦄ ⦃ us₂ : RawUnitalSep C₂ ⦄
+  ⦃ us₁ : RawSep C₁ ⦄ ⦃ us₂ : RawSep C₂ ⦄
   ⦃ u₁ : IsUnitalSep us₁ ⦄ ⦃ u₂ : IsUnitalSep us₂ ⦄
   where
 
-  instance ×-isUnitalSep : IsUnitalSep ×-rawunitalsep
+  instance ×-isUnitalSep : IsUnitalSep ×-rawsep
   ×-isUnitalSep = record
-                      { isSep = ×-isSep
-                      ; ⊎-idˡ = IsUnitalSep.⊎-idˡ u₁ , (IsUnitalSep.⊎-idˡ u₂)
-                      ; ⊎-id⁻ˡ = λ where
-                          (fst , snd) → cong₂ _,_ (IsUnitalSep.⊎-id⁻ˡ u₁ fst) (IsUnitalSep.⊎-id⁻ˡ u₂ snd)
-                      }
+    { isSep = ×-isSep
+    ; ⊎-idˡ = IsUnitalSep.⊎-idˡ u₁ , (IsUnitalSep.⊎-idˡ u₂)
+    ; ⊎-id⁻ˡ = λ where
+      (fst , snd) → cong₂ _,_ (IsUnitalSep.⊎-id⁻ˡ u₁ fst) (IsUnitalSep.⊎-id⁻ˡ u₂ snd)
+    }
 
 module _
   {ℓ₁ ℓ₂ ℓ₃ ℓ₄}

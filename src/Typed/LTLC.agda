@@ -1,4 +1,4 @@
-module Typed.LTLC where
+m                  odule Typed.LTLC where
 
 open import Prelude
 open import Function
