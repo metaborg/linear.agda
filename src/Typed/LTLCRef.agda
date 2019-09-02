@@ -64,100 +64,104 @@ St = Lift (Bigstar Cell)
 AP : (ℓ : Level) → Set (sucℓ ℓ)
 AP ℓ = Pred Auth ℓ
 
-M : ∀ {p} → Ctx → Ctx → Pred Auth p → Pred Auth p
+_⇒[_]_ : ∀ {a b p q} {A : Set a} {B : Set b} →
+         (P : A → Set p) → (A → B) → (Q : B → Set q) → A → Set _
+P ⇒[ f ] Q = λ a → P a → Q (f a)
+
+M : ∀ {p} → Ctx → Ctx → Pred Ctx p → Pred Auth p
 M Γ₁ Γ₂ P =
   (○ (Allstar Val Γ₁)) ─✴
   St ==✴
-  P ✴ (○ (Allstar Val Γ₂)) ✴ St
+  (○ P) ✴ (○ (Allstar Val Γ₂)) ✴ St
 
-return : ∀ {p} {Γ} {P : Pred Auth p} → ∀[ P ⇒ M Γ Γ P ]
+return : ∀ {p} {Γ} {P : Pred Ctx p} → ∀[ P ⇒[ ◌ ] M Γ Γ P ]
 return px env σ₂ st σ₃ =
   let _ , σ₄ , σ₅ = ⊎-assoc σ₂ σ₃ in
-  ⤇-return (px ×⟨ σ₄ ⟩ env ×⟨ σ₅ ⟩ st) ⊎-idˡ
+  ⤇-return ({!!} ×⟨ σ₄ ⟩ env ×⟨ σ₅ ⟩ st) ⊎-idˡ
 
-_<<=_ : ∀ {p q} {P : Pred Auth p} {Q : Pred Auth q} → 
-        ∀[ P ⇒ M Γ₂ Γ₃ Q ] → ∀[ M Γ₁ Γ₂ P ⇒ M Γ₁ Γ₃ Q ]
+_<<=_ : ∀ {p q} {P : Pred Ctx p} {Q : Pred Ctx q} → 
+        ∀[ P ⇒[ ◌ ] M Γ₂ Γ₃ Q ] → ∀[ M Γ₁ Γ₂ P ⇒ M Γ₁ Γ₃ Q ]
 _<<=_ f mp = {!!}
 
-_>>=_ : ∀ {p q Φ} {P : AP p} {Q : AP q} → M Γ₁ Γ₂ P Φ → ∀[ P ⇒ M Γ₂ Γ₃ Q ] → M Γ₁ Γ₃ Q Φ
+_>>=_ : ∀ {p q Φ} {P : Pred Ctx p} {Q : Pred Ctx q} → M Γ₁ Γ₂ P Φ → ∀[ P ⇒[ ◌ ] M Γ₂ Γ₃ Q ] → M Γ₁ Γ₃ Q Φ
 mp >>= f = f <<= mp
 
-str : ∀ {p q} {P : AP p} {Q : AP q} → ∀[ M Γ₁ Γ₂ P ✴ Q ⇒ M Γ₁ Γ₂ (P ✴ Q)]
+str : ∀ {p q} {P : Pred Ctx p} {Q : Pred Ctx q} → ∀[ M Γ₁ Γ₂ P ✴ (○ Q) ⇒ M Γ₁ Γ₂ (P ✴ Q)]
 str = {!!}
 
-ask : ε[ M Γ ε (○ (Allstar Val Γ)) ]
+ask : ε[ M Γ ε (Allstar Val Γ) ]
 ask env σ = {!!} -- nil ×⟨ σ ⟩ env
 
-frame : ∀ {p} {P : AP p} → Γ₁ ⊎ Γ₃ ≣ Γ₂ → ∀[ M Γ₁ ε P ⇒ M Γ₂ Γ₃ P ]
+frame : ∀ {p} {P : Pred Ctx p} → Γ₁ ⊎ Γ₃ ≣ Γ₂ → ∀[ M Γ₁ ε P ⇒ M Γ₂ Γ₃ P ]
 frame = {!!}
 
-append : ∀[ ○ (Allstar Val Γ₁) ⇒ M Γ₂ (Γ₂ ∙ Γ₁) Emp ]
+append : ∀[ Allstar Val Γ₁ ⇒[ ◌ ] M Γ₂ (Γ₂ ∙ Γ₁) Emp ]
 append = {!!}
 
-store : ∀[ ○ (Val a) ⇒ M Γ Γ (○ (Just a)) ]
+store : ∀[ Val a ⇒[ ◌ ] M Γ Γ (Just a) ]
 store = {!!}
 
-lookup : ε[ St ─✴ ○ (Just a) ==✴ ○ (Val a) ✴ St ]
-lookup (lift st σ₀) (on-right σ₁) (frag refl) (on-left σ₂) with ⊎-id⁻ˡ σ₁
+-- lookup : ε[ St ─✴ ○ (Just a) ==✴ ○ (Val a) ✴ St ]
+-- lookup (lift st σ₀) (on-right σ₁) (frag refl) (on-left σ₂) with ⊎-id⁻ˡ σ₁
 
-lookup (lift (cons (c ×⟨ σ ⟩ st)) (consˡ σ₀)) _ (frag refl) (on-left σ₂) | refl = {!st!}
-lookup (lift st (consʳ σ₀)) _ (frag refl) (on-left σ₂) | refl = {!σ!}
+-- lookup (lift (cons (c ×⟨ σ ⟩ st)) (consˡ σ₀)) _ (frag refl) (on-left σ₂) | refl = {!st!}
+-- lookup (lift st (consʳ σ₀)) _ (frag refl) (on-left σ₂) | refl = {!σ!}
 
--- store traversal
--- st-lookup (lift (cons (v ×⟨ σ ⟩ st)) (consˡ σ₀)) (on-right _) (frag refl) (on-left (consˡ σ₂)) | refl = λ φ → {!!} , {!!} , {!!} , frag {!v!} ×⟨ {!!} ⟩ {!!}
--- st-lookup (lift st (consʳ σ₀)) (on-right _) (frag refl) (on-left (consˡ σ₂)) | refl = {!!}
+-- -- store traversal
+-- -- st-lookup (lift (cons (v ×⟨ σ ⟩ st)) (consˡ σ₀)) (on-right _) (frag refl) (on-left (consˡ σ₂)) | refl = λ φ → {!!} , {!!} , {!!} , frag {!v!} ×⟨ {!!} ⟩ {!!}
+-- -- st-lookup (lift st (consʳ σ₀)) (on-right _) (frag refl) (on-left (consˡ σ₂)) | refl = {!!}
 
-do-deref : ∀ {Γ} → ∀[ ○ (Just a) ⇒ M Γ Γ (○ (Val a)) ]
+do-deref : ∀ {Γ} → ∀[ Just a ⇒[ ◌ ] M Γ Γ (Val a) ]
 do-deref ptr σ₀ env σ₁ st σ₂ = {!!}
 
-do-update : ∀[ ○ (Val a) ⇒ M Γ₁ Γ₂ (○ (Val b)) ] → ∀[ ○ (Just a) ⇒ M Γ₁ Γ₂ (○ (Just b)) ]
+do-update : ∀[ Val a ⇒[ ◌ ] M Γ₁ Γ₂ (Val b) ] → ∀[ Just a ⇒[ ◌ ] M Γ₁ Γ₂ (Just b) ]
 do-update = {!!}
 
-  -- let
-  --   _ , ρ₀ , ρ₁ = ⊎-assoc (⊎-comm σ₀) σ₁
-  --   _ , ρ₂ , ρ₃ = ⊎-assoc ρ₀ σ₂
-  -- in
-  -- ⤇-bind
-  --   (λ where (v ×⟨ σ₃ ⟩ st) σ₄ → ⤇-return (v ×⟨ {!!} ⟩ env ×⟨ {!!} ⟩ st) ⊎-idˡ)
-  --   ⊎-idˡ
-  --   (st-lookup st ⊎-idˡ ptr {!!}) {!!}
+--   -- let
+--   --   _ , ρ₀ , ρ₁ = ⊎-assoc (⊎-comm σ₀) σ₁
+--   --   _ , ρ₂ , ρ₃ = ⊎-assoc ρ₀ σ₂
+--   -- in
+--   -- ⤇-bind
+--   --   (λ where (v ×⟨ σ₃ ⟩ st) σ₄ → ⤇-return (v ×⟨ {!!} ⟩ env ×⟨ {!!} ⟩ st) ⊎-idˡ)
+--   --   ⊎-idˡ
+--   --   (st-lookup st ⊎-idˡ ptr {!!}) {!!}
 
 {-# TERMINATING #-}
 mutual
-  eval⊸ : ∀ {Γ} → Exp (a ⊸ b) Γ → ∀[ ○ (Val a) ⇒ M Γ ε (○ (Val b)) ]
+  eval⊸ : ∀ {Γ} → Exp (a ⊸ b) Γ → ∀[ Val a ⇒[ ◌ ] M Γ ε (Val b) ]
   eval⊸ e v = do
-    frag (clos e env) ×⟨ neither σ₂ ⟩ frag v ← str {Q = ○ (Val _)} (eval e ×⟨ ⊎-idˡ ⟩ v)
-    empty                                    ← append (frag (cons (v ×⟨ ⊎-comm σ₂ ⟩ env)))
+    clos e env ×⟨ σ₂ ⟩ v ← str {Q = Val _} (eval e ×⟨ ⊎-idˡ ⟩ (frag v))
+    empty                ← append (cons (v ×⟨ ⊎-comm σ₂ ⟩ env))
     eval e
 
-  eval : ∀ {Γ} → Exp a Γ → ε[ M Γ ε (○ (Val a)) ]
+  eval : ∀ {Γ} → Exp a Γ → ε[ M Γ ε (Val a) ]
 
   eval (num n) = do
-    return (frag (num n))
+    return (num n)
 
   eval (var refl) = do
-    frag (v :⟨ σ ⟩: nil) ← ask
+    (v :⟨ σ ⟩: nil) ← ask
     case ⊎-id⁻ʳ σ of λ where
-      refl → return (frag v)
+      refl → return v
 
   eval (lam e) = do
-    frag env ← ask
-    return (frag (clos e env))
+    env ← ask
+    return (clos e env)
 
   eval (app (f ×⟨ Γ≺ ⟩ e)) = do
     v ← frame (⊎-comm Γ≺) (eval e)
     eval⊸ f v
 
   eval (ref e) = do
-    v      ← eval e
-    frag r ← store v
-    return (frag (ref r))
+    v ← eval e
+    r ← store v
+    return (ref r)
 
   eval (deref e) = do
-    frag (ref r) ← eval e
-    do-deref (frag r)
+    ref r ← eval e
+    do-deref r
 
   eval (asgn (e₁ ×⟨ σ ⟩ e₂)) = do
-    frag (ref ra) ← frame σ (eval e₁)
-    frag rb       ← do-update (eval⊸ e₂) (frag ra)
-    return (frag (ref rb))
+    ref ra ← frame σ (eval e₁)
+    rb     ← do-update (eval⊸ e₂) ra
+    return (ref rb)
