@@ -60,80 +60,80 @@ module Free where
 
   send! : ∀ {α} → ∀[ Just (a ! α) ✴ Val a ⇒ F (Just (α .force)) ]
   send! args =
-    impure (send args ×⟨ ⊎-identityʳ ⟩ λ v s →
-      subst (F _) (⊎-identity⁻ˡ s) (pure v))
+    impure (send args ×⟨ ⊎-idʳ ⟩ λ v s →
+      subst (F _) (⊎-id⁻ˡ s) (pure v))
 
   receive! : ∀ {α} → ∀[ Just (a ¿ α) ⇒ F (Just (α .force) ✴ Val a) ]
   receive! args =
-    impure (receive args ×⟨ ⊎-identityʳ ⟩ λ v s →
-      subst (F _) (⊎-identity⁻ˡ s) (pure v))
+    impure (receive args ×⟨ ⊎-idʳ ⟩ λ v s →
+      subst (F _) (⊎-id⁻ˡ s) (pure v))
 
   close! : ∀[ Just end ⇒ F Emp ]
   close! args =
-    impure (close args ×⟨ ⊎-identityʳ ⟩ λ v s →
-      subst (F _) (⊎-identity⁻ˡ s) (pure v))
+    impure (close args ×⟨ ⊎-idʳ ⟩ λ v s →
+      subst (F _) (⊎-id⁻ˡ s) (pure v))
 
   fork! : ∀[ Closure (chan α) b ⇒ F (Just (α ⁻¹)) ]
   fork! args =
-    impure (fork args ×⟨ ⊎-identityʳ ⟩ λ v s →
-      subst (F _) (⊎-identity⁻ˡ s) (pure v))
+    impure (fork args ×⟨ ⊎-idʳ ⟩ λ v s →
+      subst (F _) (⊎-id⁻ˡ s) (pure v))
 
-  {-# TERMINATING #-}
-  eval : Exp a Γ → ∀[ Env Γ ⇒ F (Val a) ]
-  eval (var refl) (cons (px ×⟨ sep ⟩ nil ))
-    rewrite ⊎-identity⁻ʳ sep = f-return px
+  -- {-# TERMINATING #-}
+  -- eval : Exp a Γ → ∀[ Env Γ ⇒ F (Val a) ]
+  -- eval (var refl) (cons (px ×⟨ sep ⟩ nil ))
+  --   rewrite ⊎-id⁻ʳ sep = f-return px
 
-  eval (unit x) nil =
-    f-return (tt refl)
+  -- eval (unit x) nil =
+  --   f-return tt
 
-  eval (λₗ a x) env =
-    f-return (clos (closure x env))
+  -- eval (λₗ a x) env =
+  --   f-return (clos (closure x env))
 
-  eval (app (f ×⟨ Γ≺ ⟩ e)) env =
-    -- split the environment in two (disjoint) parts according to the Γ separation
-    let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
-    eval f E₁ ⟪ ⊎-comm E≺ ⟫= λ where
-      (clos (closure body closure-env)) clo◆E₂ →
-        eval e E₂ ⟪ ⊎-comm clo◆E₂ ⟫= λ where
-          v v◆E₂ →
-            let closure' = cons (v ×⟨ ⊎-comm v◆E₂ ⟩ closure-env)
-            in eval body closure'
+  -- eval (app (f ×⟨ Γ≺ ⟩ e)) env =
+  --   -- split the environment in two (disjoint) parts according to the Γ separation
+  --   let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
+  --   eval f E₁ ⟪ ⊎-comm E≺ ⟫= λ where
+  --     (clos (closure body closure-env)) clo◆E₂ →
+  --       eval e E₂ ⟪ ⊎-comm clo◆E₂ ⟫= λ where
+  --         v v◆E₂ →
+  --           let closure' = cons (v ×⟨ ⊎-comm v◆E₂ ⟩ closure-env)
+  --           in eval body closure'
 
-  eval (pairs (px ×⟨ Γ≺ ⟩ qx)) env =
-    let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
-    eval px E₁ ⟪ ⊎-comm E≺ ⟫= λ v v◆E₁ →
-      eval qx E₂ ⟪ ⊎-comm v◆E₁ ⟫= λ w dj →
-        f-return (pairs (v ×⟨ dj ⟩ w))
+  -- eval (pairs (px ×⟨ Γ≺ ⟩ qx)) env =
+  --   let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
+  --   eval px E₁ ⟪ ⊎-comm E≺ ⟫= λ v v◆E₁ →
+  --     eval qx E₂ ⟪ ⊎-comm v◆E₁ ⟫= λ w dj →
+  --       f-return (pairs (v ×⟨ dj ⟩ w))
 
-  eval (letpair (p ×⟨ Γ≺ ⟩ k)) env =
-    let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
-    (eval p E₁) ⟪ ⊎-comm E≺ ⟫= λ where
-      (pairs (v ×⟨ v◆w ⟩ w)) pr◆E₂ →
-        let -- extend the environment with the two values
-          _ , sip , sop = ⊎-assoc v◆w (⊎-comm pr◆E₂)
-          Eₖ = cons (v ×⟨ sip ⟩ cons (w ×⟨ sop ⟩ E₂))
-        in eval k Eₖ
+  -- eval (letpair (p ×⟨ Γ≺ ⟩ k)) env =
+  --   let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
+  --   (eval p E₁) ⟪ ⊎-comm E≺ ⟫= λ where
+  --     (pairs (v ×⟨ v◆w ⟩ w)) pr◆E₂ →
+  --       let -- extend the environment with the two values
+  --         _ , sip , sop = ⊎-assoc v◆w (⊎-comm pr◆E₂)
+  --         Eₖ = cons (v ×⟨ sip ⟩ cons (w ×⟨ sop ⟩ E₂))
+  --       in eval k Eₖ
 
-  eval (send (e ×⟨ Γ≺ ⟩ ch)) env =
-    let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
-    (eval ch E₂) ⟪ E≺ ⟫= λ where
-    (chan φ) φ◆E₁ →
-      (eval e E₁) ⟪ ⊎-comm φ◆E₁ ⟫= λ v φ◆v →
-      (send! (φ ×⟨ φ◆v ⟩ v)) ⟪ ⊎-identityˡ ⟫= λ ch s →
-      f-return (chan (subst (Just _) (⊎-identity⁻ˡ s) ch))
+  -- eval (send (e ×⟨ Γ≺ ⟩ ch)) env =
+  --   let (E₁ ×⟨ E≺ ⟩ E₂) = env-split Γ≺ env in
+  --   (eval ch E₂) ⟪ E≺ ⟫= λ where
+  --   (chan φ) φ◆E₁ →
+  --     (eval e E₁) ⟪ ⊎-comm φ◆E₁ ⟫= λ v φ◆v →
+  --     (send! (φ ×⟨ φ◆v ⟩ v)) ⟪ ⊎-idˡ ⟫= λ ch s →
+  --     f-return (chan (subst (Just _) (⊎-id⁻ˡ s) ch))
 
-  eval (recv e) env =
-    (eval e env) ⟪ ⊎-identityˡ ⟫= λ where
-      (chan ch) ε◆ch → receive! ch ⟪ ε◆ch ⟫= λ a×b s →
-        f-return $ subst (Val _) (⊎-identity⁻ˡ s) $
-          pairs (⟨ chan ⟨✴⟩ id ⟩ a×b)  
+  -- eval (recv e) env =
+  --   (eval e env) ⟪ ⊎-idˡ ⟫= λ where
+  --     (chan ch) ε◆ch → receive! ch ⟪ ε◆ch ⟫= λ a×b s →
+  --       f-return $ subst (Val _) (⊎-id⁻ˡ s) $
+  --         pairs (⟨ chan ⟨✴⟩ id ⟩ a×b)  
 
-  eval (fork e) env =
-    eval e env ⟪ ⊎-identityˡ ⟫= λ where
-      (clos clo) s → fork! clo ⟪ s ⟫= λ φ s →
-        f-return $ subst (Val _) (⊎-identity⁻ˡ s) (chan φ)
+  -- eval (fork e) env =
+  --   eval e env ⟪ ⊎-idˡ ⟫= λ where
+  --     (clos clo) s → fork! clo ⟪ s ⟫= λ φ s →
+  --       f-return $ subst (Val _) (⊎-id⁻ˡ s) (chan φ)
 
-  eval (terminate e) env =
-    eval e env ⟪ ⊎-identityˡ ⟫= λ where
-      (chan ch) ε◆sh → close! ch ⟪ ε◆sh ⟫= λ where
-        refl → f-return ∘ tt ∘ ε⊎ε
+  -- eval (terminate e) env =
+  --   eval e env ⟪ ⊎-idˡ ⟫= λ where
+  --     (chan ch) ε◆sh → close! ch ⟪ ε◆sh ⟫= λ where
+  --       empty → {!f-return ?!}

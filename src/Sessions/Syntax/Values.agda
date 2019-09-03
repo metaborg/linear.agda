@@ -13,15 +13,15 @@ Chan : SType ∞ → Pred SCtx 0ℓ
 Chan = Just
 
 mutual
-  Env = LinearEnv.Env Val
+  Env = Allstar Val
 
   data Closure : Type ∞ → Type ∞ → Pred SCtx 0ℓ where
     closure : ∀ {a} → Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Closure a b ]
 
   data Val : Type ∞ → Pred SCtx 0ℓ where
-    tt    : ∀[ Emp           ⇒ Val unit       ]
+    tt    : ε[                 Val unit       ]
     chan  : ∀[ Chan α        ⇒ Val (chan α)   ]
     pairs : ∀[ Val a ✴ Val b ⇒ Val (prod a b) ]
     clos  : ∀[ Closure a b   ⇒ Val (a ⊸ b) ]
 
-open LinearEnv public using (env-split; env-∙)
+open import Relation.Unary.Separation.Env public

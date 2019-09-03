@@ -10,7 +10,7 @@ data Exp : Type ∞ → LCtx → Set where
   var       : ∀[ Just a ⇒ Exp a ]
 
   -- value constructors
-  unit      : ∀[ Emp ⇒ Exp unit ]
+  unit      : ε[ Exp unit ]
 
   -- linear function introduction and elimination
   λₗ        : ∀ a → ∀[ (a ◂ id ⊢ Exp b) ⇒ Exp (a ⊸ b) ]

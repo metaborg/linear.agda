@@ -1,4 +1,4 @@
-m                  odule Typed.LTLC where
+module Typed.LTLC where
 
 open import Prelude
 open import Function
@@ -34,6 +34,19 @@ data Exp : Ty → Ctx → Set where
   lam : ∀[ (a ◂ id ⊢ Exp b) ⇒ Exp (a ⊸ b) ]
   app : ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
   var : ∀[ Just a ⇒ Exp a ]
+
+_⇒[_]_ : ∀ {a b p q} {A : Set a} {B : Set b} →
+         (P : A → Set p) → (A → B) → (Q : B → Set q) → A → Set _
+P ⇒[ f ] Q = λ a → P a → Q (f a)
+
+{- strong relative monads on SA's -}
+record SA-SRMonad {a b p} {A : Set a} {B : Set b} (M : Pred A p → Pred B p) (j : A → B) : Set (a ⊔ b ⊔ sucℓ p) where
+  field
+    return : ∀ {P : Pred A p} → ∀[ P ⇒[ j ] M P ]
+    _<<=_  : ∀ {P : Pred A p} {Q : Pred A p} → ∀[ P ⇒[ j ] M Q ] → ∀[ M P ⇒ M Q ]
+
+  _>>=_ : ∀ {Φ} {P : Pred A p} {Q} → M P Φ → ∀[ P ⇒[ j ] M Q ] → M Q Φ
+  mp >>= f = f <<= mp
 
 module LinearReader {v c t}
   {T : Set t}        -- types
