@@ -1,7 +1,7 @@
 {-# OPTIONS --allow-unsolved-metas #-}
 
 -- | An implementation of the Authoritative PCM
-module Relation.Unary.Separation.Construct.Auth (A : Set) where
+module Relation.Unary.Separation.Construct.Auth where
 
 open import Level hiding (Lift)
 open import Data.Product
@@ -12,18 +12,18 @@ open import Relation.Unary.Separation
 open import Relation.Binary hiding (_⇒_)
 open import Relation.Binary.PropositionalEquality as P
 
-module _ {{ A-sep : RawSep A }} where
+module _ {ℓ} (A : Set ℓ) {{ A-sep : RawSep A }} where
 
-  data Auth : Set where
+  data Auth : Set ℓ where
     ◐ : ∀ {r l p : A} → r ⊎ l ≣ p → Auth
     ◌ : ∀ (r : A) → Auth
 
-module _ {{ sep : RawSep A }} {{ _ : IsSep sep }} where
+module _ {ℓ} {A : Set ℓ} {{ sep : RawSep A }} {{ _ : IsSep sep }} where
 
   lem : ∀ {x y z : A} (p : x ≤ y) → (z ≤ rem p) → ∃ λ z' → x ⊎ z ≣ z' × z' ≤ y
   lem (_ , p) (_ , q) = let z , r , s = ⊎-unassoc p q in z , r , (-, s)
 
-  data Split : Auth → Auth → Auth → Set where
+  data Split : Auth A → Auth A → Auth A → Set ℓ where
 
     on-left : ∀ {r₁ r₂ l₁ l₂ p}
               {σ₁ : r₁ ⊎ l₁ ≣ p} →
@@ -41,18 +41,19 @@ module _ {{ sep : RawSep A }} {{ _ : IsSep sep }} where
                y ⊎ y' ≣ z →
                Split (◌ y) (◌ y') (◌ z)
 
-module _ {{s : RawSep A}} {{ _ : IsUnitalSep s }} where
+module _ {ℓ} {{ s : UnitalSep ℓ }} where
+  open UnitalSep s renaming (Carrier to A)
 
-  data ● {p} (P : Pred A p) : Pred Auth p where
+  data ● {p} (P : Pred A p) : Pred (Auth A) p where
     whole : ∀ {x} → P x → ● P (◐ {r = x} ⊎-idʳ)
 
-  data ○ {p} (P : Pred A p) : Pred Auth p where
+  data ○ {p} (P : Pred A p) : Pred (Auth A) p where
     frag : ∀ {x} → P x → ○ P (◌ x)
 
-  data Lift {p} (P : A × A → Set p) : Pred Auth p where
-    lift : ∀ {p r l} → P (p , r) → ∀ le → Lift P (◐ {r} {l} {p} le)
+  data Lift {p} (P : A × A → Set p) : Pred (Auth A) p where
+    lift : ∀ {p r l} → P (p , r) → ∀ le → Lift P (◐ {r = r} {l} {p} le)
 
-  instance auth-raw-sep : RawSep Auth
+  instance auth-raw-sep : RawSep (Auth A)
   RawSep._⊎_≣_ auth-raw-sep = Split
 
   comm : ∀ {Φ₁ Φ₂ Φ} → Split Φ₁ Φ₂ Φ → Split Φ₂ Φ₁ Φ
@@ -115,18 +116,16 @@ module _ {{s : RawSep A}} {{ _ : IsUnitalSep s }} where
     ; ⊎-assoc = assoc
     }
 
-  instance auth-sep : Separation _ _
+  instance auth-sep : Separation _
   auth-sep = record
-    { set   = P.setoid Auth
-    ; isSep = auth-has-sep }
+    { isSep = auth-has-sep }
 
   -- ○ is a relative functor of sorts
   ○-map : ∀ {p q} {P : Pred A p}{Q : Pred A q} {Φ} → (P ─✴ Q) Φ → (○ P ─✴ ○ Q) (◌ Φ)
   ○-map f (frag p) (neither σ) = frag (f p σ)
 
   module U = IsUnitalSep
-  instance auth-is-unital : IsUnitalSep auth-raw-sep
-  U.ε auth-is-unital      = ◌ ε
+  instance auth-is-unital : IsUnitalSep auth-raw-sep (◌ (UnitalSep.ε s))
   U.isSep auth-is-unital  = auth-has-sep
   U.⊎-idˡ auth-is-unital {◐ x} = {!on-right ?!}
   U.⊎-idˡ auth-is-unital {◌ r} = neither ⊎-idˡ

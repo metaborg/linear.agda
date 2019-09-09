@@ -19,13 +19,12 @@ unit-has-sep = record
   ; ⊎-assoc = λ _ _ → tt , tt , tt
   }
 
-instance unit-is-unital : IsUnitalSep _
+instance unit-is-unital : IsUnitalSep _ _
 unit-is-unital = record
   { isSep = unit-has-sep
   ; ⊎-idˡ = tt
   ; ⊎-id⁻ˡ = λ where tt → refl }
 
-instance unit-sep : Separation _ _
+instance unit-sep : Separation _
 unit-sep = record
-  { set   = P.setoid ⊤
-  ; isSep = unit-has-sep }
+  { isSep = unit-has-sep }

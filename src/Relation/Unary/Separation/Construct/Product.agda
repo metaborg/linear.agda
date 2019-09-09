@@ -28,7 +28,7 @@ module _ {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂} where
 
 module _
   {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂}
-  {R₁ : RawSep C₁} {R₂ : RawSep C₂}
+  {{R₁ : RawSep C₁}} {{R₂ : RawSep C₂}}
   ⦃ s₁ : IsSep R₁ ⦄ ⦃ s₂ : IsSep R₂ ⦄
   where
 
@@ -36,45 +36,34 @@ module _
 
 module _
   {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂}
-  ⦃ us₁ : RawSep C₁ ⦄ ⦃ us₂ : RawSep C₂ ⦄
-  ⦃ u₁ : IsUnitalSep us₁ ⦄ ⦃ u₂ : IsUnitalSep us₂ ⦄
+  {{R₁ : RawSep C₁}} {{R₂ : RawSep C₂}} {u₁ u₂}
+  ⦃ s₁ : IsUnitalSep R₁ u₁ ⦄ ⦃ s₂ : IsUnitalSep R₂ u₂ ⦄
   where
 
-  instance ×-isUnitalSep : IsUnitalSep ×-rawsep
+  instance ×-isUnitalSep : IsUnitalSep ×-rawsep (u₁ , u₂)
   ×-isUnitalSep = record
     { isSep = ×-isSep
-    ; ⊎-idˡ = IsUnitalSep.⊎-idˡ u₁ , (IsUnitalSep.⊎-idˡ u₂)
+    ; ⊎-idˡ = ⊎-idˡ , ⊎-idˡ 
     ; ⊎-id⁻ˡ = λ where
-      (fst , snd) → cong₂ _,_ (IsUnitalSep.⊎-id⁻ˡ u₁ fst) (IsUnitalSep.⊎-id⁻ˡ u₂ snd)
+      (fst , snd) → cong₂ _,_ (⊎-id⁻ˡ fst) (⊎-id⁻ˡ snd)
     }
 
+  instance _×-ε-separation_ : UnitalSep _
+  _×-ε-separation_ = record
+    { isUnitalSep = ×-isUnitalSep }
+
 module _
-  {ℓ₁ ℓ₂ ℓ₃ ℓ₄}
-  ⦃ s₁ : Separation ℓ₁ ℓ₂ ⦄ ⦃ s₂ : Separation ℓ₃ ℓ₄ ⦄
+  {ℓ₁ ℓ₂}
+  ⦃ s₁ : Separation ℓ₁ ⦄ ⦃ s₂ : Separation ℓ₂ ⦄
   where
 
   private
     module S₁ = Separation s₁
     module S₂ = Separation s₂
 
-  ×-separation : Separation _ _
+  ×-separation : Separation _
   ×-separation = record
-    { set   = ×-setoid S₁.set S₂.set
-    ; isSep = ×-isSep ⦃ Separation.isSep s₁ ⦄ ⦃ Separation.isSep s₂ ⦄ }
-
-module _
-  {ℓ₁ ℓ₂ ℓ₃ ℓ₄}
-  ⦃ s₁ : UnitalSep ℓ₁ ℓ₂ ⦄ ⦃ s₂ : UnitalSep ℓ₃ ℓ₄ ⦄
-  where
-
-  private
-    module S₁ = UnitalSep s₁
-    module S₂ = UnitalSep s₂
-
-  instance _×-ε-separation_ : UnitalSep _ _
-  _×-ε-separation_ = record
-    { set         = ×-setoid S₁.set S₂.set
-    ; isUnitalSep = ×-isUnitalSep }
+    { isSep = ×-isSep {{ _ }} {{ _ }} ⦃ Separation.isSep s₁ ⦄ ⦃ Separation.isSep s₂ ⦄ }
 
 module _
   {ℓ₁ ℓ₂}

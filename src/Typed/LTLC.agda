@@ -5,6 +5,7 @@ open import Function
 open import Level
 open import Category.Monad
 
+open import Relation.Unary.PredicateTransformer using (PT; Pt)
 open import Relation.Unary.Separation.Construct.List
 open import Relation.Unary.Separation.Construct.Unit
 open import Relation.Unary.Separation.Env
@@ -35,172 +36,139 @@ data Exp : Ty → Ctx → Set where
   app : ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
   var : ∀[ Just a ⇒ Exp a ]
 
-_⇒[_]_ : ∀ {a b p q} {A : Set a} {B : Set b} →
-         (P : A → Set p) → (A → B) → (Q : B → Set q) → A → Set _
-P ⇒[ f ] Q = λ a → P a → Q (f a)
+module _ {a b} {A : Set a} {B : Set b} where
+  _⇒[_]_ : ∀ {p q} (P : Pred A p) → (A → B) → (Q : Pred B q) → A → Set _
+  P ⇒[ f ] Q = λ a → P a → Q (f a)
 
-{- strong relative monads on SA's -}
-record SA-SRMonad {a b p} {A : Set a} {B : Set b} (M : Pred A p → Pred B p) (j : A → B) : Set (a ⊔ b ⊔ sucℓ p) where
-  field
-    return : ∀ {P : Pred A p} → ∀[ P ⇒[ j ] M P ]
-    _<<=_  : ∀ {P : Pred A p} {Q : Pred A p} → ∀[ P ⇒[ j ] M Q ] → ∀[ M P ⇒ M Q ]
+module _ {ℓ} {A : Set ℓ} {{sep : RawSep A}} {u} {{as : IsUnitalSep sep u}} where
+  _─✴[_]_ : ∀ {b p q} {B : Set b} (P : A → Set p) → (A → B) → (Q : B → Set q) → A → Set _
+  P ─✴[ j ] Q = P ─✴ (Q ∘ j)
 
-  _>>=_ : ∀ {Φ} {P : Pred A p} {Q} → M P Φ → ∀[ P ⇒[ j ] M Q ] → M Q Φ
-  mp >>= f = f <<= mp
+module _
+  {a b i} {A : Set a} {B : Set b} {I : Set i}
+  {{sep : RawSep A}} {u} {{as : IsUnitalSep sep u}}
+  {{ sep : RawSep B }}
+  {j : A → B}
+  {{ bs : IsUnitalSep sep (j ε) }} where
 
-module LinearReader {v c t}
-  {T : Set t}        -- types
-  {{m : MonoidalSep c}}
-  {V : T → Pred (MonoidalSep.Carrier m) v} -- values
+  {- strong, relative, indexed monads on predicates over SAs -}
+  record SA-SRMonad {ℓ} (M : (i j : I) → PT A B ℓ ℓ) : Set (a ⊔ b ⊔ sucℓ ℓ ⊔ i) where
+    field
+      return : ∀ {P i₁}         → ∀[ P ⇒[ j ] M i₁ i₁ P ]
+      bind   : ∀ {P i₁ i₂ i₃ Q} → ∀[ (P ─✴[ j ] M i₂ i₃ Q) ⇒[ j ] (M i₁ i₂ P ─✴ M i₁ i₃ Q) ]
+
+    _=<<_ : ∀ {P Q i₁ i₂ i₃} → ∀[ P ⇒[ j ] M i₂ i₃ Q ] → ∀[ M i₁ i₂ P ⇒ M i₁ i₃ Q ]
+    f =<< mp = bind (λ px σ → case ⊎-id⁻ˡ σ of λ where refl → f px) mp ⊎-idˡ  
+
+    _>>=_ : ∀ {Φ} {P Q i₁ i₂ i₃} → M i₁ i₂ P Φ → ∀[ P ⇒[ j ] M i₂ i₃ Q ] → M i₁ i₃ Q Φ
+    mp >>= f = f =<< mp
+
+  open SA-SRMonad ⦃...⦄ public
+
+module _
+  {a b i} {A : Set a} {B : Set b} {I : Set i}
+  {{sep : RawSep A}} {u} {{as : IsUnitalSep sep u}}
+  {{ sep : RawSep B }}
+  {j : A → B}
+  {{ bs : IsUnitalSep sep (j ε) }} where
+
+  data J (P : Pred A a) : Pred B (sucℓ a) where
+    inj : P Φ → J P (j Φ)
+
+  -- having the internal bind is enough to get strength
+  str : ∀ {P i₁ i₂} {M : (i j : I) → PT A B a a} {{ _ : SA-SRMonad M }} (Q : Pred A a) →
+        (M i₁ i₂ P ✴ J Q) Φ → M i₁ i₂ (P ✴ Q) Φ
+  str _ (mp ×⟨ σ ⟩ inj qx) = bind (λ px σ' → return (px ×⟨ ⊎-comm σ' ⟩ qx)) mp (⊎-comm σ)
+
+  syntax str Q mp qx = mp &[ Q ] qx
+
+module LinearReader {ℓ}
+  {T : Set ℓ}        -- types
+  {{m : MonoidalSep ℓ}}
+  (V : T → Pred (MonoidalSep.Carrier m) ℓ) -- values
   where
   
-  open MonoidalSep m
-
-  CPred : (ℓ : Level) → Set (c ⊔ sucℓ ℓ)
-  CPred ℓ = Carrier → Set ℓ
-
-  Reader : ∀ {p} → List T → List T → CPred p → CPred (c ⊔ t ⊔ v ⊔ p)
-  Reader Γ₁ Γ₂ P = Allstar V Γ₁ ─✴ (Allstar V Γ₂ ✴ P)
-
-  return : ∀ {p} {P : CPred p} → ∀[ P ⇒ Reader Γ Γ P ]
-  return px e s = e ×⟨ ⊎-comm s ⟩ px
-
-  ireturn : ∀ {p} {P : CPred p}  → ε[ P ─✴ Reader Γ Γ P ]
-  ireturn px σ₁ e σ₂ rewrite ⊎-id⁻ˡ σ₁ = e ×⟨ ⊎-comm σ₂ ⟩ px
-
-  _<<=_ : ∀ {p q} {P : CPred p} {Q : CPred q} → 
-          ∀[ P ⇒ Reader Γ₂ Γ₃ Q ] → ∀[ Reader Γ₁ Γ₂ P ⇒ Reader Γ₁ Γ₃ Q ]
-  _<<=_ f mp env σ = let (env ×⟨ σ' ⟩ px) = mp env σ in f px env (⊎-comm σ')
-
-  _>>=_ : ∀ {p q} {P : CPred p} {Q : CPred q} {Φ} → 
-          Reader Γ₁ Γ₂ P Φ → ∀[ P ⇒ Reader Γ₂ Γ₃ Q ] → Reader Γ₁ Γ₃ Q Φ
-  mp >>= f = f <<= mp
-
-  ibind : ∀ {p q} {P : CPred p} {Q : CPred q} → 
-          ∀[ (P ─✴ Reader Γ₂ Γ₃ Q) ⇒ (Reader Γ₁ Γ₂ P ─✴ Reader Γ₁ Γ₃ Q) ]
-  ibind f mp σ₁ env σ₂ =
-    let
-      _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂
-      px✴env      = mp env σ₄
-    in ✴-curry f (✴-swap px✴env) σ₃
-
-  syntax ibind f p s = p ⟪ s ⟫= f
-
-  ibind' : ∀ {p q} {P : SPred p} {Q : SPred q}  →
-           ε[ (P ─✴ Reader Γ₂ Γ₃ Q) ─✴ Reader Γ₁ Γ₂ P ─✴ Reader Γ₁ Γ₃ Q ]
-  ibind' f σ₀ mp σ₁ env σ₂ rewrite ⊎-id⁻ˡ σ₀ =
-    let
-      _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂
-      px✴env      = mp env σ₄
-    in ✴-curry f (✴-swap px✴env) σ₃
-
-  -- strength
-  _^_ : ∀ {p q} {P : SPred p} {Q : SPred q} →
-        ε[ Reader Γ₁ Γ₂ P ] → ∀[ Q ⇒ Reader Γ₁ Γ₂ (P ✴ Q)]
-  (mp ^ qx) env σ with mp env ⊎-idˡ
-  ... | env' ×⟨ σ' ⟩ px with ⊎-assoc σ' (⊎-comm σ)
-  ... | _ , σ₂ , σ₃ = env' ×⟨ σ₂ ⟩ px  ×⟨ σ₃ ⟩ qx
-
-  str : ∀ {p q} {P : SPred p} {Q : SPred q} →
-        ∀[ Reader Γ₁ Γ₂ P ✴ Q ⇒ Reader Γ₁ Γ₂ (P ✴ Q)]
-  str (mp ×⟨ σ ⟩ qx) env σ' with ⊎-assoc (⊎-comm σ) σ'
-  ... | _ , σ₃ , σ₄ with mp env σ₄
-  ... | env' ×⟨ σ'' ⟩ px with ⊎-assoc σ'' (⊎-comm σ₃) 
-  ... | _ , σ₅ , σ₆ = env' ×⟨ σ₅ ⟩ px ×⟨ σ₆ ⟩ qx
-
-  frame : ∀ {p} {P : CPred p} → Γ₁ ⊎ Γ₃ ≣ Γ₂ → ∀[ Reader Γ₁ ε P ⇒ Reader Γ₂ Γ₃ P ]
-  frame sep c env s = 
-    let
-      (E₁ ×⟨ E≺ ⟩ E₂) = env-split sep env
-      (Φ , eq₁ , eq₂) = ⊎-assoc E≺ (⊎-comm s)
-    in ibind
-      (λ px s' → λ where nil s'' → E₂ ×⟨ subst (_ ⊎ _ ≣_) (⊎-id⁻ʳ s'') s' ⟩ px)
-      c eq₂ E₁ (⊎-comm eq₁)
-
-  ask : ε[ Reader Γ ε (Allstar V Γ) ]
-  ask env σ = nil ×⟨ σ ⟩ env
-
-  asks : ∀ {p} {P : CPred p} → ∀[ (Allstar V Γ ─✴ P) ⇒ Reader Γ ε P ]
-  asks f env σ =
-    let px = f env σ
-    in (nil ×⟨ ⊎-idˡ ⟩ px)
-
-  prepend : ∀[ Allstar V Γ₁ ⇒ Reader Γ₂ (Γ₁ ∙ Γ₂) Emp ]
-  prepend env₁ env₂ s = env-∙ (env₁ ×⟨ s ⟩ env₂) ×⟨ ⊎-idʳ ⟩ empty
-
-  append : ∀[ Allstar V Γ₁ ⇒ Reader Γ₂ (Γ₂ ∙ Γ₁) Emp ]
-  append env₁ env₂ s = env-∙ (env₂ ×⟨ ⊎-comm s ⟩ env₁) ×⟨ ⊎-idʳ ⟩ empty
-
-module _ {c} {{m : MonoidalSep c}} where
   open MonoidalSep m using (Carrier)
 
-  CPred : (ℓ : Level) → Set (c ⊔ sucℓ ℓ)
-  CPred ℓ = Carrier → Set ℓ
+  variable
+    P Q R : Pred Carrier ℓ
+
+  record Reader (Γ₁ Γ₂ : List T) (P : Pred Carrier ℓ) (Φ : Carrier) : Set ℓ where
+    constructor reader
+    field
+      runReader : (Allstar V Γ₁ ─✴ (Allstar V Γ₂ ✴ P)) Φ
+
+  open Reader
+
+  instance
+    reader-monad : SA-SRMonad Reader
+    SA-SRMonad.return reader-monad px = reader λ e s → e ×⟨ ⊎-comm s ⟩ px
+    SA-SRMonad.bind   reader-monad f mp σ₁ = reader λ env σ₂ →
+      let
+        _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂
+        env ×⟨ σ₅ ⟩ px = runReader mp env σ₄
+        _ , σ₆ , σ₇ = ⊎-unassoc σ₃ (⊎-comm σ₅) 
+      in runReader (f px σ₆) env σ₇
+
+  frame : Γ₁ ⊎ Γ₃ ≣ Γ₂ → ∀[ Reader Γ₁ ε P ⇒ Reader Γ₂ Γ₃ P ]
+  frame sep c = reader λ env σ →
+    let
+      E₁ ×⟨ σ₁ ⟩ E₂ = env-split sep env
+      Φ , σ₂ , σ₃   = ⊎-unassoc σ σ₁
+    in case runReader c E₁ σ₂ of λ where
+      (nil ×⟨ σ₄ ⟩ px) → case ⊎-id⁻ˡ σ₄ of λ where
+        refl → E₂ ×⟨ ⊎-comm σ₃ ⟩ px
+
+  ask : ε[ Reader Γ ε (Allstar V Γ) ]
+  ask = reader λ env σ → nil ×⟨ σ ⟩ env
+
+  prepend : ∀[ Allstar V Γ₁ ⇒ Reader Γ₂ (Γ₁ ∙ Γ₂) Emp ]
+  prepend env₁ = reader λ env₂ s → env-∙ (env₁ ×⟨ s ⟩ env₂) ×⟨ ⊎-idʳ ⟩ empty
+
+  append : ∀[ Allstar V Γ₁ ⇒ Reader Γ₂ (Γ₂ ∙ Γ₁) Emp ]
+  append env₁ = reader λ env₂ s → env-∙ (env₂ ×⟨ ⊎-comm s ⟩ env₁) ×⟨ ⊎-idʳ ⟩ empty
+
+module _ {{m : MonoidalSep 0ℓ}} where
+  open MonoidalSep m using (Carrier)
+
+  CPred : Set₁
+  CPred = Carrier → Set
 
   mutual
-    Env : Ctx → CPred _
+    Env : Ctx → CPred
     Env = Allstar Val
 
-    data Val : Ty → CPred c where
+    data Val : Ty → CPred where
       num   : ℕ → ε[ Val nat ]
-      clos  : ∀ {Γ} → Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Val (a ⊸ b) ]
+      clos  : Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Val (a ⊸ b) ]
 
-    open LinearReader {V = Val}
+  open LinearReader Val
 
-    {-# TERMINATING #-}
-    eval : Exp a Γ → ε[ Reader Γ ε (Val a) ]
+  {-# TERMINATING #-}
+  eval : Exp a Γ → ε[ Reader Γ ε (Val a) ]
 
-    eval (num n) = do
-      return (num n)
+  eval (num n) = do
+    return (num n)
 
-    eval (add (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
-      (num n₁) ← frame Γ≺ (eval e₁)
-      (num n₂) ← eval e₂
-      return (num (n₁ + n₂))
+  eval (add (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
+    (num n₁) ← frame Γ≺ (eval e₁)
+    (num n₂) ← eval e₂
+    return (num (n₁ + n₂))
 
-    eval (lam e) = do
-      env ← ask
-      return (clos e env)
+  eval (lam e) = do
+    env ← ask
+    return (clos e env)
 
-    eval (app (f ×⟨ Γ≺ ⟩ e)) = do
-      v                   ← frame (⊎-comm Γ≺) (eval e)
-      clos e env ×⟨ σ ⟩ v ← str (eval f ×⟨ ⊎-idˡ ⟩ v)
-      empty ×⟨ σ ⟩ env    ← str {Q = Allstar _ _} (append (singleton v) ×⟨ ⊎-comm σ ⟩ env)
-      case (⊎-id⁻ˡ σ) of λ where
-        refl → do
-          empty ← append env
-          eval e
+  eval (app (f ×⟨ Γ≺ ⟩ e)) = do
+    v                   ← frame (⊎-comm Γ≺) (eval e)
+    clos e env ×⟨ σ ⟩ v ← str _ (eval f ×⟨ ⊎-idˡ ⟩ inj v)
+    empty ×⟨ σ ⟩ env    ← str (Allstar _ _) (append (singleton v) ×⟨ ⊎-comm σ ⟩ inj env)
+    case (⊎-id⁻ˡ σ) of λ where
+      refl → do
+        empty ← append env
+        eval e
 
-    eval (var refl) = do
-      cons (v ×⟨ σ ⟩ nil) ← ask
-      case (⊎-id⁻ʳ σ) of λ where
-        refl → return v
-
-    -- {-# TERMINATING #-}
-    -- eval : ε[ Empty (Exp a Γ) ─✴ Reader Γ ε (Val a) ]
-
-    -- eval (emp (add (e₁ ×⟨ Γ≺ ⟩ e₂))) σ = {!!}
-    --   bind′ {!!} {!!} (frame Γ≺ (eval (emp e₁) ⊎-idʳ) ⊎-idʳ) ⊎-idʳ
-    --   frame Γ≺ (eval e₁) ⟪ ? ⟫= λ where
-    --     (num n₁) → eval e₂ ⟫= λ where
-    --       (num n₂) → return' (num (n₁ + n₂))  
-
-    -- eval (emp (num n)) =
-    --   ireturn (num n)
-
-    -- eval (emp (lam e)) = 
-    --   bind′ (λ env → ireturn (clos e env)) ⊎-idʳ (iask empty ⊎-idʳ)
-    --   ask ⟪ ⊎-idˡ ⟫= λ
-    --     env → return' (clos e env)
-
-    -- eval (emp (app (f ×⟨ Γ≺ ⟩ e))) = {!!}
-    --   frame (⊎-comm Γ≺) (eval e) ⟪ ⊎-idʳ ⟫= λ where
-    --     v σ₁ → eval f ⟪ ⊎-comm σ₁ ⟫= λ where
-    --       (clos e env) σ₂ → append (singleton v) ⟪ ⊎-comm σ₂ ⟫= λ where
-    --         refl σ₃ → append env ⟪ ⊎-comm σ₃ ⟫= {!!} -- pure λ where
-    --           -- refl → {!eval e!} -- case (⊎-id⁻ˡ σ₄) of λ where
-    --             -- refl → eval e
-
-    -- eval (emp (var refl)) = bind′ (λ where (cons (px ×⟨ σ₁ ⟩ nil)) → case (⊎-id⁻ʳ σ₁) of λ where refl → ireturn px) ⊎-idʳ (iask empty ⊎-idʳ) -- ask ⟪ ⊎-idˡ ⟫= λ where
-    --   (cons (px ×⟨ σ₁ ⟩ nil)) → case (⊎-id⁻ʳ σ₁) of λ where
-    --      refl → return' px
+  eval (var refl) = do
+    cons (v ×⟨ σ ⟩ nil) ← ask
+    case (⊎-id⁻ʳ σ) of λ where
+      refl → return v

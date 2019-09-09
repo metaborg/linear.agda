@@ -33,9 +33,8 @@ module _ {a} {A : Set a} where
     ; ⊎-assoc = reassoc
     }
 
-  instance ctx-hasUnitalSep : IsUnitalSep _
-  IsUnitalSep.isSep ctx-hasUnitalSep                     = ctx-has-sep
-  IsUnitalSep.ε ctx-hasUnitalSep                         = []
+  instance ctx-hasUnitalSep : IsUnitalSep _ _
+  IsUnitalSep.isSep ctx-hasUnitalSep               = ctx-has-sep
   IsUnitalSep.⊎-idˡ ctx-hasUnitalSep               = right (≡⇒≋ P.refl)
   IsUnitalSep.⊎-id⁻ˡ ctx-hasUnitalSep []           = refl
   IsUnitalSep.⊎-id⁻ˡ ctx-hasUnitalSep (refl ∷ʳ px) = cong (_ ∷_) (⊎-id⁻ˡ px)
@@ -46,10 +45,9 @@ module _ {a} {A : Set a} where
     ; ⊎-∙ = λ {Φₗ} {Φᵣ} → ++-disjoint (left (≡⇒≋ P.refl)) (right (≡⇒≋ P.refl))
     }
 
-  instance ctx-unitalsep : UnitalSep _ _
+  instance ctx-unitalsep : UnitalSep _
   ctx-unitalsep = record
-    { set = record { isEquivalence = ↭-isEquivalence }
-    ; isUnitalSep = ctx-hasUnitalSep }
+    { isUnitalSep = ctx-hasUnitalSep }
 
   instance ctx-resource : MonoidalSep _
   ctx-resource = record

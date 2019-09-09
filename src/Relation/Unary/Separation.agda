@@ -63,7 +63,7 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
 
   infixr 8 _─✴_
   _─✴_ : ∀ {p q} (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
-  P ─✴ Q = λ Φᵢ → ∀ {Φₚ Φ} → P Φₚ → Φᵢ ⊎ Φₚ ≣ Φ → Q Φ
+  P ─✴ Q = λ Φᵢ → ∀ {Φₚ} → P Φₚ → ∀ {Φ} → Φᵢ ⊎ Φₚ ≣ Φ → Q Φ
 
   -- | The update modality
 
@@ -213,14 +213,15 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
     ≤-trans (τ₁ , Φ₁⊎τ₁=Φ₂) (τ₂ , Φ₂⊎τ₂=Φ₃) =
       let τ₃ , p , q = ⊎-assoc Φ₁⊎τ₁=Φ₂ Φ₂⊎τ₂=Φ₃ in τ₃ , p
 
-record IsUnitalSep {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
+record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
   field
     overlap {{ isSep }}  : IsSep sep
 
   open RawSep sep
 
+  ε = un
+
   field
-    ε              : C
     ⊎-idˡ    : ∀ {Φ} →  ε ⊎ Φ ≣ Φ
     ⊎-id⁻ˡ   : ∀ {Φ} → ∀[ (ε ⊎ Φ) ⇒ (Φ ≡_) ]
 
@@ -407,37 +408,31 @@ record IsConcattative {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
   postulate ≤-∙ : ∀ {Φₗ Φᵣ Φ} → Φₗ ≤ Φᵣ → (Φ ∙ Φₗ) ≤ (Φ ∙ Φᵣ)
   postulate ⊎-∙ₗ : ∀ {Φ₁ Φ₂ Φ Φₑ} → Φ₁ ⊎ Φ₂ ≣ Φ → (Φₑ ∙ Φ₁) ⊎ Φ₂ ≣ (Φₑ ∙ Φ)
 
-record Separation ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
+record Separation c : Set (suc c) where
   field
-    set : Setoid ℓ₁ ℓ₂
-
-  open Setoid set
-
-  field
+    Carrier : Set c
     overlap {{ raw }}   : RawSep Carrier
     overlap {{ isSep }} : IsSep raw
 
-record UnitalSep ℓ₁ ℓ₂ : Set (suc (ℓ₁ ⊔ ℓ₂)) where
+record UnitalSep c : Set (suc c) where
   field
-    set : Setoid ℓ₁ ℓ₂
-
-  open Setoid set
-
-  field
+    Carrier : Set c
+    ε       : _
     overlap {{ sep }}         : RawSep Carrier
-    overlap {{ isUnitalSep }} : IsUnitalSep sep
+    overlap {{ isUnitalSep }} : IsUnitalSep sep ε
 
 record MonoidalSep c : Set (suc c) where
   field
     Carrier : Set c
+    ε       : _
     overlap {{ sep }}         : RawSep Carrier
     overlap {{ isSep }}       : IsSep sep
-    overlap {{ isUnitalSep }} : IsUnitalSep sep
+    overlap {{ isUnitalSep }} : IsUnitalSep sep ε
     overlap {{ isConcat }}    : IsConcattative sep
 
 open RawSep ⦃...⦄ public
 open IsConcattative ⦃...⦄ public
 open IsUnitalSep ⦃...⦄ public
-open UnitalSep ⦃...⦄ public
+open UnitalSep ⦃...⦄ public hiding (Carrier; ε)
 open IsSep ⦃...⦄ public
-open MonoidalSep ⦃...⦄ public hiding (Carrier)
+open MonoidalSep ⦃...⦄ public hiding (Carrier; ε)
