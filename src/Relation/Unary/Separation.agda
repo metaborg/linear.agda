@@ -67,10 +67,17 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
 
   -- | The update modality
 
-  ⤇ : ∀ {p} → SPred p → SPred (a ⊔ p)
-  ⤇ P Φᵢ = ∀ {Φⱼ Φₖ} → Φᵢ ⊎ Φⱼ ≣ Φₖ → ∃₂ λ Φₗ Φ → Φₗ ⊎ Φⱼ ≣ Φ × P Φₗ
-    -- Φᵢ is what we own, Φⱼ is an arbitrary frame.
-    -- We may update Φᵢ as long as we do not disturb the framing
+  ⤇' : ∀ {p} (P : SPred p) → SPred (a ⊔ p)
+  ⤇' P Φᵢ = ∀ {Φⱼ Φₖ} → Φᵢ ⊎ Φⱼ ≣ Φₖ → ∃₂ λ Φₗ Φ → Φₗ ⊎ Φⱼ ≣ Φ × P Φₗ
+
+  record ⤇ {p} (P : SPred p) Φᵢ : Set (a ⊔ p) where
+    constructor local
+    field
+      update : ⤇' P Φᵢ
+      -- Φᵢ is what we own, Φⱼ is an arbitrary frame.
+      -- We may update Φᵢ as long as we do not disturb the framing
+
+  open ⤇ public
 
   infixr 8 _==✴_
   _==✴_ : ∀ {p q} → (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
@@ -175,36 +182,6 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
 
     ✴-uncurry : ∀[ (P ✴ Q ─✴ R) ⇒ P ─✴ (Q ─✴ R) ]
     ✴-uncurry f p σ₁ q σ₂ = let _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂ in f (p ×⟨ σ₄ ⟩ q) σ₃
-
-  -- | The update modality is a strong monad
-  module Update where
-
-    ⤇-map : ∀ {p q} {P : SPred p} {Q : SPred q} →
-            ∀[ P ⇒ Q ] → ∀[ (⤇ P) ⇒ (⤇ Q) ]
-    ⤇-map f mp σ with mp σ
-    ... | _ , _ , σ' , p = -, -, σ' , f p
-
-    ⤇-return : ∀ {p} {P : SPred p} → ∀[ P ⇒ ⤇ P ]
-    ⤇-return px σ = -, -, σ , px
-
-    ⤇-join : ∀ {p} {P : SPred p} → ∀[ ⤇ (⤇ P) ⇒ ⤇ P ]
-    ⤇-join mmp σ with mmp σ
-    ... | _ , _ , σ' , mp = mp σ'
-
-    ⤇-bind : ∀ {q p} {P : SPred p} {Q : SPred q} →
-             ∀[ P ⇒ ⤇ Q ] → ∀[ (⤇ P) ⇒ (⤇ Q) ]
-    ⤇-bind f = ⤇-join ∘ ⤇-map f
-
-    -- strength
-    &-⤇ : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ P ✴ ⤇ Q ⇒ ⤇ (P ✴ Q) ]
-    &-⤇ (p ×⟨ σ ⟩ mq) σ' with ⊎-assoc (⊎-comm σ) σ'
-    ... | _ , σ₂ , σ₃ with mq σ₂
-    ... | _ , _ , σ₄ , q with ⊎-assoc (⊎-comm σ₃) (⊎-comm σ₄)
-    ... | _ , σ₅ , σ₆ = -, -, ⊎-comm σ₅ , (p ×⟨ σ₆ ⟩ q)
-
-    -- reverse strength
-    ⤇-& : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ ⤇ P ✴ Q ⇒ ⤇ (P ✴ Q) ]
-    ⤇-& = ⤇-map ✴-swap ∘ &-⤇ ∘ ✴-swap
 
   module _ where
     postulate ≤-⊎ : ∀ {Φ₁ Φ₂ Φ Φ'} → Φ₁ ⊎ Φ₂ ≣ Φ → Φ₁ ≤ Φ' → Φ₂ ≤ Φ' → Φ ≤ Φ'
@@ -313,22 +290,6 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
 
   ─[id] : ∀ {p} {P : Pred _ p} → ε[ P ─✴ P ]
   ─[id] px σ rewrite ⊎-id⁻ˡ σ = px
-
-  -- internal versions of the strong monadic structure on update
-  module _ where
-
-    ⤇-return : ∀ {p} {P : SPred p} → ε[ P ─✴ (⤇ P) ]
-    ⤇-return px σ fr with ⊎-id⁻ˡ σ
-    ... | P.refl = -, -, fr , px
-
-    ⤇-bind : ∀ {p q}{P : SPred p}{Q : SPred q} → ε[ (P ─✴ ⤇ Q) ─✴ ((⤇ P) ─✴ ⤇ Q) ]
-    ⤇-bind f σf p σₚ fr with ⊎-id⁻ˡ σf
-    ... | P.refl with ⊎-assoc (⊎-comm σₚ) fr
-    ... | _ , σ₁ , σ₂ with p σ₁
-    ... | Δ , Σ , σ₃ , px with ⊎-assoc (⊎-comm σ₂) (⊎-comm σ₃)
-    ... | _ , σ₄ , σ₅ = f px σ₅ (⊎-comm σ₄)
-
-    postulate &-⤇ : ∀ {p q} {P : SPred p} {Q : SPred q} → ε[ P ✴ ⤇ Q ─✴ ⤇ (P ✴ Q) ]
 
   module _ {p q} {P : SPred p} {Q : SPred q} where
     pair : ε[ P ◇─ (Q ◇─ P ✴ Q) ]

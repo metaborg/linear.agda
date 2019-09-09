@@ -19,18 +19,18 @@ module _ {a} {A : Set a} where
   separation = record { _⊎_≣_ = Interleaving }
 
   -- TODO add to stdlib
-  reassoc : ∀ {a b ab c abc : List A} →
+  interleaving-assoc : ∀ {a b ab c abc : List A} →
             Interleaving a b ab → Interleaving ab c abc →
             ∃ λ bc → Interleaving a bc abc × Interleaving b c bc
-  reassoc l (consʳ r)         = let _ , p , q = reassoc l r in -, consʳ p , consʳ q
-  reassoc (consˡ l) (consˡ r) = let _ , p , q = reassoc l r in -, consˡ p , q
-  reassoc (consʳ l) (consˡ r) = let _ , p , q = reassoc l r in -, consʳ p , consˡ q
-  reassoc [] []               = [] , [] , []
+  interleaving-assoc l (consʳ r)         = let _ , p , q = interleaving-assoc l r in -, consʳ p , consʳ q
+  interleaving-assoc (consˡ l) (consˡ r) = let _ , p , q = interleaving-assoc l r in -, consˡ p , q
+  interleaving-assoc (consʳ l) (consˡ r) = let _ , p , q = interleaving-assoc l r in -, consʳ p , consˡ q
+  interleaving-assoc [] []               = [] , [] , []
 
   instance ctx-has-sep : IsSep separation
   ctx-has-sep = record
     { ⊎-comm = I.swap
-    ; ⊎-assoc = reassoc
+    ; ⊎-assoc = interleaving-assoc
     }
 
   instance ctx-hasUnitalSep : IsUnitalSep _ _
