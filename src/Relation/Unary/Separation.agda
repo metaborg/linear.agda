@@ -67,15 +67,17 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
 
   -- | The update modality
 
+  -- the naked version, which doesn't coop well with inference:
   ⤇' : ∀ {p} (P : SPred p) → SPred (a ⊔ p)
   ⤇' P Φᵢ = ∀ {Φⱼ Φₖ} → Φᵢ ⊎ Φⱼ ≣ Φₖ → ∃₂ λ Φₗ Φ → Φₗ ⊎ Φⱼ ≣ Φ × P Φₗ
+  -- Φᵢ is what we own, Φⱼ is an arbitrary frame.
+  -- We may update Φᵢ as long as we do not disturb the framing
 
+  -- wrapped
   record ⤇ {p} (P : SPred p) Φᵢ : Set (a ⊔ p) where
     constructor local
     field
       update : ⤇' P Φᵢ
-      -- Φᵢ is what we own, Φⱼ is an arbitrary frame.
-      -- We may update Φᵢ as long as we do not disturb the framing
 
   open ⤇ public
 

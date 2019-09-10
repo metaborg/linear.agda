@@ -31,19 +31,24 @@ module _ {V : T → Pred ST ℓ} where
   M : Pred (List T) ℓ → Pred (Auth (List T)) ℓ
   M P = St ==✴ (○ P) ✴ St
 
-  private
-    thebind : ∀ {P Q : Pred ST ℓ} → ∀[ (P ─✴[ ◌ ] M Q) ⇒[ ◌ ] (M P ─✴ St ─✴ ⤇' ((○ Q) ✴ St)) ]
-    thebind f m σ₁ st σ₂ fr                  with ⊎-assoc σ₁ σ₂
-    ... | m+st , σ₃ , σ₄                     with ⊎-assoc (⊎-comm σ₃) fr
-    ... | _ , σ₅ , σ₆                        with update (m st σ₄) σ₅
-    ... | _ , _ , σ₅' , frag px ×⟨ σ₆' ⟩ st' with ⊎-assoc (⊎-comm σ₆') σ₅'
-    ... | _ , σ₇ , σ₈                        with ⊎-assoc (⊎-comm σ₆) (⊎-comm σ₈)
-    ... | _ , τ₁ , neither τ₂                with ⊎-unassoc σ₇ (⊎-comm τ₁)
-    ... | _ , τ₃ , τ₄                        with f px τ₂ st' (⊎-comm τ₃)
-    ... | local update = update τ₄
+  -- without the monadic structure on update, this is terrible
+  -- private
+  --   thebind : ∀ {P Q : Pred ST ℓ} → ∀[ (P ─✴[ ◌ ] M Q) ⇒[ ◌ ] (M P ─✴ St ─✴ ⤇' ((○ Q) ✴ St)) ]
+  --   thebind f m σ₁ st σ₂ fr                  with ⊎-assoc σ₁ σ₂
+  --   ... | m+st , σ₃ , σ₄                     with ⊎-assoc (⊎-comm σ₃) fr
+  --   ... | _ , σ₅ , σ₆                        with update (m st σ₄) σ₅
+  --   ... | _ , _ , σ₅' , frag px ×⟨ σ₆' ⟩ st' with ⊎-assoc (⊎-comm σ₆') σ₅'
+  --   ... | _ , σ₇ , σ₈                        with ⊎-assoc (⊎-comm σ₆) (⊎-comm σ₈)
+  --   ... | _ , τ₁ , neither τ₂                with ⊎-unassoc σ₇ (⊎-comm τ₁)
+  --   ... | _ , τ₃ , τ₄                        with f px τ₂ st' (⊎-comm τ₃)
+  --   ... | local update = update τ₄
 
   instance
-    M-monad : Monad {I = ⊤} {j = ◌} (λ _ _ → M)
-    Monad.return M-monad px st σ₂ = do
-      return (frag px ×⟨ σ₂ ⟩ st )
-    Monad.bind M-monad f m σ₁ st σ₂ = local λ fr → thebind f m σ₁ st σ₂ fr 
+    M-monad : Monad {I = ⊤} (λ _ _ → M)
+    Monad.return M-monad px st σ₂ = return (frag px ×⟨ σ₂ ⟩ st )
+    Monad.bind M-monad {P = P} {Q = Q} f m σ₁ st σ₂ = do
+      let _ , σ₃ , σ₄                      = ⊎-assoc σ₁ σ₂
+      -- we run m, and carry f across
+      (frag px ×⟨ σ₅ ⟩ st') ×⟨ σ₆ ⟩ frag f ← str (○ (P ─✴[ ◌ ] M Q)) (m st σ₄ ×⟨ ⊎-comm σ₃ ⟩ inj (frag f))
+      case ⊎-assoc (⊎-comm σ₅) σ₆ of λ where
+        (_ , σ₇ , neither σ₈) → f px (⊎-comm σ₈) st' (⊎-comm σ₇)
