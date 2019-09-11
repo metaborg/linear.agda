@@ -27,15 +27,15 @@ module _ {ℓ} {A : Set ℓ} {{ sep : RawSep A }} {{ _ : IsSep sep }} where
 
     on-left : ∀ {r₁ r₂ l₁ l₂ p}
               {σ₁ : r₁ ⊎ l₁ ≣ p} →
-              (σ₂ : r₂ ⊎ l₂ ≣ l₁) →
-              let _ , _ , σ = ⊎-assoc σ₂ (⊎-comm σ₁) in
-              Split (◐ σ₁) (◌ r₂) (◐ σ)
+              (σ₂ : r₂ ⊎ l₂ ≣ l₁) → ∀ {σ₃} →
+              σ₃ ≡ proj₂ (proj₂ (⊎-assoc σ₂ (⊎-comm σ₁))) →
+              Split (◐ σ₁) (◌ r₂) (◐ σ₃)
 
     on-right : ∀ {r₁ r₂ l₁ l₂ p}
                {σ₁ : r₁ ⊎ l₁ ≣ p} →
-               (σ₂ : r₂ ⊎ l₂ ≣ l₁) →
-               let _ , _ , σ = ⊎-assoc σ₂ (⊎-comm σ₁) in
-               Split (◌ r₂) (◐ σ₁) (◐ σ)
+               (σ₂ : r₂ ⊎ l₂ ≣ l₁) → ∀ {σ₃} →
+               σ₃ ≡ proj₂ (proj₂ (⊎-assoc σ₂ (⊎-comm σ₁))) →
+               Split (◌ r₂) (◐ σ₁) (◐ σ₃)
 
     neither  : ∀ {y y' z} →
                y ⊎ y' ≣ z →
@@ -44,21 +44,18 @@ module _ {ℓ} {A : Set ℓ} {{ sep : RawSep A }} {{ _ : IsSep sep }} where
 module _ {ℓ} {{ s : UnitalSep ℓ }} where
   open UnitalSep s renaming (Carrier to A)
 
-  data ● {p} (P : Pred A p) : Pred (Auth A) p where
-    whole : ∀ {x} → P x → ● P (◐ {r = x} ⊎-idʳ)
-
   data ○ {p} (P : Pred A p) : Pred (Auth A) p where
     frag : ∀ {x} → P x → ○ P (◌ x)
 
-  data Lift {p} (P : A × A → Set p) : Pred (Auth A) p where
-    lift : ∀ {p r l} → P (p , r) → ∀ le → Lift P (◐ {r = r} {l} {p} le)
+  data ● {p} (P : A × A → Set p) : Pred (Auth A) p where
+    lift : ∀ {p r l} → P (p , r) → ∀ le → ● P (◐ {r = r} {l} {p} le)
 
   instance auth-raw-sep : RawSep (Auth A)
   RawSep._⊎_≣_ auth-raw-sep = Split
 
   comm : ∀ {Φ₁ Φ₂ Φ} → Split Φ₁ Φ₂ Φ → Split Φ₂ Φ₁ Φ
-  comm (on-right l) = {!!}
-  comm (on-left l)  = {!!}
+  comm (on-right l eq) = {!!}
+  comm (on-left l eq)  = {!!}
   comm (neither x)  = neither (⊎-comm x)
 
   {-
@@ -129,8 +126,7 @@ module _ {ℓ} {{ s : UnitalSep ℓ }} where
   U.isSep auth-is-unital  = auth-has-sep
   U.⊎-idˡ auth-is-unital {◐ x} = {!on-right ?!}
   U.⊎-idˡ auth-is-unital {◌ r} = neither ⊎-idˡ
-  U.⊎-id⁻ˡ auth-is-unital (on-right σ) with ⊎-id⁻ˡ σ 
-  ... | refl = {!!}
+  U.⊎-id⁻ˡ auth-is-unital (on-right σ eq) = {!!}
   U.⊎-id⁻ˡ auth-is-unital (neither σ) = cong ◌ (⊎-id⁻ˡ σ)
 
 -- The thing is not quite unital, because the inclusion between a part and the whole
@@ -154,3 +150,21 @@ module _ {ℓ} {{ s : UnitalSep ℓ }} where
   -- U.⊎-id⁻ˡ auth-is-unital (on-right x) rewrite ⊎-id⁻ʳ x = refl
   -- U.⊎-id⁻ˡ auth-is-unital (neither x) rewrite ⊎-id⁻ˡ x  = refl 
   -- U.ε-separateˡ auth-is-unital (neither x)          = cong ◌ (ε-separateˡ x)
+
+{- Completion preserving updates -}
+module _ {a} {{s : UnitalSep a}} where
+
+  open UnitalSep s renaming (Carrier to A)
+
+  open import Relation.Unary.Separation.Construct.Product
+
+  ⟰ : ∀ {p} → (P : Pred (A × A) p) → Pred (A × A) (a ⊔ p)
+  ⟰ P (a , b) = ∀ {φ} → (completes : b ⊎ φ ≣ a) → ∃₂ λ a' b' → b' ⊎ φ ≣ a' × P (a' , b')
+
+  {- Updating Auth A using updates in A × A -}
+  ●-update : ∀ {p q} → {P : Pred (A × A) p} {Q : Pred (A × A) q} →
+             ∀[ P ⇒ ⟰ Q ] → ∀[ ● P ⇒ ⤇ (● Q) ]
+  ●-update f (lift px le) = local λ where
+    (on-left fr refl) →
+      let _ , _ , σ , qx = f px le
+      in -, -, on-left fr refl , lift qx σ

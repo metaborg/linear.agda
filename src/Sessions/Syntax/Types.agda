@@ -112,11 +112,6 @@ module _ {t} {T : Set t} where
       this : ∀ {c cs}   → P c → Select (c ∷ cs) (c ∷ ε) 
       that : ∀ {c cs Φ} → Select cs Φ → Select (c ∷ cs) Φ
 
-  module _ where
-
-    Just : T → LPred t
-    Just t = Exactly (t ∷ ε)
-
 {- Some conventions -}
 variable
   u v w   : UType ∞

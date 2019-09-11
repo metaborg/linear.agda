@@ -66,3 +66,9 @@ module All {t v} {T : Set t} {V : T → Set v} where
   all-split (consˡ s) (px ∷ vs) = let xs , ys = all-split s vs in px ∷ xs , ys
   all-split (consʳ s) (px ∷ vs) = let xs , ys = all-split s vs in xs , px ∷ ys
 
+
+{- Singleton witness -}
+module _ {t} {T : Set t} where
+
+  Just : T → Pred (List T) t
+  Just t = Exactly (t ∷ ε)

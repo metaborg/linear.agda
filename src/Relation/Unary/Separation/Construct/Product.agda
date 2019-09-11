@@ -80,3 +80,14 @@ module _
   ×-concat = record
     { _∙_ = (λ where (a , b) (c , d) → (a S₁.∙ c , b S₂.∙ d))
     ; ⊎-∙ = S₁.⊎-∙ , S₂.⊎-∙ }
+
+{- Some useful type-formers for this instance -}
+module _ {ℓ} {{s : UnitalSep ℓ}} where
+
+  open UnitalSep s using () renaming (Carrier to A)
+
+  data Π₁ {p} (P : Pred A p) : Pred (A × A) (ℓ ⊔ p) where
+    fst : ∀ {a} → P a → Π₁ P (a , ε)
+
+  data Π₂ {p} (P : Pred A p) : Pred (A × A) (ℓ ⊔ p) where
+    snd : ∀ {a} → P a → Π₂ P (ε , a)
