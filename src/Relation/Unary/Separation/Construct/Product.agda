@@ -79,7 +79,7 @@ module _
   instance ×-concat : IsConcattative ×-rawsep
   ×-concat = record
     { _∙_ = (λ where (a , b) (c , d) → (a S₁.∙ c , b S₂.∙ d))
-    ; ⊎-∙ = S₁.⊎-∙ , S₂.⊎-∙ }
+    ; ⊎-∙ₗ = λ where (p , q) → ⊎-∙ₗ p , ⊎-∙ₗ q }
 
 {- Some useful type-formers for this instance -}
 module _ {ℓ} {{s : UnitalSep ℓ}} where

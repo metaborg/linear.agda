@@ -19,7 +19,7 @@ private
     A  : Set ℓv
     Γ Γ₁ Γ₂ Γ₃ : List A
 
-module _ {ℓ}
+module Reader {ℓ}
   {T : Set ℓ}                              -- types
   {{m : MonoidalSep ℓ}}                    -- runtime resource
   (V : T → Pred (MonoidalSep.Carrier m) ℓ) -- values

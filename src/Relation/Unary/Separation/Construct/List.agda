@@ -2,6 +2,7 @@ module Relation.Unary.Separation.Construct.List where
 
 open import Data.Product
 open import Data.List
+open import Data.List.Properties using (++-isMonoid)
 open import Data.List.Relation.Ternary.Interleaving.Propositional as I
 open import Data.List.Relation.Ternary.Interleaving.Properties
 open import Data.List.Relation.Binary.Equality.Propositional
@@ -40,10 +41,9 @@ module _ {a} {A : Set a} where
   IsUnitalSep.⊎-id⁻ˡ ctx-hasUnitalSep (refl ∷ʳ px) = cong (_ ∷_) (⊎-id⁻ˡ px)
 
   instance ctx-concattative : IsConcattative separation
-  ctx-concattative = record
-    { _∙_ = _++_
-    ; ⊎-∙ = λ {Φₗ} {Φᵣ} → ++-disjoint (left (≡⇒≋ P.refl)) (right (≡⇒≋ P.refl))
-    }
+  IsConcattative._∙_ ctx-concattative = _++_
+  IsConcattative.⊎-∙ₗ ctx-concattative {Φₑ = []} ps = ps
+  IsConcattative.⊎-∙ₗ ctx-concattative {Φₑ = x ∷ Φₑ} ps = consˡ (⊎-∙ₗ ps)
 
   instance ctx-unitalsep : UnitalSep _
   ctx-unitalsep = record
@@ -54,7 +54,8 @@ module _ {a} {A : Set a} where
     { sep = separation
     ; isSep = ctx-has-sep
     ; isUnitalSep   = ctx-hasUnitalSep
-    ; isConcat      = ctx-concattative }
+    ; isConcat      = ctx-concattative
+    ; monoid = ++-isMonoid }
 
 {- We can split All P xs over a split of xs -}
 module All {t v} {T : Set t} {V : T → Set v} where
@@ -67,8 +68,17 @@ module All {t v} {T : Set t} {V : T → Set v} where
   all-split (consʳ s) (px ∷ vs) = let xs , ys = all-split s vs in xs , px ∷ ys
 
 
-{- Singleton witness -}
+{- Useful predicates -}
 module _ {t} {T : Set t} where
 
   Just : T → Pred (List T) t
   Just t = Exactly (t ∷ ε)
+
+  -- Membership
+  _∈_ : T → Pred (List T) t
+  a ∈ as = [ a ] ≤ as
+
+module _ {a t} {T : Set t} {{s : UnitalSep a}} where
+  open UnitalSep s using () renaming (Carrier to A)
+
+  postulate repartition : ∀ {p} {P : T → Pred A p} {Σ₁ Σ₂ Σ : List T} → Σ₁ ⊎ Σ₂ ≣ Σ → ∀[ Allstar P Σ ⇒ Allstar P Σ₁ ✴ Allstar P Σ₂ ]

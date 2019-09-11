@@ -49,8 +49,10 @@ module _ {{m : MonoidalSep 0ℓ}} where
       num   : ℕ → ε[ Val nat ]
       clos  : Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Val (a ⊸ b) ]
 
+  open Reader Val
+
   {-# TERMINATING #-}
-  eval : Exp a Γ → ε[ Reader Val Γ ε (Val a) ]
+  eval : Exp a Γ → ε[ Reader Γ ε (Val a) ]
 
   eval (num n) = do
     return (num n)

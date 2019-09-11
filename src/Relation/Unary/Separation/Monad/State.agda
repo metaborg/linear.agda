@@ -1,4 +1,4 @@
-open import Relation.Unary
+open import Relation.Unary hiding (_∈_)
 open import Data.List
 
 module Relation.Unary.Separation.Monad.State {ℓ} {T : Set ℓ} {V : T → Pred (List T) ℓ} where
@@ -23,18 +23,15 @@ private
 
 module _ where
 
-  data Cell : Pred (ST × ST) ℓ where
-    cell : ∀ {a Σ} → V a Σ → Cell ([ a ] , Σ)
-
   -- typed stores in auth
   Cells : Pred (ST × ST) ℓ
-  Cells = Bigstar Cell
+  Cells (Σ , Φ) = Allstar V Σ Φ
 
   St : Pred (Market ST) ℓ
   St = ● Cells
 
   M : Pred (List T) ℓ → Pred (Market (List T)) ℓ
-  M P = St ==✴ (○ P) ✴ St
+  M P = St ─✴ (○ P) ✴ St
 
   -- without the strong monadic structure on update, the bind is terrible
   -- private
@@ -50,23 +47,22 @@ module _ where
 
   instance
     M-monad : Monad {I = ⊤} (λ _ _ → M)
-    Monad.return M-monad px st σ₂ = return (frag px ×⟨ σ₂ ⟩ st )
-    Monad.bind M-monad {Q = Q} f m σ₁ st σ₂ = do
-      let _ , σ₃ , σ₄                      = ⊎-assoc σ₁ σ₂
-      -- we run m, and carry f across
-      (frag px ×⟨ σ₅ ⟩ st') ×⟨ σ₆ ⟩ frag f ← str (○ (_ ─✴[ demand ] M Q)) (m st σ₄ ×⟨ ⊎-comm σ₃ ⟩ inj (frag f))
-      case ⊎-assoc (⊎-comm σ₅) σ₆ of λ where
-        (_ , σ₇ , demand σ₈) → f px (⊎-comm σ₈) st' (⊎-comm σ₇)
+    Monad.return M-monad px st σ₂ = (frag px ×⟨ σ₂ ⟩ st )
+    Monad.bind M-monad {Q = Q} f m σ₁ st σ₂ = {!!}
+      -- do
+      -- let _ , σ₃ , σ₄                      = ⊎-assoc σ₁ σ₂
+      -- -- we run m, and carry f across
+      -- (frag px ×⟨ σ₅ ⟩ st') ×⟨ σ₆ ⟩ frag f ← str (○ (_ ─✴[ demand ] M Q)) (m st σ₄ ×⟨ ⊎-comm σ₃ ⟩ inj (frag f))
+      -- case ⊎-assoc (⊎-comm σ₅) σ₆ of λ where
+      --   (_ , σ₇ , demand σ₈) → f px (⊎-comm σ₈) st' (⊎-comm σ₇)
 
   
 module StateOps {unit : T} (tt : V unit ε) where
 
   get : ∀ {a} → ∀[ ○ (Just a) ⇒ M (V a ✴ Just unit) ]
-  get (frag ptr) (lift st σ₁) σ = do
-    -- p ← ●-update get' (lift (snd ptr ×⟨ {!!} , {!!} ⟩ st) σ₃) -- ●-update get' (lift ((snd ptr) ×⟨ ⊎-idˡ , ⊎-comm σ₃ ⟩ st) σ₄)
-    {!!}
-    -- where
-    --   get' : ∀ {a} → ∀[ Π₂ (Just a) ✴ Cells ⇒ ⟰ (Cells ✴ Π₂ (V a ✴ Just unit)) ]
-    --   get' (snd refl ×⟨ σ₁ , σ₂ ⟩ cs) com with ⊎-id⁻ˡ σ₁
-    --   get' (snd refl ×⟨ σ₁ , consˡ σ₂ ⟩ cs) com | refl = {!!}
-    --   get' (snd refl ×⟨ σ₁ , consʳ σ₂ ⟩ cs) com | refl = {!!}
+  get (frag refl) (lift st σ₁) (offerᵣ σ₂) with ⊎-assoc σ₂ (⊎-comm σ₁)
+  ... | _ , σ₃ , σ₄ with repartition σ₃ st
+  ... | cons (v ×⟨ σ₅ ⟩ nil) ×⟨ σ₆ ⟩ st' with ⊎-id⁻ʳ σ₅
+  get (frag refl) (lift st σ₁) (offerᵣ σ₂) | _ , σ₃ , σ₄ | _×⟨_⟩_ {Φᵣ = Φᵣ} (cons (v ×⟨ σ₅ ⟩ nil)) σ₆ st' | refl =
+    let _ , τ₁ , τ₂ = ⊎-assoc (⊎-comm σ₆) (⊎-comm σ₄) in
+    frag (v ×⟨ consʳ ⊎-idʳ ⟩ refl) ×⟨ offerᵣ (consˡ τ₂) ⟩ lift (cons (tt ×⟨ ⊎-idˡ ⟩ st')) (consʳ τ₁)

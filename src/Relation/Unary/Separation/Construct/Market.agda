@@ -63,15 +63,39 @@ module _ {a} {{ s : UnitalSep a }} where
   U.⊎-id⁻ˡ auth-is-unital (offerᵣ σ) = cong offer (sym (⊎-id⁻ˡ σ))
   U.⊎-id⁻ˡ auth-is-unital (demand σ) = cong demand (⊎-id⁻ˡ σ)
 
-module _ {ℓ p} {A : Set ℓ} {{_ : RawSep A}} (P : A × A → Set p) where
 
-  data ● : Pred (Market A) (ℓ ⊔ p) where
-    lift : ∀ {r l₁ l₂} → P (l₁ , r) → r ⊎ l₂ ≣ l₁ → ● (offer l₂)
+module _ {a} {{ s : MonoidalSep a }} where
 
-module _ {ℓ p} {A : Set ℓ} (P : A → Set p) where
+  open MonoidalSep s using () renaming (Carrier to A)
 
-  data ○ : Pred (Market A) p where
-    frag : ∀ {x} → P x → ○ (demand x)
+  match : ∀ {a b : A} {c d} → (demand a) ⊎ (offer b) ≣ c → (demand (d ∙ a)) ⊎ (offer (d ∙ b)) ≣ c
+  match (offerᵣ σ) = offerᵣ (⊎-∙ₗ σ)
+
+module _ {ℓ} {A : Set ℓ} {{_ : RawSep A}} where
+
+  private
+    variable
+      ℓv : Level
+      P Q : Pred (A × A) ℓv
+
+  data ● {p} (P : Pred (A × A) p) : Pred (Market A) (ℓ ⊔ p) where
+    lift : ∀ {r l₁ l₂} → P (l₁ , r) → r ⊎ l₂ ≣ l₁ → ● P (offer l₂)
+
+  ●-map : ∀[ P ⇒ Q ] → ∀[ ● P ⇒ ● Q ]
+  ●-map f (lift px le) = lift (f px) le
+
+module _ {ℓ} {A : Set ℓ} where
+
+  private
+    variable
+      ℓv : Level
+      P Q : Pred A ℓv
+
+  data ○ {p} (P : Pred A p) : Pred (Market A) p where
+    frag : ∀ {x} → P x → ○ P (demand x)
+
+  ○-map : ∀[ P ⇒ Q ] → ∀[ ○ P ⇒ ○ Q ]
+  ○-map f (frag px) = frag (f px)
 
 -- {- Completion preserving updates -}
 -- module _ {a} {{s : UnitalSep a}} where

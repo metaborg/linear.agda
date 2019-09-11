@@ -19,7 +19,11 @@ open import Relation.Binary hiding (_⇒_)
 open import Relation.Binary.PropositionalEquality as P using (_≡_)
 
 open import Algebra
+open import Algebra.Structures using (IsMonoid)
 open import Algebra.FunctionProperties.Core
+
+∥_∥ : ∀ {ℓ a} {A : Set a} {P : Pred A ℓ} {Φ} → P Φ → A
+∥_∥ {Φ = Φ} _ = Φ
 
 record RawSep {a} (Carrier : Set a) : Set (suc a) where
 
@@ -237,15 +241,6 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
     Emp : SPred c
     Emp = Empty ⊤
 
-    -- Arr : ∀ {a p} → Set a → SPred p → SPred (c ⊔ a ⊔ p)
-    -- Arr A P = λ Φ → ∀ {e} → Empty A e → P Φ
-
-    -- pure : ∀ {a p} {A : Set a} {P : SPred p} → ε[ P ─✴ Arr A P ]
-    -- pure px σ (emp a) rewrite ⊎-id⁻ˡ σ = px
-
-    -- app : ∀ {a p q} {A : Set a} {P : SPred p} {Q : SPred q} → ∀[ Arr A (P ─✴ Q) ⇒ Arr A P ⇒ Arr A Q ]
-    -- app f p (emp a) = {!!}
-
   {- Big seperating conjunction over an SPred -}
   module _ where
 
@@ -366,10 +361,7 @@ record IsConcattative {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
 
   field
     _∙_ : C → C → C 
-    ⊎-∙ : ∀ {Φₗ Φᵣ} → Φₗ ⊎ Φᵣ ≣ (Φₗ ∙ Φᵣ)
-
-  postulate ≤-∙ : ∀ {Φₗ Φᵣ Φ} → Φₗ ≤ Φᵣ → (Φ ∙ Φₗ) ≤ (Φ ∙ Φᵣ)
-  postulate ⊎-∙ₗ : ∀ {Φ₁ Φ₂ Φ Φₑ} → Φ₁ ⊎ Φ₂ ≣ Φ → (Φₑ ∙ Φ₁) ⊎ Φ₂ ≣ (Φₑ ∙ Φ)
+    ⊎-∙ₗ : ∀ {Φ₁ Φ₂ Φ Φₑ} → Φ₁ ⊎ Φ₂ ≣ Φ → (Φₑ ∙ Φ₁) ⊎ Φ₂ ≣ (Φₑ ∙ Φ)
 
 record Separation c : Set (suc c) where
   field
@@ -392,6 +384,22 @@ record MonoidalSep c : Set (suc c) where
     overlap {{ isSep }}       : IsSep sep
     overlap {{ isUnitalSep }} : IsUnitalSep sep ε
     overlap {{ isConcat }}    : IsConcattative sep
+
+  open RawSep sep
+  open IsSep isSep
+  open IsConcattative isConcat
+  open IsUnitalSep isUnitalSep hiding (ε)
+
+  field
+    overlap {{ monoid }}      : IsMonoid {A = Carrier} _≡_ _∙_ ε
+
+  open IsMonoid monoid
+
+  ⊎-∙ : ∀ {Φₗ Φᵣ : Carrier} → Φₗ ⊎ Φᵣ ≣ (Φₗ ∙ Φᵣ)
+  ⊎-∙ {Φₗ} {Φᵣ} =
+    P.subst (λ φ → φ ⊎ Φᵣ ≣ (Φₗ ∙ Φᵣ))
+      (identityʳ Φₗ)
+      (⊎-∙ₗ {Φₑ = Φₗ} (⊎-idˡ {Φᵣ}))
 
 open RawSep ⦃...⦄ public
 open IsConcattative ⦃...⦄ public
