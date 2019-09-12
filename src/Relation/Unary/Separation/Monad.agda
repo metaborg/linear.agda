@@ -29,7 +29,7 @@ module _
       bind   : ∀ {P i₁ i₂ i₃ Q} → ∀[ (P ─✴[ j ] M i₂ i₃ Q) ⇒[ j ] (M i₁ i₂ P ─✴ M i₁ i₃ Q) ]
 
     _=<<_ : ∀ {P Q i₁ i₂ i₃} → ∀[ P ⇒[ j ] M i₂ i₃ Q ] → ∀[ M i₁ i₂ P ⇒ M i₁ i₃ Q ]
-    f =<< mp = bind (λ px σ → case ⊎-id⁻ˡ σ of λ where refl → f px) mp ⊎-idˡ  
+    f =<< mp = app (bind (wand λ px σ → case ⊎-id⁻ˡ σ of λ where refl → f px)) mp ⊎-idˡ  
 
     _>>=_ : ∀ {Φ} {P Q i₁ i₂ i₃} → M i₁ i₂ P Φ → ∀[ P ⇒[ j ] M i₂ i₃ Q ] → M i₁ i₃ Q Φ
     mp >>= f = f =<< mp
@@ -49,6 +49,6 @@ module _
   -- having the internal bind is enough to get strength
   str : ∀ {P i₁ i₂} {M : (i j : I) → PT A B a a} {{ _ : Monad M }} (Q : Pred A a) →
         (M i₁ i₂ P ✴ J Q) Φ → M i₁ i₂ (P ✴ Q) Φ
-  str _ (mp ×⟨ σ ⟩ inj qx) = bind (λ px σ' → return (px ×⟨ ⊎-comm σ' ⟩ qx)) mp (⊎-comm σ)
+  str _ (mp ×⟨ σ ⟩ inj qx) = app (bind (wand λ px σ' → return (px ×⟨ ⊎-comm σ' ⟩ qx))) mp (⊎-comm σ)
 
   syntax str Q mp qx = mp &[ Q ] qx

@@ -8,8 +8,6 @@ open import Relation.Unary
 open import Relation.Unary.PredicateTransformer hiding (_⊔_)
 open import Relation.Unary.Separation
 open import Relation.Unary.Separation.Monad
-open import Relation.Unary.Separation.Construct.List
-open import Relation.Unary.Separation.Env
 
 open import Data.Unit
 

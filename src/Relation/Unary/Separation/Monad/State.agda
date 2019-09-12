@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 open import Relation.Unary hiding (_∈_)
 open import Data.List
 
@@ -5,7 +6,8 @@ module Relation.Unary.Separation.Monad.State {ℓ} {T : Set ℓ} {V : T → Pred
 
 open import Level hiding (Lift)
 open import Function using (_∘_; case_of_)
-open import Relation.Binary.PropositionalEquality using (refl)
+open import Relation.Binary.PropositionalEquality using (refl; _≡_)
+import Relation.Binary.HeterogeneousEquality as HEq
 open import Relation.Unary.PredicateTransformer hiding (_⊔_; [_])
 open import Relation.Unary.Separation
 open import Relation.Unary.Separation.Construct.List
@@ -33,36 +35,56 @@ module _ where
   M : Pred (List T) ℓ → Pred (Market (List T)) ℓ
   M P = St ─✴ (○ P) ✴ St
 
-  -- without the strong monadic structure on update, the bind is terrible
-  -- private
-  --   thebind : ∀ {P Q : Pred ST ℓ} → ∀[ (P ─✴[ ◌ ] M Q) ⇒[ ◌ ] (M P ─✴ St ─✴ ⤇' ((○ Q) ✴ St)) ]
-  --   thebind f m σ₁ st σ₂ fr                  with ⊎-assoc σ₁ σ₂
-  --   ... | m+st , σ₃ , σ₄                     with ⊎-assoc (⊎-comm σ₃) fr
-  --   ... | _ , σ₅ , σ₆                        with update (m st σ₄) σ₅
-  --   ... | _ , _ , σ₅' , frag px ×⟨ σ₆' ⟩ st' with ⊎-assoc (⊎-comm σ₆') σ₅'
-  --   ... | _ , σ₇ , σ₈                        with ⊎-assoc (⊎-comm σ₆) (⊎-comm σ₈)
-  --   ... | _ , τ₁ , neither τ₂                with ⊎-unassoc σ₇ (⊎-comm τ₁)
-  --   ... | _ , τ₃ , τ₄                        with f px τ₂ st' (⊎-comm τ₃)
-  --   ... | local update = update τ₄
-
   instance
     M-monad : Monad {I = ⊤} (λ _ _ → M)
-    Monad.return M-monad px st σ₂ = (frag px ×⟨ σ₂ ⟩ st )
-    Monad.bind M-monad {Q = Q} f m σ₁ st σ₂ = {!!}
-      -- do
-      -- let _ , σ₃ , σ₄                      = ⊎-assoc σ₁ σ₂
-      -- -- we run m, and carry f across
-      -- (frag px ×⟨ σ₅ ⟩ st') ×⟨ σ₆ ⟩ frag f ← str (○ (_ ─✴[ demand ] M Q)) (m st σ₄ ×⟨ ⊎-comm σ₃ ⟩ inj (frag f))
-      -- case ⊎-assoc (⊎-comm σ₅) σ₆ of λ where
-      --   (_ , σ₇ , demand σ₈) → f px (⊎-comm σ₈) st' (⊎-comm σ₇)
+    app (Monad.return M-monad px) st σ₂ = (frag px ×⟨ σ₂ ⟩ st )
+    app (app (Monad.bind M-monad {Q = Q} f) m σ₁) st σ₂ with ⊎-assoc σ₁ σ₂
+    ... | _ , σ₃ , σ₄ with app m st σ₄
+    app (app (Monad.bind M-monad {Q = Q} f) m σ₁) st σ₂ | _ , offerᵣ σ , σ₄ | frag px ×⟨ offerᵣ σ₅ ⟩ st' with ⊎-unassoc σ₅ σ 
+    ... | _ , τ₁ , τ₂ = let mq = app f px (⊎-comm τ₁) in app mq st' (offerᵣ τ₂)
 
-  
-module StateOps {unit : T} (tt : V unit ε) where
+module StateOps {unit : T} (tt : V unit ε) (unit-emp : ∀ {Φ} → (tt' : V unit Φ) → Φ ≡ ε) where
 
-  get : ∀ {a} → ∀[ ○ (Just a) ⇒ M (V a ✴ Just unit) ]
-  get (frag refl) (lift st σ₁) (offerᵣ σ₂) with ⊎-assoc σ₂ (⊎-comm σ₁)
+  -- Creating a reference to a cell containing unit.
+  -- Note that in the market monoid this is pure!
+  -- Because we get a reference that consumes the freshly created resource.
+  mkref : ε[ M (Just unit) ]
+  app mkref (lift st σ₁) (offerᵣ σ₂) rewrite ⊎-id⁻ˡ σ₂ =
+    frag refl
+      ×⟨ offerᵣ ⊎-∙ ⟩
+    lift (cons (tt ×⟨ ⊎-idˡ ⟩ st)) (consʳ σ₁)
+
+  -- A linear read on a store: you lose the reference.
+  -- This is pure, because with the reference being lost, the cell is destroyed: no resources leak.
+  read : ∀ {a} → ∀[ ○ (Just a) ⇒ M (V a) ]
+  app (read (frag refl)) (lift st σ₁) (offerᵣ σ₂) with ⊎-assoc σ₂ (⊎-comm σ₁)
   ... | _ , σ₃ , σ₄ with repartition σ₃ st
-  ... | cons (v ×⟨ σ₅ ⟩ nil) ×⟨ σ₆ ⟩ st' with ⊎-id⁻ʳ σ₅
-  get (frag refl) (lift st σ₁) (offerᵣ σ₂) | _ , σ₃ , σ₄ | _×⟨_⟩_ {Φᵣ = Φᵣ} (cons (v ×⟨ σ₅ ⟩ nil)) σ₆ st' | refl =
-    let _ , τ₁ , τ₂ = ⊎-assoc (⊎-comm σ₆) (⊎-comm σ₄) in
-    frag (v ×⟨ consʳ ⊎-idʳ ⟩ refl) ×⟨ offerᵣ (consˡ τ₂) ⟩ lift (cons (tt ×⟨ ⊎-idˡ ⟩ st')) (consʳ τ₁)
+  ... | cons (v ×⟨ σ₅ ⟩ nil) ×⟨ σ₆ ⟩ st' with ⊎-id⁻ʳ σ₅ | ⊎-assoc (⊎-comm σ₆) (⊎-comm σ₄)
+  ... | refl | _ , τ₁ , τ₂ = frag v ×⟨ offerᵣ τ₂ ⟩ lift st' τ₁
+
+  -- Writing into an empty cell
+  write : ∀ {a} → ∀[ ○ (Just unit) ✴ ○ (V a) ⇒ M (Just a) ]
+  app (write (frag refl ×⟨ demand σ₁ ⟩ frag v)) (lift st σ₂) (offerᵣ σ₃) with ⊎-assoc (⊎-comm σ₁) σ₃
+  -- first we reassociate the arguments in the order that we want to piece it back together
+  ... | _ , τ₁ , τ₂ with ⊎-assoc (⊎-comm τ₁) (⊎-comm σ₂)
+  ... | _ , τ₃ , τ₄ with ⊎-assoc τ₂ τ₃
+  ... | _ , τ₅ , τ₆
+  -- then we reorganize the store internally to take out the unit value
+    with repartition τ₅ st
+  ... | cons (tt' ×⟨ σ₅ ⟩ nil) ×⟨ σ₆ ⟩ st'
+  -- we apply three (! :() identity lemmas to inform agda that we haven't lost any resources
+    with unit-emp tt' | ⊎-id⁻ʳ σ₅
+  ... | refl | refl with ⊎-id⁻ˡ σ₆
+  ... | refl =
+  -- and finally we piece back together the parts
+    frag refl
+      ×⟨ offerᵣ (consˡ ⊎-idˡ) ⟩
+    lift (cons (v ×⟨ τ₄ ⟩ st')) (consʳ (⊎-comm τ₆))
+
+  -- A linear (strong) update on the store
+  update! : ∀ {a b} → ∀[ ○ (Just a) ✴ ○ (V a ─✴ V b) ⇒ M (Just b) ]
+  update! {a} {b} (ptr ×⟨ σ ⟩ frag f) = do
+    a ×⟨ σ₁ ⟩ f ← str _ (read ptr ×⟨ σ ⟩ inj f)
+    let b       = app f a (⊎-comm σ₁)
+    r ×⟨ σ ⟩ b  ← str _ (mkref ×⟨ ⊎-idˡ ⟩ inj b)
+    write (frag r ×⟨ demand σ ⟩ frag b)

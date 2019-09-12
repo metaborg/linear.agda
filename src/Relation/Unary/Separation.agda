@@ -66,8 +66,12 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
   -- | Separating implication / magic is what you wand
 
   infixr 8 _─✴_
-  _─✴_ : ∀ {p q} (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
-  P ─✴ Q = λ Φᵢ → ∀ {Φₚ} → P Φₚ → ∀ {Φ} → Φᵢ ⊎ Φₚ ≣ Φ → Q Φ
+  record _─✴_ {p q} (P : SPred p) (Q : SPred q) (Φᵢ : Carrier) : Set (p ⊔ q ⊔ a) where
+    constructor wand
+    field
+      app : ∀ {Φₚ} → P Φₚ → ∀ {Φ} → Φᵢ ⊎ Φₚ ≣ Φ → Q Φ
+
+  open _─✴_ public
 
   -- | The update modality
 
@@ -161,7 +165,7 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
 
   module _ {p q} {P : SPred p} {Q : SPred q} where
     apply : ∀[ (P ─✴ Q) ✴ P ⇒ Q ]
-    apply (px ×⟨ sep ⟩ qx) =  px qx sep
+    apply (px ×⟨ sep ⟩ qx) =  app px qx sep
 
   -- mapping
   module _ {p q p' q'}
@@ -171,23 +175,23 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
     ⟨_⟨✴⟩_⟩ f g (px ×⟨ sep ⟩ qx) = (f px) ×⟨ sep ⟩ (g qx)
 
     both : ∀[ (P ─✴ P') ✴ (Q ─✴ Q') ⇒ P ✴ Q ─✴ P' ✴ Q' ]
-    both (f ×⟨ σ₁ ⟩ g) (px ×⟨ σ₂ ⟩ qx) σ₃ with resplit σ₁ σ₂ σ₃
+    app (both (f ×⟨ σ₁ ⟩ g)) (px ×⟨ σ₂ ⟩ qx) σ₃ with resplit σ₁ σ₂ σ₃
     ... | _ , _ , σ₄ , σ₅ , σ₆ = apply (f ×⟨ σ₄ ⟩ px) ×⟨ σ₆ ⟩ apply (g ×⟨ σ₅ ⟩ qx)
 
   module _ {p q r} {P : SPred p} {Q : SPred q} {R : SPred r} where
 
     ✴-curry : ∀[ (P ─✴ (Q ─✴ R)) ⇒ (P ✴ Q) ─✴ R ]
-    ✴-curry f (p ×⟨ σ₁ ⟩ q) σ₂ =
-      let _ , σ₃ , σ₄ = ⊎-unassoc σ₂ σ₁ in f p σ₃ q σ₄
+    app (✴-curry f) (p ×⟨ σ₁ ⟩ q) σ₂ =
+      let _ , σ₃ , σ₄ = ⊎-unassoc σ₂ σ₁ in app (app f p σ₃) q σ₄
 
-    wand : ∀[ (P ✴ Q) ⇒ R ] → ∀[ P ⇒ (Q ─✴ R) ]
-    wand f px qx s = f (px ×⟨ s ⟩ qx)
+    intro : ∀[ (P ✴ Q) ⇒ R ] → ∀[ P ⇒ (Q ─✴ R) ]
+    app (intro f px) qx s = f (px ×⟨ s ⟩ qx)
 
     com : ∀[ (P ─✴ Q) ✴ (Q ─✴ R) ⇒ (P ─✴ R) ]
-    com (f ×⟨ s ⟩ g) px s' = let _ , eq₁ , eq₂ = ⊎-assoc (⊎-comm s) s' in g (f px eq₂) eq₁
+    app (com (f ×⟨ s ⟩ g)) px s' = let _ , eq₁ , eq₂ = ⊎-assoc (⊎-comm s) s' in app g (app f px eq₂) eq₁
 
     ✴-uncurry : ∀[ (P ✴ Q ─✴ R) ⇒ P ─✴ (Q ─✴ R) ]
-    ✴-uncurry f p σ₁ q σ₂ = let _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂ in f (p ×⟨ σ₄ ⟩ q) σ₃
+    app (app (✴-uncurry f) p σ₁) q σ₂ = let _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂ in app f (p ×⟨ σ₄ ⟩ q) σ₃
 
   module _ where
     postulate ≤-⊎ : ∀ {Φ₁ Φ₂ Φ Φ'} → Φ₁ ⊎ Φ₂ ≣ Φ → Φ₁ ≤ Φ' → Φ₂ ≤ Φ' → Φ ≤ Φ'
@@ -268,7 +272,7 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
 
     -- a resource-polymorphic function is a pure wand
     wandit : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ P ⇒ Q ] → ε[ P ─✴ Q ]
-    wandit f p σ rewrite ⊎-id⁻ˡ σ = f p
+    app (wandit f) p σ rewrite ⊎-id⁻ˡ σ = f p
 
     -- pure : ∀ {p q} {P : SPred p} {Q : SPred q} → (P ε → Q Φ) → (P ─✴ Q) Φ
     -- pure f px = {!!}
@@ -285,8 +289,8 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
     --   ✴-pure {P = P ─✴ (Q ─✴ R)} {Q = Q ─✴ (P ─✴ R)} λ f σ₁ q σ₂ p σ₃ → 
     --   let _ , σ₃ , σ₄ = ⊎-assoc (⊎-comm σ₂) σ₃ in f p σ₄ q (⊎-comm σ₃)
 
-  ─[id] : ∀ {p} {P : Pred _ p} → ε[ P ─✴ P ]
-  ─[id] px σ rewrite ⊎-id⁻ˡ σ = px
+  -- ─[id] : ∀ {p} {P : Pred _ p} → ε[ P ─✴ P ]
+  -- ─[id] px σ rewrite ⊎-id⁻ˡ σ = px
 
   module _ {p q} {P : SPred p} {Q : SPred q} where
     pair : ε[ P ◇─ (Q ◇─ P ✴ Q) ]

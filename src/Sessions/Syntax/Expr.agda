@@ -14,7 +14,7 @@ data Exp : Type ∞ → LCtx → Set where
 
   -- linear function introduction and elimination
   λₗ        : ∀ a → ∀[ (a ◂ id ⊢ Exp b) ⇒ Exp (a ⊸ b) ]
-  app       :       ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
+  ap        :       ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
 
   -- product introduction and elimination
   pairs     : ∀[ Exp a ✴ Exp b ⇒ Exp (prod a b) ]

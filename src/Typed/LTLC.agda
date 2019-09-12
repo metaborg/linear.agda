@@ -32,7 +32,7 @@ data Exp : Ty → Ctx → Set where
   add : ∀[ Exp nat ✴ Exp nat ⇒ Exp nat ]
   num : ℕ → ε[ Exp nat ]
   lam : ∀[ (a ◂ id ⊢ Exp b) ⇒ Exp (a ⊸ b) ]
-  app : ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
+  ap  : ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
   var : ∀[ Just a ⇒ Exp a ]
 
 module _ {{m : MonoidalSep 0ℓ}} where
@@ -66,7 +66,7 @@ module _ {{m : MonoidalSep 0ℓ}} where
     env ← ask
     return (clos e env)
 
-  eval (app (f ×⟨ Γ≺ ⟩ e)) = do
+  eval (ap (f ×⟨ Γ≺ ⟩ e)) = do
     v                   ← frame (⊎-comm Γ≺) (eval e)
     clos e env ×⟨ σ ⟩ v ← str _ (eval f ×⟨ ⊎-idˡ ⟩ inj v)
     empty ×⟨ σ ⟩ env    ← str (Allstar _ _) (append (singleton v) ×⟨ ⊎-comm σ ⟩ inj env)

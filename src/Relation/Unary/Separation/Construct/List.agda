@@ -79,6 +79,19 @@ module _ {t} {T : Set t} where
   a ∈ as = [ a ] ≤ as
 
 module _ {a t} {T : Set t} {{s : UnitalSep a}} where
+
   open UnitalSep s using () renaming (Carrier to A)
 
-  postulate repartition : ∀ {p} {P : T → Pred A p} {Σ₁ Σ₂ Σ : List T} → Σ₁ ⊎ Σ₂ ≣ Σ → ∀[ Allstar P Σ ⇒ Allstar P Σ₁ ✴ Allstar P Σ₂ ]
+  repartition : ∀ {p} {P : T → Pred A p} {Σ₁ Σ₂ Σ : List T} →
+                Σ₁ ⊎ Σ₂ ≣ Σ → ∀[ Allstar P Σ ⇒ Allstar P Σ₁ ✴ Allstar P Σ₂ ]
+  repartition [] nil   = nil ×⟨ ⊎-idˡ ⟩ nil
+  repartition (consˡ σ) (cons (a ×⟨ σ′ ⟩ qx)) = 
+    let
+      xs ×⟨ σ′′ ⟩ ys = repartition σ qx
+      _ , τ₁ , τ₂    = ⊎-unassoc σ′ σ′′
+    in (cons (a ×⟨ τ₁ ⟩ xs)) ×⟨ τ₂ ⟩ ys
+  repartition (consʳ σ) (cons (a ×⟨ σ′ ⟩ qx)) =
+    let
+      xs ×⟨ σ′′ ⟩ ys = repartition σ qx
+      _ , τ₁ , τ₂    = ⊎-unassoc σ′ (⊎-comm σ′′)
+    in xs ×⟨ ⊎-comm τ₂ ⟩ (cons (a ×⟨ τ₁ ⟩ ys))
