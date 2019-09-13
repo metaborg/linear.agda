@@ -84,22 +84,9 @@ module _ {ℓ} {A : Set ℓ} {{_ : RawSep A}} where
   ●-map : ∀[ P ⇒ Q ] → ∀[ ● P ⇒ ● Q ]
   ●-map f (lift px le) = lift (f px) le
 
-module _ {ℓ} {A : Set ℓ} where
-
-  private
-    variable
-      ℓv : Level
-      P Q : Pred A ℓv
-
-  data ○ {p} (P : Pred A p) : Pred (Market A) p where
-    frag : ∀ {x} → P x → ○ P (demand x)
-
-  ○-map : ∀[ P ⇒ Q ] → ∀[ ○ P ⇒ ○ Q ]
-  ○-map f (frag px) = frag (f px)
-
 module _ {a} (A : Set a) {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 
-  open Morphism public
+  open Morphism
 
   market : Morphism s₁ market-sep
   j market                 = demand

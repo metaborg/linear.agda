@@ -18,6 +18,8 @@ record Morphism {a b} {A : Set a} {{r : RawSep A}} {u} (s₁ : IsUnitalSep r u) 
 
     overlap {{j-unital}} : IsUnitalSep (Separation.raw s₂) (j u) 
 
+  instance _ = s₁
+
   {- Such a morphism on SAs induces a functor on SA-predicates -}
   module _ where
 
@@ -32,9 +34,14 @@ record Morphism {a b} {A : Set a} {{r : RawSep A}} {u} (s₁ : IsUnitalSep r u) 
     ... | _ , refl = inj (px ×⟨ j-map⁻ σ ⟩ qx)
 
   {- relative morphisms -}
+  infixr 8 _⇒ⱼ_
   _⇒ⱼ_ : ∀ {p q} → Pred A p → Pred B q → Pred A _ 
   P ⇒ⱼ Q = P ⇒ (Q ∘ j)
 
   {- relative exponents -}
+  infixr 8 _─✴ⱼ_
   _─✴ⱼ_ : ∀ {p q} → Pred A p → Pred B q → Pred A _ 
   P ─✴ⱼ Q = P ─✴ (Q ∘ j)
+
+  wanditⱼ : ∀ {p q} {P : Pred A p} {Q : Pred B q} → ∀[ P ⇒ⱼ Q ] → (P ─✴ⱼ Q) u
+  app (wanditⱼ f) px σ rewrite ⊎-id⁻ˡ σ = f px

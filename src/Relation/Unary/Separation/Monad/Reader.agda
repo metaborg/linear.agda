@@ -23,11 +23,10 @@ private
     Γ Γ₁ Γ₂ Γ₃ : List A
 
 {- Something not unlike a indexed relative monad transformer in a bicartesian closed category -}
-module Reader {i ℓ}
+module Reader {ℓ}
   {T : Set ℓ}           -- types
   {{m : MonoidalSep ℓ}} -- runtime resource
   {{s : Separation ℓ}}
-  {I : Set i}
   (j : Morphism (MonoidalSep.isUnitalSep m) s)
   (V : T → Pred (MonoidalSep.Carrier m) ℓ) -- values
   (M : PT (MonoidalSep.Carrier m) (Separation.Carrier s) ℓ ℓ)
@@ -75,3 +74,7 @@ module Reader {i ℓ}
     append : ∀[ Allstar V Γ₁ ⇒ⱼ Reader Γ₂ (Γ₂ ∙ Γ₁) Emp ]
     app (append env₁) (inj env₂) s with j-⊎ s
     ... | _ , refl = return (empty ×⟨ ⊎-idˡ ⟩ (env-∙ (✴-swap (env₁ ×⟨ j-map⁻ s ⟩ env₂))))
+
+    liftM : ∀[ M P ⇒ Reader Γ Γ P ]
+    app (liftM mp) env σ = do
+      str _ (mp ×⟨ σ ⟩ env)
