@@ -1,7 +1,7 @@
-{-# OPTIONS --without-K #-}
+{-# OPTIONS --safe --without-K #-}
 
 -- A separation algebra.
--- Axiomatization based on
+-- Axiomatization loosely based on
 -- "A fresh look at Separation Algebras and Share Accounting" (Dockins et al)
 module Relation.Unary.Separation where
 
@@ -93,19 +93,6 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
   _==✴_ : ∀ {p q} → (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
   P ==✴ Q = P ─✴ (⤇ Q)
 
-  -- A predicate transformer allowing one to express that
-  -- some value definitely does /not/ own some resource
-  infixl 9 _◇_
-  data _◇_ {p} (P : SPred p) (Φᵢ : Carrier) : SPred (p ⊔ a) where
-    ⟪_,_⟫ : ∀ {Φₚ Φ} → P Φₚ → Φᵢ ⊎ Φₚ ≣ Φ → (P ◇ Φᵢ) Φ
-
-  -- | This gives another wand like thing
-
-  module _ {p q} (P : SPred p) (Q : SPred q) where
-    infixr 8 _◇─_
-    _◇─_ : SPred (p ⊔ q ⊔ a)
-    _◇─_ Φᵢ = ∀[ P ◇ Φᵢ ⇒ Q ]
-
 record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
   open RawSep s
 
@@ -194,7 +181,6 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
     app (app (✴-uncurry f) p σ₁) q σ₂ = let _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂ in app f (p ×⟨ σ₄ ⟩ q) σ₃
 
   module _ where
-    postulate ≤-⊎ : ∀ {Φ₁ Φ₂ Φ Φ'} → Φ₁ ⊎ Φ₂ ≣ Φ → Φ₁ ≤ Φ' → Φ₂ ≤ Φ' → Φ ≤ Φ'
 
     ≤-trans : Φ₁ ≤ Φ₂ → Φ₂ ≤ Φ₃ → Φ₁ ≤ Φ₃
     ≤-trans (τ₁ , Φ₁⊎τ₁=Φ₂) (τ₂ , Φ₂⊎τ₂=Φ₃) =
@@ -224,7 +210,7 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
   ε[_] : ∀ {ℓ} → Pred C ℓ → Set ℓ
   ε[ P ] = P ε
 
-  {- Exactness -}
+  {- the box type former -}
   module _ where
 
     Exactly : C → SPred c
@@ -252,6 +238,7 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
       emp  : ε[ Bigstar P ]
       cons : ∀[ P ✴ Bigstar P ⇒ Bigstar P ]
 
+  {- Inductive separating forall over a list -}
   module _ {i ℓ} {I : Set i} where
     open import Data.List
     data Allstar (P : I → SPred ℓ) : List I → SPred (ℓ ⊔ c ⊔ i) where
@@ -261,6 +248,11 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
     -- not typed well..
     infixr 5 _:⟨_⟩:_
     pattern _:⟨_⟩:_ x p xs = cons (x ×⟨ p ⟩ xs)
+
+  module _ {i ℓ} {I : Set i} {P : I → SPred ℓ} where
+    open import Data.List
+    singleton : ∀ {x} → ∀[ P x ⇒ Allstar P [ x ] ]
+    singleton v = cons (v ×⟨ ⊎-idʳ ⟩ nil)
 
   module _ where
     ε⊎ε : ∀[ ε ⊎ ε ⇒ Emp ]
@@ -273,37 +265,6 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
     -- a resource-polymorphic function is a pure wand
     wandit : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ P ⇒ Q ] → ε[ P ─✴ Q ]
     app (wandit f) p σ rewrite ⊎-id⁻ˡ σ = f p
-
-    -- pure : ∀ {p q} {P : SPred p} {Q : SPred q} → (P ε → Q Φ) → (P ─✴ Q) Φ
-    -- pure f px = {!!}
-    -- -- pure = {!!}
-    -- a pure wand is a resource-polymorphic function
-    -- unwand : ε[ P ─✴ Q ] → ∀[ P ⇒ Q ]
-    -- unwand f p = f p ⊎-idˡ
-    
-    -- ✴-pure : ∀ {p q} {P : SPred p} {Q : SPred q} → (∀ {Φ} → P Φ → ε ⊎ Φ ≣ Φ → Q Φ) → ε[ P ─✴ Q ]
-    -- ✴-pure f px σ rewrite ⊎-id⁻ˡ σ = f px ⊎-idˡ
-
-    -- ✴-flip : ∀ {p q r} {P : SPred p} {Q : SPred q} {R : SPred r} → ε[ (P ─✴ (Q ─✴ R)) ─✴ (Q ─✴ (P ─✴ R)) ]
-    -- ✴-flip {P = P} {Q} {R} = 
-    --   ✴-pure {P = P ─✴ (Q ─✴ R)} {Q = Q ─✴ (P ─✴ R)} λ f σ₁ q σ₂ p σ₃ → 
-    --   let _ , σ₃ , σ₄ = ⊎-assoc (⊎-comm σ₂) σ₃ in f p σ₄ q (⊎-comm σ₃)
-
-  -- ─[id] : ∀ {p} {P : Pred _ p} → ε[ P ─✴ P ]
-  -- ─[id] px σ rewrite ⊎-id⁻ˡ σ = px
-
-  module _ {p q} {P : SPred p} {Q : SPred q} where
-    pair : ε[ P ◇─ (Q ◇─ P ✴ Q) ]
-    pair ⟪ px , σ₁ ⟫ ⟪ qx , σ₂ ⟫ rewrite ⊎-id⁻ˡ σ₁ = px ×⟨ σ₂ ⟩ qx
-
-  module _ {p} {P : SPred p} where
-    ◇-ε : ∀[ P ◇ ε ⇒ P ]
-    ◇-ε ⟪ px , σ ⟫ rewrite ⊎-id⁻ˡ σ = px
-
-  module _ {i ℓ} {I : Set i} {P : I → SPred ℓ} where
-    open import Data.List
-    singleton : ∀ {x} → ∀[ P x ⇒ Allstar P [ x ] ]
-    singleton v = cons (v ×⟨ ⊎-idʳ ⟩ nil)
 
   {- A free preorder -}
   module _ where
@@ -404,6 +365,9 @@ record MonoidalSep c : Set (suc c) where
     P.subst (λ φ → φ ⊎ Φᵣ ≣ (Φₗ ∙ Φᵣ))
       (identityʳ Φₗ)
       (⊎-∙ₗ {Φₑ = Φₗ} (⊎-idˡ {Φᵣ}))
+
+  instance unital : UnitalSep _
+  unital = record { ε = ε }
 
 open RawSep ⦃...⦄ public
 open IsConcattative ⦃...⦄ public

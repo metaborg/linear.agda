@@ -78,9 +78,7 @@ module _ {t} {T : Set t} where
   _∈_ : T → Pred (List T) t
   a ∈ as = [ a ] ≤ as
 
-module _ {a t} {T : Set t} {{s : UnitalSep a}} where
-
-  open UnitalSep s using () renaming (Carrier to A)
+module _ {a t} {T : Set t} {A : Set a} {{r : RawSep A}} {u} {{s : IsUnitalSep r u}} where
 
   repartition : ∀ {p} {P : T → Pred A p} {Σ₁ Σ₂ Σ : List T} →
                 Σ₁ ⊎ Σ₂ ≣ Σ → ∀[ Allstar P Σ ⇒ Allstar P Σ₁ ✴ Allstar P Σ₂ ]
