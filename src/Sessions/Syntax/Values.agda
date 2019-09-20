@@ -16,12 +16,12 @@ mutual
   Env = Allstar Val
 
   data Closure : Type ∞ → Type ∞ → Pred SCtx 0ℓ where
-    closure : ∀ {a} → Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Closure a b ]
+    clos : ∀ {a} → Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Closure a b ]
 
   data Val : Type ∞ → Pred SCtx 0ℓ where
     tt    : ε[                 Val unit       ]
     chan  : ∀[ Chan α        ⇒ Val (chan α)   ]
     pairs : ∀[ Val a ✴ Val b ⇒ Val (prod a b) ]
-    clos  : ∀[ Closure a b   ⇒ Val (a ⊸ b) ]
+    clos  : Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Val (a ⊸ b) ]
 
 open import Relation.Unary.Separation.Env public

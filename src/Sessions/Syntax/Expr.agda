@@ -13,7 +13,7 @@ data Exp : Type ∞ → LCtx → Set where
   unit      : ε[ Exp unit ]
 
   -- linear function introduction and elimination
-  λₗ        : ∀ a → ∀[ (a ◂ id ⊢ Exp b) ⇒ Exp (a ⊸ b) ]
+  lam       : ∀ a → ∀[ (a ◂ id ⊢ Exp b) ⇒ Exp (a ⊸ b) ]
   ap        :       ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
 
   -- product introduction and elimination
