@@ -1,6 +1,7 @@
 module Relation.Unary.Separation.Morphisms where
 
 open import Level
+open import Function
 open import Relation.Unary
 open import Relation.Unary.Separation
 open import Relation.Binary.PropositionalEquality
@@ -45,3 +46,12 @@ record Morphism {a b} {A : Set a} {{r : RawSep A}} {u} (s₁ : IsUnitalSep r u) 
 
   wanditⱼ : ∀ {p q} {P : Pred A p} {Q : Pred B q} → ∀[ P ⇒ⱼ Q ] → (P ─✴ⱼ Q) u
   app (wanditⱼ f) px σ rewrite ⊎-id⁻ˡ σ = f px
+
+module _ {a} (A : Set a) {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
+
+  id-morph : Morphism s₁ (record { Carrier = A })
+  id-morph = record 
+    { j = id
+    ; j-map = id 
+    ; j-⊎ = λ x → -, refl 
+    ; j-map⁻ = id }
