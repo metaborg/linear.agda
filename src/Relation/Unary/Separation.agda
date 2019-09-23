@@ -325,8 +325,15 @@ record IsConcattative {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
   open RawSep sep
 
   field
+    overlap {{ isSep }}  : IsSep sep
+
     _∙_ : C → C → C 
     ⊎-∙ₗ : ∀ {Φ₁ Φ₂ Φ Φₑ} → Φ₁ ⊎ Φ₂ ≣ Φ → (Φₑ ∙ Φ₁) ⊎ Φ₂ ≣ (Φₑ ∙ Φ)
+    
+  open IsSep isSep
+    
+  ⊎-∙ᵣ : ∀ {Φ₁ Φ₂ Φ Φₑ} → Φ₁ ⊎ Φ₂ ≣ Φ → Φ₁ ⊎ (Φₑ ∙ Φ₂) ≣ (Φₑ ∙ Φ)
+  ⊎-∙ᵣ s = ⊎-comm (⊎-∙ₗ (⊎-comm s))
 
 record Separation c : Set (suc c) where
   field

@@ -93,3 +93,4 @@ module _ {a t} {T : Set t} {A : Set a} {{r : RawSep A}} {u} {{s : IsUnitalSep r 
       xs ×⟨ σ′′ ⟩ ys = repartition σ qx
       _ , τ₁ , τ₂    = ⊎-unassoc σ′ (⊎-comm σ′′)
     in xs ×⟨ ⊎-comm τ₂ ⟩ (cons (a ×⟨ τ₁ ⟩ ys))
+

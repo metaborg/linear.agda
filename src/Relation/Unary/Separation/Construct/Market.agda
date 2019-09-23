@@ -68,8 +68,8 @@ module _ {a} {{ s : MonoidalSep a }} where
 
   open MonoidalSep s using () renaming (Carrier to A)
 
-  match : ∀ {a b : A} {c d} → (demand a) ⊎ (offer b) ≣ c → (demand (d ∙ a)) ⊎ (offer (d ∙ b)) ≣ c
-  match (offerᵣ σ) = offerᵣ (⊎-∙ₗ σ)
+  matching : ∀ {a b : A} {c d} → (demand a) ⊎ (offer b) ≣ c → (demand (d ∙ a)) ⊎ (offer (d ∙ b)) ≣ c
+  matching (offerᵣ σ) = offerᵣ (⊎-∙ₗ σ)
 
 module _ {ℓ} {A : Set ℓ} {{_ : RawSep A}} where
 

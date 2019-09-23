@@ -19,10 +19,4 @@ env-∙ (cons (v ×⟨ s ⟩ env₁) ×⟨ s' ⟩ env₂) =
 
 -- Allstarironments can be split along context splittings
 env-split : ∀ {Γ₁ Γ₂ Γ} → Γ₁ ⊎ Γ₂ ≣ Γ → ∀[ Allstar V Γ ⇒ Allstar V Γ₁ ✴ Allstar V Γ₂ ] 
-env-split [] nil = nil ×⟨ ⊎-idˡ ⟩ nil
-env-split (refl ∷ˡ s) (px :⟨ σ₁ ⟩: sx) with env-split s sx
-... | l ×⟨ σ₂ ⟩ r with ⊎-unassoc σ₁ σ₂
-... | (Δ , p , q) = cons (px ×⟨ p ⟩ l) ×⟨ q ⟩ r
-env-split (refl ∷ʳ s) (px :⟨ σ₁ ⟩: sx) with env-split s sx
-... | l ×⟨ σ₂ ⟩ r with ⊎-assoc σ₂ (⊎-comm σ₁)
-... | (Δ , p , q) = l ×⟨ p ⟩ (cons (px ×⟨ ⊎-comm q ⟩ r))
+env-split = repartition

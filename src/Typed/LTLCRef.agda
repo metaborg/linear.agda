@@ -11,7 +11,6 @@ open import Relation.Unary.Separation.Env
 open import Relation.Unary.Separation.Morphisms
 open import Relation.Unary.Separation.Monad
 open import Relation.Unary.Separation.Monad.Reader
-open import Relation.Unary.Separation.Monad.State
 
 open import Prelude hiding (Lift; lookup)
 
@@ -55,18 +54,15 @@ data Val : Ty → Pred ST 0ℓ where
   clos  : Exp b (a ∷ Γ) → ∀[ Allstar Val Γ ⇒ Val (a ⊸ b) ]
   ref   : ∀[ Just a ⇒ Val (ref a) ]
 
-open Morphism (market ST)
-open Monads (market ST)
-open Reader (market ST) Val (State {V = Val})
+open import Relation.Unary.Separation.Monad.State.Heap Val
+open Reader (market ST) Val State
   renaming (Reader to M)
-open StateOps {V = Val} unit unit (λ where unit → refl)
 
 do-update : ∀ {a b} → ∀[ Just a ✴ (Val a ─✴ⱼ M Γ₁ Γ₂ (Val b)) ⇒ⱼ M Γ₁ Γ₂ (Just b) ]
 do-update (ptr ×⟨ σ ⟩ f) = do
   a ×⟨ σ₁ ⟩ f ← str _ (liftM (read ptr) ×⟨ j-map σ ⟩ inj f)
   b           ← app f a (⊎-comm σ₁)
-  r ×⟨ σ ⟩ b  ← str (Val _) (liftM mkref ×⟨ ⊎-idˡ ⟩ inj b)
-  liftM (write (r ×⟨ σ ⟩ b))
+  liftM (mkref b)
 
 {-# TERMINATING #-}
 mutual
@@ -95,9 +91,8 @@ mutual
     eval⊸ f v
 
   eval (ref e) = do
-    v          ← eval e
-    r ×⟨ σ ⟩ v ← str (Val _) (liftM mkref ×⟨ ⊎-idˡ ⟩ inj v)
-    r ← liftM (write (r ×⟨ σ ⟩ v))
+    v ← eval e
+    r ← liftM (mkref v)
     return (ref r)
 
   eval (deref e) = do
