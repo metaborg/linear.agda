@@ -76,12 +76,6 @@ module _ where
     chan : ∀ {α α'} → i ⊢ α ≈ₛ α' → i ⊢ chan α ≈ chan α'
     prod : ∀ {a a' b b'} → i ⊢ a ≈ a' → i ⊢ b ≈ b' → i ⊢ prod a b ≈ prod a' b'
     _⊸_ : ∀ {a a' b b'} → i ⊢ a ≈ a' → i ⊢ b ≈ b' → i ⊢ (a ⊸ b) ≈ (a' ⊸ b')
-
-  -- types quotiented by weak bisimilarity on session types
-  -- open import Cubical.HITs.SetQuotients
-
-  -- 𝕋 : Set
-  -- 𝕋 = (Type ∞) / (∞ ⊢_≈_)
   
 {- Contexts -}
 module _ where
@@ -128,20 +122,6 @@ module _ where
   (a ⊕ β) ⁻¹ = a & λ where .force → (force β) ⁻¹
   (a & β) ⁻¹ = a ⊕ λ where .force → (force β) ⁻¹
   end ⁻¹     = end
-
-  -- dual-involutive : ∀ {i} → Involutive _⊢_≈_ _⁻¹
-  -- dual-involutive (x ! y) = cong (x !_) {!!}
-  -- dual-involutive (x ¿ x₁) = {!!}
-  -- dual-involutive (x ⊕ x₁) = {!!}
-  -- dual-involutive (x & x₁) = {!!}
-  -- dual-involutive end! = {!!}
-  -- dual-involutive end? = {!!}
-
-{- Derivative of a session type -}
-module _ where
-
-  data Δ : SType ∞ → List (Type ∞) → SType ∞ → Set where
-    {- Todo -}
 
 {- Subset of unrestricted types -}
 module _ where

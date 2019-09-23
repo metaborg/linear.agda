@@ -82,9 +82,7 @@ module _
     ; ⊎-∙ₗ = λ where (p , q) → ⊎-∙ₗ p , ⊎-∙ₗ q }
 
 {- Some useful type-formers for this instance -}
-module _ {ℓ} {{s : UnitalSep ℓ}} where
-
-  open UnitalSep s using () renaming (Carrier to A)
+module _ {ℓ} {A : Set ℓ} {{ r : RawSep A }} {u} {{s : IsUnitalSep r u}} where
 
   data Π₁ {p} (P : Pred A p) : Pred (A × A) (ℓ ⊔ p) where
     fst : ∀ {a} → P a → Π₁ P (a , ε)

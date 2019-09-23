@@ -7,27 +7,29 @@ open import Relation.Unary.PredicateTransformer hiding (_⊔_)
 open import Relation.Unary.Separation.Morphisms
 open import Relation.Unary.Separation.Monad
 open import Relation.Unary.Separation.Monad.Reader
+import Relation.Unary.Separation.Construct.List as List
 
 open import Sessions.Syntax.Types
 open import Sessions.Syntax.Values
 open import Sessions.Syntax.Expr
 open import Sessions.Semantics.Commands
 
+-- open import Relation.Unary.Separation.Construct.List {A = SType ∞} using (ctx-has-sep)
 open import Relation.Unary.Separation.Monad.Free Cmd δ
 
-open Morphism (id-morph SCtx)
-open Monads {{ bs = record { Carrier = SCtx } }} (id-morph SCtx)
-open Reader {{ s = record { Carrier = SCtx } }} (id-morph SCtx) Val Free renaming (Reader to M)
+open Morphism (id-morph Endpoints)
+open Monads {{ bs = record { Carrier = Endpoints } }} (id-morph Endpoints)
+open Reader {{ s = record { Carrier = Endpoints } }} (id-morph Endpoints) Val Free renaming (Reader to M)
 
 {-# TERMINATING #-}
 mutual
-  eval⊸ : ∀ {Γ} → Exp (a ⊸ b) Γ → ∀[ Val a ⇒ⱼ M Γ ε (Val b) ]
+  eval⊸ : ∀ {Γ} → Exp (a ⊸ b) Γ → ∀[ Val a ⇒ⱼ M Γ [] (Val b) ]
   eval⊸ e v = do
     clos e env ×⟨ σ₂ ⟩ v ← str (Val _) (eval e ×⟨ ⊎-idˡ ⟩ (inj v))
     empty                ← append (cons (v ×⟨ ⊎-comm σ₂ ⟩ env))
     eval e
 
-  eval : Exp a Γ → ε[ M Γ ε (Val a) ]
+  eval : Exp a Γ → ε[ M Γ [] (Val a) ]
 
   eval unit = do
     return tt
@@ -42,7 +44,7 @@ mutual
     return (clos e env)
 
   eval (ap (f ×⟨ Γ≺ ⟩ e)) = do
-    v ← frame (⊎-comm Γ≺) (eval e)
+    v ← frame (IsSep.⊎-comm {!!} {!!}) (eval e)
     eval⊸ f v
 
   eval (pairs (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
