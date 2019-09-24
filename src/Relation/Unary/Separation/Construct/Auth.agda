@@ -1,4 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
 
 -- | An implementation of the Authoritative PCM
 module Relation.Unary.Separation.Construct.Auth where

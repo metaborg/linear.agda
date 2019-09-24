@@ -1,4 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
 module Relation.Unary.Separation.Monad.Reader where
 
 open import Level

@@ -96,16 +96,6 @@ module _ {t} {T : Set t} where
   LPred : (p : Level) → Set (t ⊔ Level.suc p)
   LPred p = Ctx → Set p
 
-  {- Linearly a Singleton  -}
-  module _ {p} (P : Pred T p) where
-
-    data Only : LPred (t ⊔ Level.suc p) where
-      only : ∀ {a} → P a → Only (a ∷ ε)
-
-    data Select : List T → LPred (t ⊔ p) where
-      this : ∀ {c cs}   → P c → Select (c ∷ cs) (c ∷ ε) 
-      that : ∀ {c cs Φ} → Select cs Φ → Select (c ∷ cs) Φ
-
 {- Some conventions -}
 variable
   u v w   : UType ∞
