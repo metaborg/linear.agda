@@ -1,4 +1,3 @@
-{-# OPTIONS --sized-types #-}
 module Sessions.Syntax.Expr where
 
 open import Prelude
@@ -6,7 +5,7 @@ open import Prelude
 open import Relation.Unary.Separation.Construct.List
 open import Sessions.Syntax.Types
 
-data Exp : Type ∞ → LCtx → Set where
+data Exp : Type → LCtx → Set where
 
   var       : ∀[ Just a ⇒ Exp a ]
 
@@ -22,8 +21,8 @@ data Exp : Type ∞ → LCtx → Set where
   letpair   : ∀[ Exp (prod a b) ✴ (a ◂ b ◂ id ⊢ Exp c) ⇒ Exp c ]
 
   -- communication
-  send      : ∀ {b} → ∀[ Exp a ✴ Exp (chan (a ! b)) ⇒ Exp (chan (b .force)) ]
-  recv      : ∀ {b} → ∀[ Exp (chan (a ¿ b)) ⇒ Exp (prod (chan (b .force)) a) ]
+  send      : ∀ {b} → ∀[ Exp a ✴ Exp (chan (a ! b)) ⇒ Exp (chan b) ]
+  recv      : ∀ {b} → ∀[ Exp (chan (a ¿ b)) ⇒ Exp (prod (chan b) a) ]
 
   -- fork ; TODO unit
   fork      : ∀[ Exp (chan α ⊸ b) ⇒ Exp (chan (α ⁻¹)) ]

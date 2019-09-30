@@ -11,6 +11,7 @@ open import Relation.Unary.Separation.Env
 open import Relation.Unary.Separation.Morphisms
 open import Relation.Unary.Separation.Monad
 open import Relation.Unary.Separation.Monad.Reader
+open import Relation.Unary.Separation.Env
 
 open import Prelude hiding (Lift; lookup)
 
@@ -18,6 +19,7 @@ data Ty : Set where
   nat  : Ty
   unit : Ty
   ref  : Ty → Ty
+  prod : Ty → Ty → Ty
   _⊸_  : (a b : Ty) → Ty
 
 Ctx  = List Ty
@@ -43,6 +45,7 @@ data Exp : Ty → Ctx → Set where
   ref   : ∀[ Exp a ⇒ Exp (ref a) ]
   deref : ∀[ Exp (ref a) ⇒ Exp a ]
   asgn  : ∀[ Exp (ref a) ✴ Exp (a ⊸ b) ⇒ Exp (ref b) ]
+  pair  : ∀[ Exp a ✴ Exp b ⇒ Exp (prod a b) ]
 
 -- store types
 ST = List Ty
@@ -53,10 +56,66 @@ data Val : Ty → Pred ST 0ℓ where
   num   : ℕ → ε[ Val nat  ]
   clos  : Exp b (a ∷ Γ) → ∀[ Allstar Val Γ ⇒ Val (a ⊸ b) ]
   ref   : ∀[ Just a ⇒ Val (ref a) ]
+  pair  : ∀[ Val a ✴ Val b ⇒ Val (prod a b) ]
 
 open import Relation.Unary.Separation.Monad.State.Heap Val
 open Reader (market ST) Val State
   renaming (Reader to M)
+
+{- The 'give-it-to-me-straight' semantics -}
+
+Store : ST → ST → Set
+Store = Allstar Val
+
+{- First attempt -- evaluation without a frame, seems simple enough... -}
+eval₁ : ∀ {Ψ Γ} → Exp a Γ → Allstar Val Γ Φ₁ → Store Ψ Φ₂ → Φ₁ ⊎ Φ₂ ≣ Ψ →
+        ∃ λ Ψ' → ∃₂ λ Φ₃ Φ₄ → Store Ψ' Φ₃ × Val a Φ₄ × Φ₃ ⊎ Φ₄ ≣ Ψ'
+
+eval₁ (num x) nil μ σ = -, -, -, μ , num x , ⊎-comm σ 
+
+eval₁ (lam e) env μ σ = -, -, -, μ , (clos e env) , ⊎-comm σ
+
+eval₁ (ap (f ×⟨ σ ⟩ e)) env μ σ₂ =
+  let
+    env₁ ×⟨ σ₃ ⟩ env₂ = env-split σ env
+    _ , τ₁ , τ₂ = ⊎-assoc (⊎-comm σ₃) σ₂
+
+  {- Oops, store contains more stuff than used; i.e. we have a frame -}
+  in case eval₁ f env₁ μ {!τ₂!} of λ where
+    (_ , _ , _ , μ' , clos e env₃ , σ₄) → {!!}
+
+eval₁ (var x) = {!!}
+
+eval₁ (ref e) = {!!}
+
+eval₁ (deref e) = {!!}
+
+eval₁ (asgn x) = {!!}
+
+{- First attempt -- evaluation *with* a frame. Are you sure want this? -}
+eval₂ : ∀ {Ψ Γ Φf} → Exp a Γ → Allstar Val Γ Φ₁ → Store Ψ Φ₂ → Φ₁ ⊎ Φ₂ ≣ Φ → Φ ⊎ Φf ≣ Ψ →
+        ∃₂ λ Φ' Ψ' → ∃₂ λ Φ₃ Φ₄ → Store Ψ' Φ₃ × Val a Φ₄ × Φ₃ ⊎ Φ₄ ≣ Φ' × Φ' ⊎ Φf ≣ Ψ'
+eval₂ (num x) nil μ σ₁ σ₂ =
+  case ⊎-id⁻ˡ σ₁ of λ where refl → -, -, -, -, μ , num x , ⊎-idʳ , σ₂  
+eval₂ (lam x) env μ σ₁ σ₂ = {!!}
+
+eval₂ (pair (e₁ ×⟨ σ ⟩ e₂)) env μ σ₁ σ₂ =
+  let
+    env₁ ×⟨ σ₃ ⟩ env₂ = env-split σ env
+    _ , τ₁ , τ₂ = ⊎-assoc (⊎-comm σ₃) σ₁ -- separation between sub-env and store
+    _ , τ₃ , τ₄ = ⊎-assoc (⊎-comm τ₁) σ₂ -- compute the frame
+
+  in case eval₂ e₁ env₁ μ τ₂ τ₃ of λ where
+    (_ , _ , _ , _ , μ' , v₁ , σ₄ , σ₅) →
+       let v = eval₂ e₂ env₂ μ' {!τ₁!} {!!} in {!!}
+
+eval₂ (var x) env μ σ₁ σ₂ = {!!}
+eval₂ (ref e) env μ σ₁ σ₂ = {!!}
+eval₂ (deref e) env μ σ₁ σ₂ = {!!}
+eval₂ (asgn x) env μ σ₁ σ₂ = {!!}
+eval₂ (ap (f ×⟨ σ ⟩ e)) env μ σ₁ σ₂ = {!!}
+
+{- The monadic semantics -}
 
 do-update : ∀ {a b} → ∀[ Just a ✴ (Val a ─✴ⱼ M Γ₁ Γ₂ (Val b)) ⇒ⱼ M Γ₁ Γ₂ (Just b) ]
 do-update (ptr ×⟨ σ ⟩ f) = do
@@ -85,6 +144,11 @@ mutual
   eval (lam e) = do
     env ← ask
     return (clos e env)
+
+  eval (pair (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
+    v₁    ← frame Γ≺ (eval e₁)
+    v₂✴v₁ ← str (Val _) (eval e₂ ×⟨ ⊎-idˡ ⟩ inj v₁)
+    return (pair (✴-swap v₂✴v₁))
 
   eval (ap (f ×⟨ Γ≺ ⟩ e)) = do
     v ← frame (⊎-comm Γ≺) (eval e)

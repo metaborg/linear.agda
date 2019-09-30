@@ -237,7 +237,7 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
     data Bigstar {ℓ} (P : SPred ℓ) : SPred (ℓ ⊔ c) where
       emp  : ε[ Bigstar P ]
       cons : ∀[ P ✴ Bigstar P ⇒ Bigstar P ]
-
+    
   {- Inductive separating forall over a list -}
   module _ {i ℓ} {I : Set i} where
     open import Data.List
@@ -248,6 +248,14 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
     -- not typed well..
     infixr 5 _:⟨_⟩:_
     pattern _:⟨_⟩:_ x p xs = cons (x ×⟨ p ⟩ xs)
+
+  {- Inductive separating forall over a list separating with ++; 
+     watch the green slime, use with care. -}
+  module _ {i ℓ} {I : Set i} where
+    open import Data.List
+    data Elstar (P : List I → SPred ℓ) : List I → SPred (ℓ ⊔ c ⊔ i) where
+      nil  :             ε[ Elstar P [] ]
+      cons : ∀ {xs ys zs} → xs ++ ys ≡ zs → ∀[ P xs ✴ Elstar P ys ⇒ Elstar P zs ]
 
   module _ {i ℓ} {I : Set i} {P : I → SPred ℓ} where
     open import Data.List

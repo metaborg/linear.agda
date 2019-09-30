@@ -41,6 +41,7 @@ module Reader {ℓ}
     variable
       P Q R : Pred C ℓ
 
+    -- TODO use strength for framing instead of indexed
     Reader : ∀ (Γ₁ Γ₂ : List T) (P : Pred C ℓ) → Pred B ℓ
     Reader Γ₁ Γ₂ P = J (Allstar V Γ₁) ─✴ M (P ✴ Allstar V Γ₂)
 
