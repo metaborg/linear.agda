@@ -77,12 +77,20 @@ module _ {ℓ} {A : Set ℓ} {{_ : RawSep A}} where
     variable
       ℓv : Level
       P Q : Pred (A × A) ℓv
+        
+  Completion : A → (A × A) → Set ℓ
+  Completion x (y , z) = x ⊎ z ≣ y
 
   data ● {p} (P : Pred (A × A) p) : Pred (Market A) (ℓ ⊔ p) where
-    lift : ∀ {r l₁ l₂} → P (l₁ , r) → r ⊎ l₂ ≣ l₁ → ● P (offer l₂)
+    lift : ∀ {xs l₂} → P xs → Completion l₂ xs → ● P (offer l₂)
 
   ●-map : ∀[ P ⇒ Q ] → ∀[ ● P ⇒ ● Q ]
   ●-map f (lift px le) = lift (f px) le
+
+module _ {a} {A : Set a} {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
+
+  data ○ {p} (P : Pred (A × A) p) : Pred (Market A) (p) where
+    lift : ∀ {xs} → P (ε , xs) → ○ P (demand xs)
 
 module _ {a} (A : Set a) {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 
@@ -93,3 +101,22 @@ module _ {a} (A : Set a) {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
   j-map market s           = demand s
   j-⊎ market (demand σ)    = -, refl
   j-map⁻ market (demand σ) = σ
+
+{- Completion preserving updates -}
+module _ {a} {A : Set a} {{r : RawSep A}} {u} {{ s : IsUnitalSep r u }} where
+
+  open import Relation.Unary.Separation.Construct.Product
+  open Morphism (market A)
+
+  record ⇥_ {p} (P : Pred (A × A) p) (Φᵢ : A × A) : Set (a ⊔ p) where
+    field
+      updater : ∀ {Φⱼ Φₖ as} →
+                Φᵢ ⊎ Φⱼ ≣ Φₖ → Completion as Φₖ →
+                ∃₂ λ Φₗ Φ → Φₗ ⊎ Φⱼ ≣ Φ × Completion as Φ × P Φₗ
+  open ⇥_
+
+  ●-update : ∀ {p q} {P : Pred (A × A) p} {Q : Pred (A × A) q} →
+           ∀[ ○ (P ─✴ ⇥ Q) ⇒ ● P ─✴ ● Q ]
+  app (●-update (lift f)) (lift px σ₁) (offerᵣ σ₂) with ⊎-assoc (⊎-comm σ₂) σ₁
+  ... | _ , σ₃ , σ₄ with updater (app f px (⊎-idˡ , σ₄)) ⊎-idʳ σ₃
+  ... | _ , _ , σ₅ , σ₆ , qx rewrite ⊎-id⁻ʳ σ₅ = lift qx σ₆
