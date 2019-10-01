@@ -3,7 +3,6 @@ module Relation.Unary.Separation.Construct.Market where
 
 open import Level hiding (Lift)
 open import Data.Product
-open import Data.Maybe
 
 open import Relation.Unary
 open import Relation.Binary hiding (_⇒_)
@@ -78,11 +77,11 @@ module _ {ℓ} {A : Set ℓ} {{_ : RawSep A}} where
       ℓv : Level
       P Q : Pred (A × A) ℓv
         
-  Completion : A → (A × A) → Set ℓ
-  Completion x (y , z) = x ⊎ z ≣ y
+  [_]Completes : A → (A × A) → Set ℓ
+  [_]Completes x (y , z) = x ⊎ z ≣ y
 
   data ● {p} (P : Pred (A × A) p) : Pred (Market A) (ℓ ⊔ p) where
-    lift : ∀ {xs l₂} → P xs → Completion l₂ xs → ● P (offer l₂)
+    lift : ∀ {xs l₂} → P xs → [ l₂ ]Completes xs → ● P (offer l₂)
 
   ●-map : ∀[ P ⇒ Q ] → ∀[ ● P ⇒ ● Q ]
   ●-map f (lift px le) = lift (f px) le
@@ -106,13 +105,12 @@ module _ {a} (A : Set a) {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 module _ {a} {A : Set a} {{r : RawSep A}} {u} {{ s : IsUnitalSep r u }} where
 
   open import Relation.Unary.Separation.Construct.Product
-  open Morphism (market A)
 
   record ⇥_ {p} (P : Pred (A × A) p) (Φᵢ : A × A) : Set (a ⊔ p) where
     field
       updater : ∀ {Φⱼ Φₖ as} →
-                Φᵢ ⊎ Φⱼ ≣ Φₖ → Completion as Φₖ →
-                ∃₂ λ Φₗ Φ → Φₗ ⊎ Φⱼ ≣ Φ × Completion as Φ × P Φₗ
+                Φᵢ ⊎ Φⱼ ≣ Φₖ → [ as ]Completes Φₖ →
+                ∃₂ λ Φₗ Φ → Φₗ ⊎ Φⱼ ≣ Φ × [ as ]Completes Φ × P Φₗ
   open ⇥_
 
   ●-update : ∀ {p q} {P : Pred (A × A) p} {Q : Pred (A × A) q} →

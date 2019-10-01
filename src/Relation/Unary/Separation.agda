@@ -97,9 +97,6 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
   open RawSep s
 
   field
-    -- ⊎-functional   : ∀ {Φ₁ Φ₂ Φ Φ'}   → Φ₁ ⊎ Φ₂ ≣ Φ → Φ₁ ⊎ Φ₂ ≣ Φ' → Φ ≈ Φ'
-    -- ⊎-cancellative : ∀ {Φ₁ Φ₁' Φ₂}    → ∀[ Φ₁ ⊎ Φ₂ ⇒ Φ₁' ⊎ Φ₂ ⇒ (λ _ → Φ₁ ≈ Φ₁') ]
-    -- we axiomatize the basic laws for splittings
     ⊎-comm  : ∀ {Φ₁ Φ₂}        → ∀[ Φ₁ ⊎ Φ₂ ⇒ Φ₂ ⊎ Φ₁ ]
     ⊎-assoc : ∀ {a b ab c abc} → a ⊎ b ≣ ab → ab ⊎ c ≣ abc →
                                  ∃ λ bc → a ⊎ bc ≣ abc × b ⊎ c ≣ bc
