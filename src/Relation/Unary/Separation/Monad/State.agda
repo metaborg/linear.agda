@@ -7,7 +7,7 @@ module Relation.Unary.Separation.Monad.State {ℓ}
   {C : Set ℓ} {u}
   {{r : RawSep C}}
   {{_ : IsUnitalSep r u}}
-  (St : Pred (C × C) ℓ) where
+  where
 
 open import Level hiding (Lift)
 open import Function using (_∘_; case_of_)
@@ -28,11 +28,14 @@ open import Data.List.Relation.Ternary.Interleaving.Propositional as I
 open Monads (market C) public
 open Morphism (market C) public
 
-State : Pred C ℓ → Pred (Market C) ℓ
-State P = ● St ─✴ (J P) ✴ ● St
+STATE : (l r : Pred (C × C) ℓ) → Pred C ℓ → Pred (Market C) ℓ
+STATE St St' P = ● St ─✴ (J P) ✴ ● St'
+
+State : Pred (C × C) ℓ → Pred C ℓ → Pred (Market C) ℓ
+State St = STATE St St
 
 instance
-  M-monad : Monad ⊤ _ (λ _ _ → State)
+  M-monad : ∀ {St : Pred (C × C) ℓ} → Monad ⊤ _ (λ _ _ → State St)
   app (Monad.return M-monad px) st σ₂ = (inj px ×⟨ σ₂ ⟩ st )
   app (app (Monad.bind M-monad {Q = Q} f) m σ₁) st σ₂ with ⊎-assoc σ₁ σ₂
   ... | _ , σ₃ , σ₄ with app m st σ₄

@@ -27,33 +27,33 @@ interleaving-assoc (consˡ l) (consˡ r) = let _ , p , q = interleaving-assoc l 
 interleaving-assoc (consʳ l) (consˡ r) = let _ , p , q = interleaving-assoc l r in -, consʳ p , consˡ q
 interleaving-assoc [] []               = [] , [] , []
 
-instance ctx-has-sep : IsSep separation
-ctx-has-sep = record
+instance list-has-sep : IsSep separation
+list-has-sep = record
   { ⊎-comm = I.swap
   ; ⊎-assoc = interleaving-assoc
   }
 
-instance ctx-hasUnitalSep : IsUnitalSep _ _
-IsUnitalSep.isSep ctx-hasUnitalSep               = ctx-has-sep
-IsUnitalSep.⊎-idˡ ctx-hasUnitalSep               = right (≡⇒≋ P.refl)
-IsUnitalSep.⊎-id⁻ˡ ctx-hasUnitalSep []           = refl
-IsUnitalSep.⊎-id⁻ˡ ctx-hasUnitalSep (refl ∷ʳ px) = cong (_ ∷_) (⊎-id⁻ˡ px)
+instance list-is-unital : IsUnitalSep _ _
+IsUnitalSep.isSep list-is-unital               = list-has-sep
+IsUnitalSep.⊎-idˡ list-is-unital               = right (≡⇒≋ P.refl)
+IsUnitalSep.⊎-id⁻ˡ list-is-unital []           = refl
+IsUnitalSep.⊎-id⁻ˡ list-is-unital (refl ∷ʳ px) = cong (_ ∷_) (⊎-id⁻ˡ px)
 
-instance ctx-concattative : IsConcattative separation
-IsConcattative._∙_ ctx-concattative = _++_
-IsConcattative.⊎-∙ₗ ctx-concattative {Φₑ = []} ps = ps
-IsConcattative.⊎-∙ₗ ctx-concattative {Φₑ = x ∷ Φₑ} ps = consˡ (⊎-∙ₗ ps)
+instance list-has-concat : IsConcattative separation
+IsConcattative._∙_ list-has-concat = _++_
+IsConcattative.⊎-∙ₗ list-has-concat {Φₑ = []} ps = ps
+IsConcattative.⊎-∙ₗ list-has-concat {Φₑ = x ∷ Φₑ} ps = consˡ (⊎-∙ₗ ps)
 
-instance ctx-unitalsep : UnitalSep _
-ctx-unitalsep = record
-  { isUnitalSep = ctx-hasUnitalSep }
+instance list-unitalsep : UnitalSep _
+list-unitalsep = record
+  { isUnitalSep = list-is-unital }
 
-instance ctx-resource : MonoidalSep _
-ctx-resource = record
+instance list-resource : MonoidalSep _
+list-resource = record
   { sep = separation
-  ; isSep = ctx-has-sep
-  ; isUnitalSep   = ctx-hasUnitalSep
-  ; isConcat      = ctx-concattative
+  ; isSep = list-has-sep
+  ; isUnitalSep   = list-is-unital
+  ; isConcat      = list-has-concat
   ; monoid = ++-isMonoid }
 
 {- We can split All P xs over a split of xs -}

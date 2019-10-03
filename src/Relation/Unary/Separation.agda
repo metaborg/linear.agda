@@ -246,6 +246,21 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
     infixr 5 _:⟨_⟩:_
     pattern _:⟨_⟩:_ x p xs = cons (x ×⟨ p ⟩ xs)
 
+  module _ where
+
+    open import Data.List
+
+    -- a variant of ✴ with strict ordering
+    record _✴>_ {p q} (P : List C → Set p) (Q : List C → Set q) Φ : Set (p ⊔ q ⊔ c) where
+      inductive
+      constructor _×⟨_⟩_
+      field
+        {Φₗ Φᵣ} : List C
+
+        px  : P Φₗ
+        con : Φₗ ++ Φᵣ ≡ Φ
+        qx  : Q Φᵣ
+
   {- Inductive separating forall over a list separating with ++; 
      watch the green slime, use with care. -}
   module _ {i ℓ} {I : Set i} where
@@ -380,6 +395,11 @@ record MonoidalSep c : Set (suc c) where
 
   instance unital : UnitalSep _
   unital = record { ε = ε }
+
+module _ {c} {C : Set c} where
+
+  εOf : ∀ (r : RawSep C) {u} {{ _ : IsUnitalSep r u }} → C
+  εOf _ {{ un }}= IsUnitalSep.ε un
 
 open RawSep ⦃...⦄ public
 open IsConcattative ⦃...⦄ public

@@ -35,7 +35,7 @@ module _ where
       unit  : UType  
       prod  : UType → UType →  UType
 
-    -- channel types
+    -- crefnel types
     infixr 10 _¿_
     data SType : Set where
       _!_ _¿_ : Type → SType → SType
@@ -43,7 +43,7 @@ module _ where
 
     data Type : Set where
       unit  : Type
-      chan  : SType → Type
+      cref  : SType → Type
       prod  : Type → Type → Type
       _⊸_   : Type → Type → Type
 
@@ -84,7 +84,7 @@ module _ where
   dual-involutive : ∀ {α} → α ⁻¹ ⁻¹ ≡ α
   dual-involutive {x ! α} = cong (_!_ _) dual-involutive
   dual-involutive {x ¿ α} = cong (_¿_ _) dual-involutive
-  dual-involutive {end}   = refl
+  dual-involutive {end} = refl
 
 {- Subset of unrestricted types -}
 module _ where
@@ -93,23 +93,23 @@ module _ where
   li unit = unit
   li (prod a b) = prod (li a) (li b)
 
-  IsUnr : Type → Set
-  IsUnr a = ∃ λ u → li u ≡ a
+  -- IsUnr : Type → Set
+  -- IsUnr a = ∃ λ u → li u ≡ a
 
-  isUnr? : Decidable IsUnr
-  isUnr? unit = yes (unit , P.refl)
-  isUnr? (chan x) = no λ where
-    (unit , ())
-    (prod _ _ , ())
-  isUnr? (prod a₁ a₂) = DecM.map′
-    (λ where ((u , P.refl) , (v , P.refl)) → prod u v , P.refl)
-    (λ where
-      (unit , ())
-      (prod a b , P.refl) → (a , P.refl) , (b , P.refl))
-        ((isUnr? a₁) ×-dec (isUnr? a₂))
-  isUnr? (a₁ ⊸ a₂) = no λ where
-    (unit , ())
-    (prod _ _ , ())
+  -- isUnr? : Decidable IsUnr
+  -- isUnr? unit = yes (unit , P.refl)
+  -- isUnr? (cref x) = no λ where
+  --   (unit , ())
+  --   (prod _ _ , ())
+  -- isUnr? (prod a₁ a₂) = DecM.map′
+  --   (λ where ((u , P.refl) , (v , P.refl)) → prod u v , P.refl)
+  --   (λ where
+  --     (unit , ())
+  --     (prod a b , P.refl) → (a , P.refl) , (b , P.refl))
+  --       ((isUnr? a₁) ×-dec (isUnr? a₂))
+  -- isUnr? (a₁ ⊸ a₂) = no λ where
+  --   (unit , ())
+  --   (prod _ _ , ())
 
   CtxTf = LCtx → LCtx
 

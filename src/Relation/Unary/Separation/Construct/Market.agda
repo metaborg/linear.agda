@@ -88,8 +88,19 @@ module _ {ℓ} {A : Set ℓ} {{_ : RawSep A}} where
 
 module _ {a} {A : Set a} {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 
+  open import Relation.Unary.Separation.Construct.Product
+
   data ○ {p} (P : Pred (A × A) p) : Pred (Market A) (p) where
     lift : ∀ {xs} → P (ε , xs) → ○ P (demand xs)
+
+  ○≺●ₗ : ∀ {p q} {P : Pred (A × A) p} {Q : Pred (A × A) q} → ∀[ ○ P ✴ ● Q ⇒ ● (P ✴ Q) ]
+  ○≺●ₗ (lift px ×⟨ offerᵣ σ₁ ⟩ lift qx σ₂) with ⊎-assoc (⊎-comm σ₁) σ₂
+  ... | _ , σ₃ , σ₄ = lift (px ×⟨ ⊎-idˡ , σ₄ ⟩ qx ) σ₃
+
+  ○≺●ᵣ : ∀ {p q} {P : Pred A p} {Q : Pred (A × A) q} → ∀[ ● ((Π₂ P) ✴ Q) ⇒ ○ (Π₂ P) ✴ ● Q ]
+  ○≺●ᵣ (lift (snd px ×⟨ σₗ , σᵣ ⟩ qx) σ₂) with ⊎-id⁻ˡ σₗ
+  ... | refl with ⊎-unassoc σ₂ σᵣ
+  ... | _ , σ₃ , σ₄ = (lift (snd px)) ×⟨ offerᵣ (⊎-comm σ₃) ⟩ lift qx σ₄
 
 module _ {a} (A : Set a) {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 
@@ -111,7 +122,7 @@ module _ {a} {A : Set a} {{r : RawSep A}} {u} {{ s : IsUnitalSep r u }} where
       updater : ∀ {Φⱼ Φₖ as} →
                 Φᵢ ⊎ Φⱼ ≣ Φₖ → [ as ]Completes Φₖ →
                 ∃₂ λ Φₗ Φ → Φₗ ⊎ Φⱼ ≣ Φ × [ as ]Completes Φ × P Φₗ
-  open ⇥_
+  open ⇥_ public
 
   ●-update : ∀ {p q} {P : Pred (A × A) p} {Q : Pred (A × A) q} →
            ∀[ ○ (P ─✴ ⇥ Q) ⇒ ● P ─✴ ● Q ]
