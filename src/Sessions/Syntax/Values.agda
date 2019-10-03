@@ -72,5 +72,8 @@ data Client {p} (P : Pred SCtx p) : Pred RCtx p where
 Endptr : SType → Pred RCtx _
 Endptr = Client ∘ Just
 
+pattern point = client refl
+
 CVal : Type → Pred RCtx _
 CVal = Client ∘ Val
+

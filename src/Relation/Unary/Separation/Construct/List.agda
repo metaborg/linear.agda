@@ -56,6 +56,10 @@ list-resource = record
   ; isConcat      = list-has-concat
   ; monoid = ++-isMonoid }
 
+instance list-positive : IsPositive separation
+list-positive = record
+  { ⊎-εˡ = λ where [] → refl }
+
 {- We can split All P xs over a split of xs -}
 module All {v} {V : A → Set v} where
 

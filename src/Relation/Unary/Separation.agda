@@ -355,6 +355,24 @@ record IsConcattative {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
   ⊎-∙ᵣ : ∀ {Φ₁ Φ₂ Φ Φₑ} → Φ₁ ⊎ Φ₂ ≣ Φ → Φ₁ ⊎ (Φₑ ∙ Φ₂) ≣ (Φₑ ∙ Φ)
   ⊎-∙ᵣ s = ⊎-comm (⊎-∙ₗ (⊎-comm s))
 
+record IsPositive {c} {C : Set c} (sep : RawSep C) : Set (suc c) where
+  open RawSep sep
+
+  field
+    {ε} : _
+    overlap {{ isUnitalSep }} : IsUnitalSep sep ε
+    overlap {{ isSep }}       : IsSep sep
+
+  open IsUnitalSep isUnitalSep using (⊎-id⁻ˡ)
+
+  field
+    ⊎-εˡ : ∀ {Φ₁ Φ₂} → Φ₁ ⊎ Φ₂ ≣ ε → Φ₁ ≡ ε
+
+  ⊎-ε : ∀ {Φ₁ Φ₂} → Φ₁ ⊎ Φ₂ ≣ ε → Φ₁ ≡ ε × Φ₂ ≡ ε
+  ⊎-ε σ with ⊎-εˡ σ
+  ... | P.refl with ⊎-id⁻ˡ σ
+  ... | P.refl = P.refl , P.refl
+
 record Separation c : Set (suc c) where
   field
     Carrier : Set c
@@ -404,6 +422,7 @@ module _ {c} {C : Set c} where
 open RawSep ⦃...⦄ public
 open IsConcattative ⦃...⦄ public
 open IsUnitalSep ⦃...⦄ public
+open IsPositive ⦃...⦄ hiding (ε) public
 open UnitalSep ⦃...⦄ public hiding (Carrier; ε)
 open IsSep ⦃...⦄ public
 open MonoidalSep ⦃...⦄ public hiding (Carrier; ε)

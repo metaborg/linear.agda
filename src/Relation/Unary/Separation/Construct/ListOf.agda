@@ -77,3 +77,7 @@ instance
 
   split-monoidal : MonoidalSep _
   split-monoidal = record { monoid = ++-isMonoid }
+
+  list-positive : IsPositive splits
+  list-positive = record
+    { ⊎-εˡ = λ where [] → refl }
