@@ -8,18 +8,27 @@ open import Relation.Unary
 open import Relation.Unary.PredicateTransformer hiding (_⊔_)
 open import Relation.Unary.Separation
 open import Relation.Unary.Separation.Monad
+open import Relation.Unary.Separation.Morphisms
 
 open import Data.Unit
+open Monads
 
-module Identity {ℓ} {{m : MonoidalSep ℓ}} where
+module Identity {ℓ}
+  {C : Set ℓ} {u}
+  {{r : RawSep C}}
+  {{us : IsUnitalSep r u}}
+ where
 
-  open MonoidalSep m using (Carrier)
+  private
+    instance
+      c-sep : Separation ℓ
+      c-sep = record { Carrier = C }
 
-  Id : ∀ {ℓ} → Pt Carrier ℓ
+  Id : ∀ {ℓ} → Pt C ℓ
   Id P = P
 
   instance
-    id-monad : ∀ {ℓ} → Monad {I = ⊤} {ℓ = ℓ} (λ _ _ → Id)
+    id-monad : Monad (id-morph _) ⊤ ℓ (λ _ _ → Id)
     Monad.return id-monad = id
-    Monad.bind id-monad f px = f px
+    app (Monad.bind id-monad f) px = app f px
 
