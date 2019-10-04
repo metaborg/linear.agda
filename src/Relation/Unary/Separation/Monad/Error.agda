@@ -22,10 +22,10 @@ Err P = True ∪ P
 open Monads {{ bs = record { Carrier = A } }} (id-morph A)
 
 instance
-  monad : Monad ⊤ ℓ (λ _ _ → Err)
-  Monad.return monad px = inj₂ px
-  app (Monad.bind monad f) (inj₁ tt) σ = inj₁ tt
-  app (Monad.bind monad f) (inj₂ y) σ  = app f y σ
+  err-monad : Monad ⊤ ℓ (λ _ _ → Err)
+  Monad.return err-monad px = inj₂ px
+  app (Monad.bind err-monad f) (inj₁ tt) σ = inj₁ tt
+  app (Monad.bind err-monad f) (inj₂ y) σ  = app f y σ
 
 error : ∀ {P} → ∀[ Err P ]
 error = inj₁ tt
