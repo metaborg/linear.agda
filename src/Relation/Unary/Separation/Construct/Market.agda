@@ -86,22 +86,6 @@ module _ {ℓ} {A : Set ℓ} {{_ : RawSep A}} where
   ●-map : ∀[ P ⇒ Q ] → ∀[ ● P ⇒ ● Q ]
   ●-map f (lift px le) = lift (f px) le
 
-module _ {a} {A : Set a} {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
-
-  open import Relation.Unary.Separation.Construct.Product
-
-  data ○ {p} (P : Pred (A × A) p) : Pred (Market A) (p) where
-    lift : ∀ {xs} → P (ε , xs) → ○ P (demand xs)
-
-  ○≺●ₗ : ∀ {p q} {P : Pred (A × A) p} {Q : Pred (A × A) q} → ∀[ ○ P ✴ ● Q ⇒ ● (P ✴ Q) ]
-  ○≺●ₗ (lift px ×⟨ offerᵣ σ₁ ⟩ lift qx σ₂) with ⊎-assoc (⊎-comm σ₁) σ₂
-  ... | _ , σ₃ , σ₄ = lift (px ×⟨ ⊎-idˡ , σ₄ ⟩ qx ) σ₃
-
-  ○≺●ᵣ : ∀ {p q} {P : Pred A p} {Q : Pred (A × A) q} → ∀[ ● ((Π₂ P) ✴ Q) ⇒ ○ (Π₂ P) ✴ ● Q ]
-  ○≺●ᵣ (lift (snd px ×⟨ σₗ , σᵣ ⟩ qx) σ₂) with ⊎-id⁻ˡ σₗ
-  ... | refl with ⊎-unassoc σ₂ σᵣ
-  ... | _ , σ₃ , σ₄ = (lift (snd px)) ×⟨ offerᵣ (⊎-comm σ₃) ⟩ lift qx σ₄
-
 module _ {a} (A : Set a) {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 
   open Morphism
@@ -111,6 +95,51 @@ module _ {a} (A : Set a) {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
   j-map market s           = demand s
   j-⊎ market (demand σ)    = -, refl
   j-map⁻ market (demand σ) = σ
+
+module _ {a} {A : Set a} {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
+
+  open import Relation.Unary.Separation.Construct.Product
+  open Morphism (market A)
+
+  data ○ {p} (P : Pred (A × A) p) : Pred (Market A) (p) where
+    lift : ∀ {xs} → P (ε , xs) → ○ P (demand xs)
+
+  ○≺●ₗ : ∀ {p q} {P : Pred A p} {Q : Pred (A × A) q} → ∀[ P ⇒ⱼ ● Q ─✴ ● (Π₂ P ✴ Q) ]
+  app (○≺●ₗ px) (lift qx σ₂) (offerᵣ σ₁) with ⊎-assoc (⊎-comm σ₁) σ₂
+  ... | _ , σ₃ , σ₄ = lift (snd px ×⟨ ⊎-idˡ , σ₄ ⟩ qx ) σ₃
+
+  ○≺●ᵣ : ∀ {p q} {P : Pred A p} {Q : Pred (A × A) q} → ∀[ ● (Π₂ P ✴ Q) ⇒ J P ✴ ● Q ]
+  ○≺●ᵣ (lift (snd px ×⟨ σₗ , σᵣ ⟩ qx) σ₂) with ⊎-id⁻ˡ σₗ
+  ... | refl with ⊎-unassoc σ₂ σᵣ
+  ... | _ , σ₃ , σ₄ = inj px ×⟨ offerᵣ (⊎-comm σ₃) ⟩ lift qx σ₄
+
+{- Complete with respect to a certain element -}
+module _ {a} {A : Set a} {{r : RawSep A}} {u} {{ s : IsUnitalSep r u }} where
+
+  open import Relation.Unary.Separation.Construct.Product
+  open Morphism (market A)
+
+  data _◑_ {p q} (P : Pred A p) (Q : Pred (A × A) q) : Pred (A × A) (a ⊔ p ⊔ q) where
+    frag : ∀ {Φ Φₗ} → (pr : (Π₂ P ✴ Q) Φ) → (proj₂ (Conj.Φₗ pr)) ⊎ Φₗ ≣ (proj₁ (Conj.Φᵣ pr))  → (P ◑ Q) Φ
+    -- ∀ {d₁ d₂ d o₁ o₂} → P d₁ → d₁ ⊎ d₂ ≣ d → d₁ ⊎ o₂ ≣ o₁ → Q (o₁ , d₂) → (P ◑ Q) (o₂ , d)
+
+  ◑-grow : ∀ {p q₁ q₂} → {P : Pred A p} {Q₁ : Pred (A × A) q₁} {Q₂ : Pred (A × A) q₂} →
+           ∀[ (P ◑ Q₁) ✴ Q₂ ⇒ P ◑ (Q₁ ✴ Q₂) ]
+  ◑-grow (frag (px ×⟨ τ ⟩ qx) σ ×⟨ σ₂ ⟩ qx₂) with ⊎-assoc τ σ₂
+  ... | _ , τ₁ , τ₂ with ⊎-assoc σ (proj₁ τ₂)
+  ... | _ , τ₃ , τ₄ = frag (px ×⟨ τ₁ ⟩ (qx ×⟨ τ₂ ⟩ qx₂)) τ₃
+
+  absorb : ∀ {p q} {P : Pred A p} {Q : Pred (A × A) q} →
+           ∀[ P ⇒ⱼ ● Q ─✴ ● (P ◑ Q) ]
+  app (absorb px) (lift qx k) (offerᵣ σ) with ⊎-assoc (⊎-comm σ) k
+  ... | _ , σ₂ , σ₃ with ⊎-assoc σ₃ (⊎-comm σ₂)
+  ... | _ , σ₄ , σ₅ = lift (frag ((snd px) RawSep.×⟨ ⊎-idˡ , σ₃ ⟩ qx) σ₄) σ₂
+
+  expell : ∀ {p q} {P : Pred A p} {Q : Pred (A × A) q} →
+           ∀[ ● (P ◑ Q) ⇒ J P ✴ ● Q ]
+  expell (lift (frag (snd px ×⟨ τ₁ , τ₂ ⟩ qx) σ) k) with ⊎-id⁻ˡ τ₁
+  ... | refl with ⊎-unassoc k τ₂
+  ... | _ , τ₃ , τ₄ = (inj px) RawSep.×⟨ offerᵣ (⊎-comm τ₃) ⟩ lift qx τ₄
 
 {- Completion preserving updates -}
 module _ {a} {A : Set a} {{r : RawSep A}} {u} {{ s : IsUnitalSep r u }} where

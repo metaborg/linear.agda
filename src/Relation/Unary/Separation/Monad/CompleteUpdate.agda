@@ -29,10 +29,9 @@ module Update where
   ... | ys , zs , σ₄ , k' , px with ⊎-unassoc σ₄ σ₃ 
   ... | _ , σ₅ , σ₆ = updater (app f px (⊎-comm σ₅)) σ₆ k'
 
-  instance
-    ⇥-monad : Monad ⊤ a (λ _ _ → ⇥_)
-    updater (Monad.return ⇥-monad px) fr c = -, -, fr , c , px
-    Monad.bind ⇥-monad = bind'
+  ⇥-monad : Monad ⊤ a (λ _ _ → ⇥_)
+  updater (Monad.return ⇥-monad px) fr c = -, -, fr , c , px
+  Monad.bind ⇥-monad = bind'
 
 {- updates with failure -}
 module UpdateWithFailure where
@@ -43,10 +42,13 @@ module UpdateWithFailure where
   ⇥? : Pt (A × A) a
   ⇥? P = ⇥ (Err P)
 
-  ⇥?-monad : Monad ⊤ a (λ _ _ → ⇥?)
-  Monad.return ⇥?-monad px = return (inj₂ px)
+  instance ⇥?-monad : Monad ⊤ a (λ _ _ → ⇥?)
+  Monad.return ⇥?-monad px = Monad.return Update.⇥-monad (inj₂ px)
   updater (app (Monad.bind ⇥?-monad f) m σ) fr k with ⊎-assoc (⊎-comm σ) fr
   ... | _ , σ₂ , σ₃ with updater m σ₂ k
   ... | _ , _ , τ₁ , τ₂ , inj₁ _ = -, -, fr , k , inj₁ _
   ... | _ , _ , τ₁ , τ₂ , inj₂ v with ⊎-unassoc τ₁ σ₃
   ... | _ , τ₃ , τ₄ = updater (app f v (⊎-comm τ₃)) τ₄ τ₂
+
+  ⇥error : ∀ P → ∀[ ⇥? P ] 
+  updater (⇥error _) fr k = -, -, fr , k , inj₁ _

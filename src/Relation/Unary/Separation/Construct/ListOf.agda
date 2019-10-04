@@ -81,3 +81,7 @@ instance
   list-positive : IsPositive splits
   list-positive = record
     { ⊎-εˡ = λ where [] → refl }
+
+unspliceᵣ : ∀ {xs ys zs : Carrier} {y} → xs ⊎ (y ∷ ys) ≣ zs → ∃ λ zs₁ → xs ⊎ [ y ] ≣ zs₁ × zs₁ ⊎ ys ≣ zs
+unspliceᵣ σ with ⊎-unassoc σ (⊎-∙ {Φₗ = [ _ ]})
+... | _ , σ₁ , σ₂ = -, σ₁ , σ₂
