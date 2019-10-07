@@ -119,42 +119,43 @@ module _ {a} {A : Set a} {{r : RawSep A}} {u} {{ s : IsUnitalSep r u }} where
   open import Relation.Unary.Separation.Construct.Product
   open Morphism (market A)
 
-  data _◑_ {p q} (P : Pred A p) (Q : Pred (A × A) q) : Pred (A × A) (a ⊔ p ⊔ q) where
-    frag : ∀ {Φ Φₗ} → (pr : (Π₂ P ✴ Q) Φ) → (proj₂ (Conj.Φₗ pr)) ⊎ Φₗ ≣ (proj₁ (Conj.Φᵣ pr))  → (P ◑ Q) Φ
-    -- ∀ {d₁ d₂ d o₁ o₂} → P d₁ → d₁ ⊎ d₂ ≣ d → d₁ ⊎ o₂ ≣ o₁ → Q (o₁ , d₂) → (P ◑ Q) (o₂ , d)
+  record _◑_ {p q} (P : Pred A p) (Q : Pred (A × A) q) (Φ : A × A) : Set (a ⊔ p ⊔ q) where
+    constructor _◑⟨_⟩_
+    field
+      {Φp Φq} : _
+      px  : P Φp
+      inc : proj₁ Φ ⊎ Φp ≣ Φq
+      qx  : Q (Φq , proj₂ Φ)
 
-  ◑-grow : ∀ {p q₁ q₂} → {P : Pred A p} {Q₁ : Pred (A × A) q₁} {Q₂ : Pred (A × A) q₂} →
-           ∀[ (P ◑ Q₁) ✴ Q₂ ⇒ P ◑ (Q₁ ✴ Q₂) ]
-  ◑-grow (frag (px ×⟨ τ ⟩ qx) σ ×⟨ σ₂ ⟩ qx₂) with ⊎-assoc τ σ₂
-  ... | _ , τ₁ , τ₂ with ⊎-assoc σ (proj₁ τ₂)
-  ... | _ , τ₃ , τ₄ = frag (px ×⟨ τ₁ ⟩ (qx ×⟨ τ₂ ⟩ qx₂)) τ₃
+  -- the following cannot be proven unfortunately
+  -- _ : ∀[ (P ◑ Q₁) ✴ Q₂ ⇒ P ◑ (Q₁ ✴ Q₂) ]
 
   absorb : ∀ {p q} {P : Pred A p} {Q : Pred (A × A) q} →
            ∀[ P ⇒ⱼ ● Q ─✴ ● (P ◑ Q) ]
   app (absorb px) (lift qx k) (offerᵣ σ) with ⊎-assoc (⊎-comm σ) k
-  ... | _ , σ₂ , σ₃ with ⊎-assoc σ₃ (⊎-comm σ₂)
-  ... | _ , σ₄ , σ₅ = lift (frag ((snd px) RawSep.×⟨ ⊎-idˡ , σ₃ ⟩ qx) σ₄) σ₂
+  ... | _ , σ₂ , σ₃ with ⊎-unassoc σ₂ (⊎-comm σ₃)
+  ... | _ , σ₄ , σ₅ = lift (px ◑⟨ σ₅ ⟩ qx) σ₄
 
   expell : ∀ {p q} {P : Pred A p} {Q : Pred (A × A) q} →
            ∀[ ● (P ◑ Q) ⇒ J P ✴ ● Q ]
-  expell (lift (frag (snd px ×⟨ τ₁ , τ₂ ⟩ qx) σ) k) with ⊎-id⁻ˡ τ₁
-  ... | refl with ⊎-unassoc k τ₂
-  ... | _ , τ₃ , τ₄ = (inj px) RawSep.×⟨ offerᵣ (⊎-comm τ₃) ⟩ lift qx τ₄
+  expell (lift (px ◑⟨ τ₁ ⟩ qx) k) with ⊎-unassoc (⊎-comm τ₁) k
+  ... | _ , τ₃ , τ₄ = (inj px) ×⟨ offerᵣ τ₃ ⟩ (lift qx τ₄)
 
 {- Completion preserving updates -}
 module _ {a} {A : Set a} {{r : RawSep A}} {u} {{ s : IsUnitalSep r u }} where
 
   open import Relation.Unary.Separation.Construct.Product
 
-  record ⇥_ {p} (P : Pred (A × A) p) (Φᵢ : A × A) : Set (a ⊔ p) where
+  record ⟰_ {p} (P : Pred (A × A) p) (Φᵢ : A × A) : Set (a ⊔ p) where
     field
-      updater : ∀ {Φⱼ Φₖ as} →
-                Φᵢ ⊎ Φⱼ ≣ Φₖ → [ as ]Completes Φₖ →
-                ∃₂ λ Φₗ Φ → Φₗ ⊎ Φⱼ ≣ Φ × [ as ]Completes Φ × P Φₗ
-  open ⇥_ public
+      updater : ∀ {Φⱼ Φₖ} →
+                Φᵢ ⊎ Φⱼ ≣ (Φₖ , Φₖ) →
+                ∃₂ λ Φₗ Φ → Φₗ ⊎ Φⱼ ≣ (Φ , Φ) × P Φₗ
+  open ⟰_ public
 
   ●-update : ∀ {p q} {P : Pred (A × A) p} {Q : Pred (A × A) q} →
-           ∀[ ○ (P ─✴ ⇥ Q) ⇒ ● P ─✴ ● Q ]
+             ∀[ ○ (P ─✴ ⟰ Q) ⇒ ● P ─✴ ● Q ]
   app (●-update (lift f)) (lift px σ₁) (offerᵣ σ₂) with ⊎-assoc (⊎-comm σ₂) σ₁
-  ... | _ , σ₃ , σ₄ with updater (app f px (⊎-idˡ , σ₄)) ⊎-idʳ σ₃
-  ... | _ , _ , σ₅ , σ₆ , qx rewrite ⊎-id⁻ʳ σ₅ = lift qx σ₆
+  ... | _ , σ₃ , σ₄ with updater (app f px (⊎-idˡ , σ₄)) (⊎-idʳ , ⊎-comm σ₃)
+  ... | _ , _ , (σ₅ , σ₆) , qx with ⊎-id⁻ʳ σ₅
+  ... | refl = lift qx (⊎-comm σ₆)
