@@ -55,5 +55,5 @@ module StateMonad {ℓ}
   {{r : RawSep C}}
   {{s : IsUnitalSep r u}} where
 
-  open import Relation.Unary.Separation.Monad.Identity
+  open import Relation.Unary.Separation.Monad.Identity public
   open StateTransformer {C = C} Identity.Id public
