@@ -42,19 +42,16 @@ module _ where
   module Idm = Morphism jm
 
   {- A specification of the update we are performing -}
-  the-update : ∀ {x} {ys} {zs : List (SType × SType)} → [ endp x ] ⊎ ys ≣ ⟦ zs ⟧ →
-               ∀ y → ∃ λ zs' → [ endp y ] ⊎ ys ≣ ⟦ zs' ⟧
-  the-update {zs = []} ()
-  the-update {zs = (_ , r) ∷ zs} (divide lr s) α = (α , r) ∷ zs , divide lr s
-  the-update {zs = (l , _) ∷ zs} (divide rl s) α = (l , α) ∷ zs , divide rl s
-  the-update {zs = x ∷ zs} (to-right s) α with the-update s α
-  ... | zs' , s' = x ∷ zs' , to-right s'
+  _≔_ : ∀ {x} {ys} {zs : List (SType × SType)} → [ endp x ] ⊎ ys ≣ ⟦ zs ⟧ →
+               SType → List (SType × SType)
+  _≔_ {zs = (_ , r) ∷ zs} (divide lr s) α = (α , r) ∷ zs
+  _≔_ {zs = (l , _) ∷ zs} (divide rl s) α = (l , α) ∷ zs
+  _≔_ {zs = x ∷ zs}       (to-right s)  α = x ∷ (s ≔ α)
 
   -- {- Takes an endpointer and the channel list and updates it using a link action -}
   act : ∀ {P α cs xs c₁ c₂ ds} →
         (ptr : [ endp α ] ⊎ ds ≣ ⟦ xs ⟧) → (Action α β P) c₁ → c₁ ⊎ c₂ ≣ cs →
-        let xs' = proj₁ (the-update ptr β) in
-        Channels' xs c₂ → Maybe ([ endp β ] ⊎ ds ≣ ⟦ xs' ⟧ × (P ✴ Channels' xs') cs)
+        Channels' xs c₂ → Maybe ([ endp β ] ⊎ ds ≣ ⟦ ptr ≔ β ⟧ × (P ✴ Channels' (ptr ≔ β)) cs)
 
   act {xs = x ∷ xs} (divide lr ptr) f σ (l :⟨ τ ⟩: chs) with ⊎-unassoc σ τ
   ... | _ , τ₂ , τ₃ with app (f _) l τ₂
