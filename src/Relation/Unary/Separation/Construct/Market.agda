@@ -147,6 +147,7 @@ module _ {a} {A : Set a} {{r : RawSep A}} {u} {{ s : IsUnitalSep r u }} where
   open import Relation.Unary.Separation.Construct.Product
 
   record ⟰_ {p} (P : Pred (A × A) p) (Φᵢ : A × A) : Set (a ⊔ p) where
+    constructor complete
     field
       updater : ∀ {Φⱼ Φₖ} →
                 Φᵢ ⊎ Φⱼ ≣ (Φₖ , Φₖ) →
