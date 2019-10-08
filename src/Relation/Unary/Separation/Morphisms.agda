@@ -10,15 +10,13 @@ open import Function using (_∘_)
 
 record Morphism {a b} (A : Set a) (B : Set b)
   {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}}
-  {{rb}} {{bs : IsSep rb}} : Set (a ⊔ suc b) where
+  {{rb : RawSep B}} : Set (a ⊔ suc b) where
 
   field
     j      : A → B
     j-map  : ∀ {Φ₁ Φ₂ Φ} → Φ₁ ⊎ Φ₂ ≣ Φ → j Φ₁ ⊎ j Φ₂ ≣ j Φ
     j-⊎    : ∀ {Φ₁ Φ₂ Φ} → j Φ₁ ⊎ j Φ₂ ≣ Φ → ∃ λ Φ' → Φ ≡ j Φ'
     j-map⁻ : ∀ {Φ₁ Φ₂ Φ} → j Φ₁ ⊎ j Φ₂ ≣ j Φ → Φ₁ ⊎ Φ₂ ≣ Φ
-
-    overlap {{j-unital}} : IsUnitalSep rb (j u) 
 
   instance _ = s₁
 

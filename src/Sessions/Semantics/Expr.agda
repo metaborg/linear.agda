@@ -7,18 +7,22 @@ open import Relation.Unary.PredicateTransformer hiding (_⊔_)
 open import Relation.Unary.Separation.Morphisms
 open import Relation.Unary.Separation.Monad
 open import Relation.Unary.Separation.Monad.Reader
-import Relation.Unary.Separation.Construct.List as List
+open import Relation.Unary.Separation.Construct.List
 
 open import Sessions.Syntax.Types
 open import Sessions.Syntax.Values
 open import Sessions.Syntax.Expr
 open import Sessions.Semantics.Commands
+open import Sessions.Semantics.Runtime
 
 open import Relation.Unary.Separation.Monad.Free Cmd δ
 
-open Reader {{ s = record { Carrier = SCtx } }} id-morph Val Free renaming (Reader to M)
+open Reader id-morph Val Free renaming (Reader to M)
 open Monads using (Monad; str)
 open Monad reader-monad
+
+Thread : Type → Pred SCtx _
+Thread a = Free (Val a)
 
 {-# TERMINATING #-}
 mutual

@@ -32,3 +32,4 @@ instance
   app (Monad.bind err-monad f) (partial (inj₂ y)) σ  = app f y σ
 
 pattern error = partial (inj₁ tt)
+pattern ✓ x   = partial (inj₂ x)

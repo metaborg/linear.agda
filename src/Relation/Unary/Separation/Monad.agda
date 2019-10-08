@@ -9,10 +9,11 @@ open import Relation.Unary.Separation.Morphisms
 open import Relation.Binary.PropositionalEquality
 
 module Monads
-  {a b} {A : Set a}  {{r}} {u}
+  {a b} {A : Set a}  {B : Set b} {{r}} {u}
   {{as : IsUnitalSep {C = A} r u}}
-  {B : Set b} {{rb}} {{bs : IsSep rb}}
+  {{rb : RawSep B}}
   {{j : Morphism A B}}
+  {{bs : IsUnitalSep rb (Morphism.j j u)}}
   where
 
   open Morphism j
@@ -27,7 +28,7 @@ module Monads
       bind   : ∀ {P i₁ i₂ i₃ Q} → ∀[ (P ─✴ⱼ M i₂ i₃ Q) ⇒ⱼ (M i₁ i₂ P ─✴ M i₁ i₃ Q) ]
 
     _=<<_ : ∀ {P Q i₁ i₂ i₃} → ∀[ P ⇒ⱼ M i₂ i₃ Q ] → ∀[ M i₁ i₂ P ⇒ M i₁ i₃ Q ]
-    f =<< mp = app (bind (wand λ px σ → case ⊎-id⁻ˡ σ of λ where refl → f px)) mp ⊎-idˡ  
+    f =<< mp = app (bind (wand λ px σ → case ⊎-id⁻ˡ σ of λ where refl → f px)) mp ⊎-idˡ
 
     _>>=_ : ∀ {Φ} {P Q i₁ i₂ i₃} → M i₁ i₂ P Φ → ∀[ P ⇒ⱼ M i₂ i₃ Q ] → M i₁ i₃ Q Φ
     mp >>= f = f =<< mp

@@ -23,26 +23,26 @@ private
 
 {- Something not unlike a indexed relative monad transformer in a bicartesian closed category -}
 module Reader {ℓ}
-  {T : Set ℓ}           -- types
-  {{m : MonoidalSep ℓ}} -- runtime resource
-  {{s : Separation ℓ}}
-  (j : Morphism (MonoidalSep.Carrier m) (Separation.Carrier s))
-  (V : T → Pred (MonoidalSep.Carrier m) ℓ) -- values
-  (M : PT (MonoidalSep.Carrier m) (Separation.Carrier s) ℓ ℓ)
+  -- types
+  {T : Set ℓ}
+  -- runtime resource
+  {C : Set ℓ} {{rc : RawSep C}} {u} {{sc : IsUnitalSep rc u}} {{cc : IsConcattative rc}}
+  --
+  {B : Set ℓ} {{rb : RawSep B}}
+  (j : Morphism C B) {{sb : IsUnitalSep rb (Morphism.j j u)}}
+  (V : T → Pred C ℓ) -- values
+  (M : PT C B ℓ ℓ)
   where
 
   open Monads {{j = j}} using (Monad; str)
-  open Morphism j public hiding (j)
   
   module _ {{monad : Monad ⊤ ℓ (λ _ _ → M) }} where
-    open MonoidalSep m using () renaming (Carrier to C)
-    open Separation s using () renaming (Carrier to B)
+    open Morphism j hiding (j) public
     open Monad monad
 
     variable
       P Q R : Pred C ℓ
 
-    -- TODO use strength for framing instead of indexed
     Reader : ∀ (Γ₁ Γ₂ : List T) (P : Pred C ℓ) → Pred B ℓ
     Reader Γ₁ Γ₂ P = J (Allstar V Γ₁) ─✴ M (P ✴ Allstar V Γ₂)
 

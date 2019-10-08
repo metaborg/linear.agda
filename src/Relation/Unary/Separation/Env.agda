@@ -1,7 +1,10 @@
 open import Relation.Unary.Separation
 
 module Relation.Unary.Separation.Env 
-  {t v ℓ₁} {T : Set t} ⦃ m : MonoidalSep ℓ₁ ⦄ {V : T → MonoidalSep.Carrier m → Set v} where
+  {t v ℓ₁}
+  {T : Set t}
+  {C : Set ℓ₁} {{rc : RawSep C}} {u} {{sc : IsUnitalSep rc u}} {{cc : IsConcattative rc}}
+  {V : T → C → Set v} where
 
 open import Data.Product
 open import Data.List

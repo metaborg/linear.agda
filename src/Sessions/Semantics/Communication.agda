@@ -66,6 +66,7 @@ module _ where
 
 module _ where
   open StateTransformer {C = RCtx} Err
+  open Monads.Monad (state-monad {St = Channels})
 
   {- Updating a single link based on a pointer to one of its endpoints -}
   operate : ∀ {P} → ∀[ Action α β P ⇒ Endptr α ─✴ⱼ State (Channels) (P ✴ Endptr β) ]
@@ -86,16 +87,18 @@ module _ where
   receive? ptr = app (operate (λ i → wandit recvₗ)) ptr ⊎-idˡ
 
   {- Putting a value in a ready-to-send endpoint -}
-  send! : ∀[ Endptr (a ! β) ⇒ CVal a ─✴ⱼ State Channels (Emp ✴ Endptr β) ]
-  app (send! {a = a} ptr) v σ = app (operate sender) ptr (⊎-comm σ)
-    where
-      open Monads.Monad err-monad
+  send! : ∀[ Endptr (a ! β) ⇒ CVal a ─✴ⱼ State Channels (Endptr β) ]
+  app (send! {a = a} ptr) v σ = do
+    empty ×⟨ σ ⟩ ptr ← app (operate sender) ptr (⊎-comm σ)
+    case ⊎-id⁻ˡ σ of λ where
+      refl → return ptr
 
+    where
       -- this closes over the resource contained in v
       sender : Action (a ! γ) γ Emp _
       app (sender _) l σ =
         let l' = send-into (v ×⟨ σ ⟩ revLink l)
-        in return (empty ×⟨ ⊎-idˡ ⟩ (revLink l'))
+        in ✓ (empty ×⟨ ⊎-idˡ ⟩ (revLink l'))
 
 module _ where
   open StateMonad {C = RCtx}
