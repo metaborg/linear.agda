@@ -1,6 +1,6 @@
 module Sessions.Semantics.Runtime where
 
-open import Prelude hiding (_∷ʳ_; lift; Lift)
+open import Prelude
 import Data.List as L
 
 open import Relation.Unary hiding (Empty; _∈_)
@@ -19,7 +19,6 @@ open import Relation.Unary.Separation.Monad
 open import Relation.Unary.Separation.Monad.Error
 open import Relation.Unary.Separation.Monad.State
 
-open import Relation.Unary.Separation.Construct.ListOf Runtype
 open StateTransformer {C = RCtx} Err
 
 private
@@ -29,7 +28,7 @@ private
 module _ where
   data _⇜_ : SType → SType → Pred RCtx 0ℓ where
     emp  : ∀ {α} → (α ⇜ α) ε
-    cons : ∀ {a} → ∀[ CVal a ✴ (β ⇜ γ) ⇒ ((a ¿ β) ⇜ γ) ]
+    cons : ∀ {a} → ∀[ Val a ✴ (β ⇜ γ) ⇒ ((a ¿ β) ⇜ γ) ]
 
   _⇝_ = flip _⇜_
 
@@ -48,23 +47,23 @@ module _ where
   revLink : ∀[ Link α γ ⇒ Link γ α ]
   revLink (link refl buffers) = link (sym dual-involutive) (✴-swap buffers)
 
-  push : ∀[ CVal a ✴ γ ⇜ (a ¿ β) ⇒ γ ⇜ β ]
+  push : ∀[ Val a ✴ γ ⇜ (a ¿ β) ⇒ γ ⇜ β ]
   push (v ×⟨ σ₁ ⟩ emp) = cons (v ×⟨ σ₁ ⟩ emp)
   push (v ×⟨ σ₁ ⟩ cons (w ×⟨ σ₂ ⟩ b)) with ⊎-assoc σ₂ (⊎-comm σ₁)
   ... | _ , σ₃ , σ₄ with push (v ×⟨ ⊎-comm σ₄ ⟩ b)
   ... | b' = cons (w ×⟨ σ₃ ⟩ b')
 
-  send-into : ∀[ CVal a ✴ Link α (a ! β) ⇒ Link α β ]
+  send-into : ∀[ Val a ✴ Link α (a ! β) ⇒ Link α β ]
   send-into (v ×⟨ σ ⟩ link {x ¿ β₁} refl (px ×⟨ σ₁ ⟩ emp)) rewrite ⊎-id⁻ʳ σ₁ =
     link refl ((push (v ×⟨ σ ⟩ px)) ×⟨ ⊎-idʳ ⟩ emp)
 
-  recvₗ : ∀[ Link (a ¿ β) γ ⇒ Err (CVal a ✴ Link β γ) ]
+  recvₗ : ∀[ Link (a ¿ β) γ ⇒ Err (Val a ✴ Link β γ) ]
   recvₗ c@(link refl (emp ×⟨ _ ⟩ _)) = error
   recvₗ (link refl (cons (v ×⟨ σ₁ ⟩ bₗ) ×⟨ σ₂ ⟩ bᵣ)) =
     let _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂
     in return (v ×⟨ σ₃ ⟩ (link refl (bₗ ×⟨ σ₄ ⟩ bᵣ)))
 
-  recvᵣ : ∀[ Link γ (a ¿ β) ⇒ Err (CVal a ✴ Link γ β) ]
+  recvᵣ : ∀[ Link γ (a ¿ β) ⇒ Err (Val a ✴ Link γ β) ]
   recvᵣ l = do
     v ×⟨ σ ⟩ l' ← recvₗ (revLink l)
     return (v ×⟨ σ ⟩ revLink l')

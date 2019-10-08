@@ -1,6 +1,6 @@
 module Sessions.Semantics.Communication where
 
-open import Prelude hiding (_∷ʳ_; lift; Lift)
+open import Prelude
 open import Data.Maybe
 open import Data.List.Relation.Ternary.Interleaving
 open import Data.List.Relation.Ternary.Interleaving.Propositional
@@ -24,8 +24,6 @@ open import Sessions.Syntax.Values
 open import Sessions.Syntax.Expr
 open import Sessions.Semantics.Commands
 open import Sessions.Semantics.Runtime
-
-open import Relation.Unary.Separation.Construct.ListOf Runtype
 
 {- Type of actions on a link -}
 private
@@ -70,7 +68,7 @@ module _ where
 
   {- Updating a single link based on a pointer to one of its endpoints -}
   operate : ∀ {P} → ∀[ Action α β P ⇒ Endptr α ─✴ⱼ State (Channels) (P ✴ Endptr β) ]
-  app (app (operate f) point σ₁) (lift (channels chs) k) (offerᵣ σ₂) with ⊎-assoc σ₂ k
+  app (app (operate f) refl σ₁) (lift (channels chs) k) (offerᵣ σ₂) with ⊎-assoc σ₂ k
   ... | _ , σ₃ , σ₄ with ⊎-assoc (⊎-comm σ₁) σ₃
   ... | _ , σ₅ , σ₆ with ⊎-unassoc σ₆ (⊎-comm σ₄)
   ... | _ , σ₇ , σ₈ with app (act σ₅ f) chs σ₇
@@ -80,14 +78,14 @@ module _ where
   ... | _ , τ₁ , τ₂ with ⊎-unassoc τ₁ τ
   ... | _ , τ₃ , τ₄ with ⊎-assoc (⊎-comm τ₄) τ₂
   ... | _ , τ₅ , eureka =
-    partial (inj₂ (inj (px ×⟨ ⊎-comm τ₃ ⟩ point) ×⟨ offerᵣ eureka ⟩ lift (channels chs') (⊎-comm τ₅)))
+    partial (inj₂ (inj (px ×⟨ ⊎-comm τ₃ ⟩ refl) ×⟨ offerᵣ eureka ⟩ lift (channels chs') (⊎-comm τ₅)))
 
   {- Getting a value from a ready-to-receive endpoint -}
-  receive? : ∀[ Endptr (a ¿ β) ⇒ⱼ State Channels (CVal a ✴ Endptr β) ]
+  receive? : ∀[ Endptr (a ¿ β) ⇒ⱼ State Channels (Val a ✴ Endptr β) ]
   receive? ptr = app (operate (λ i → wandit recvₗ)) ptr ⊎-idˡ
 
   {- Putting a value in a ready-to-send endpoint -}
-  send! : ∀[ Endptr (a ! β) ⇒ CVal a ─✴ⱼ State Channels (Endptr β) ]
+  send! : ∀[ Endptr (a ! β) ⇒ Val a ─✴ⱼ State Channels (Endptr β) ]
   app (send! {a = a} ptr) v σ = do
     empty ×⟨ σ ⟩ ptr ← app (operate sender) ptr (⊎-comm σ)
     case ⊎-id⁻ˡ σ of λ where
@@ -106,6 +104,6 @@ module _ where
   newChan : ε[ State Channels (Endptr α ✴ Endptr (α ⁻¹)) ]
   app newChan (lift (channels chs) k) σ with ⊎-id⁻ˡ σ
   ... | refl = (
-   (inj (point ×⟨ divide lr ⊎-idˡ ⟩ point))
+   (inj (refl ×⟨ divide lr ⊎-idˡ ⟩ refl))
       ×⟨ offerᵣ ⊎-∙ ⟩
    lift (channels (cons (emptyLink ×⟨ ⊎-idˡ ⟩ chs))) (⊎-∙ₗ k)) 

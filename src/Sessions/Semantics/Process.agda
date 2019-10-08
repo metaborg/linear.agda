@@ -20,14 +20,13 @@ open import Relation.Unary.Separation.Monad
 open import Sessions.Syntax.Types
 open import Sessions.Syntax.Values
 open import Sessions.Syntax.Expr
-open import Relation.Unary.Separation.Monad.Free
 
 open import Sessions.Semantics.Commands
 open import Sessions.Semantics.Runtime
 open import Sessions.Semantics.Communication
 open import Sessions.Semantics.Expr using () renaming (Thread to Thread′)
+open import Relation.Unary.Separation.Monad.Free Cmd δ
 
-open import Relation.Unary.Separation.Construct.ListOf Runtype
 open import Relation.Unary.Separation.Monad.State
 open import Relation.Unary.Separation.Monad.Error
 open import Relation.Binary.PropositionalEquality
@@ -38,7 +37,7 @@ open StateTransformer {C = RCtx} Err using ()
 
 {- Thread pools -}
 data Thread : Pred _ 0ℓ where
-  thread : ∀ {a Φ} → Thread′ a Φ → Thread (List.map endp Φ)
+  thread : ∀ {a Φ} → Thread′ a Φ → Thread Φ
 
 Pool : Pred RCtx 0ℓ
 Pool = Bigstar Thread 
@@ -64,10 +63,10 @@ module _ where
   step (thread (pure v))   = do
     return (thread (pure v))
 
-  step (thread (impure (send (ch ×⟨ σ ⟩ v) ×⟨ σ₁ ⟩ κ))) = do
-    ptr ← app (str {Q = Client {!Cont _ _ _ (Val _)!}} (client κ))
-      (liftComm (app (send! (client ch)) (client v) (from-interleaving σ) ))
-      (demand (⊎-comm (from-interleaving σ₁)))
+  step (thread (impure (send args@(ch ×⟨ σ ⟩ v) ×⟨ σ₁ ⟩ κ))) = do
+    ptr ← app (str {Q = Cont (send args) (Val _)} κ)
+      (liftComm (app (send! ch) v σ ))
+      (demand (⊎-comm σ₁))
     {!!}
 
   step (thread (impure (receive x ×⟨ σ₁ ⟩ κ))) = {!!}
@@ -86,13 +85,14 @@ module _ where
 
   {- Select the next thread that is not done, or return the pool unchanged if none exist -}
   next : ∀[ Pool ⇒ (Pool ∪ (Thread ✴ Pool)) ]
-  next emp                = inj₁ emp
+  next emp = inj₁ emp
   next pool@(cons (th@(thread (pure v)) ×⟨ σ ⟩ thrs)) with next thrs
-  ... | inj₁ _                   = inj₁ pool
+  ... | inj₁ _ = inj₁ pool
   ... | inj₂ (thr ×⟨ σ₂ ⟩ thrs') with ⊎-unassoc σ (⊎-comm σ₂)
   ... | _ , σ₃ , σ₄ = inj₂ (thr ×⟨ ⊎-comm σ₄ ⟩ cons (th ×⟨ σ₃ ⟩ thrs'))
   next (cons pr@(thread (impure x) ×⟨ _ ⟩ _)) = inj₂ pr
 
+  {- Run a pool of threads until all have terminated -}
   {-# NON_TERMINATING #-}
   run : ∀[ Pool ⇒ⱼ M Pool ] 
   run pool = do

@@ -1,4 +1,4 @@
-module Relation.Unary.Separation.Construct.List {a} {A : Set a} where
+module Relation.Unary.Separation.Construct.List {a} (A : Set a) where
 
 open import Level
 open import Data.Product
@@ -59,40 +59,3 @@ list-resource = record
 instance list-positive : IsPositive separation
 list-positive = record
   { ⊎-εˡ = λ where [] → refl }
-
-{- We can split All P xs over a split of xs -}
-module All {v} {V : A → Set v} where
-
-  open import Data.List.All
-
-  all-split : ∀ {Γ₁ Γ₂ Γ} → Γ₁ ⊎ Γ₂ ≣ Γ → All V Γ → All V Γ₁ × All V Γ₂
-  all-split [] [] = [] , []
-  all-split (consˡ s) (px ∷ vs) = let xs , ys = all-split s vs in px ∷ xs , ys
-  all-split (consʳ s) (px ∷ vs) = let xs , ys = all-split s vs in xs , px ∷ ys
-
-
-{- Useful predicates -}
-module _ where
-
-  Just : A → Pred (List A) a
-  Just t = Exactly (t ∷ ε)
-
-  -- Membership
-  _∈_ : A → Pred (List A) a
-  a ∈ as = [ a ] ≤ as
-
-module _ {b} {B : Set b} {{r : RawSep B}} {u} {{s : IsUnitalSep r u}} where
-
-  repartition : ∀ {p} {P : A → Pred B p} {Σ₁ Σ₂ Σ : List A} →
-                Σ₁ ⊎ Σ₂ ≣ Σ → ∀[ Allstar P Σ ⇒ Allstar P Σ₁ ✴ Allstar P Σ₂ ]
-  repartition [] nil   = nil ×⟨ ⊎-idˡ ⟩ nil
-  repartition (consˡ σ) (cons (a ×⟨ σ′ ⟩ qx)) = 
-    let
-      xs ×⟨ σ′′ ⟩ ys = repartition σ qx
-      _ , τ₁ , τ₂    = ⊎-unassoc σ′ σ′′
-    in (cons (a ×⟨ τ₁ ⟩ xs)) ×⟨ τ₂ ⟩ ys
-  repartition (consʳ σ) (cons (a ×⟨ σ′ ⟩ qx)) =
-    let
-      xs ×⟨ σ′′ ⟩ ys = repartition σ qx
-      _ , τ₁ , τ₂    = ⊎-unassoc σ′ (⊎-comm σ′′)
-    in xs ×⟨ ⊎-comm τ₂ ⟩ (cons (a ×⟨ τ₁ ⟩ ys))

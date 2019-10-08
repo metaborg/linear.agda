@@ -7,7 +7,6 @@ open import Relation.Unary.PredicateTransformer hiding (_⊔_)
 open import Relation.Unary.Separation.Morphisms
 open import Relation.Unary.Separation.Monad
 open import Relation.Unary.Separation.Monad.Reader
-open import Relation.Unary.Separation.Construct.List
 
 open import Sessions.Syntax.Types
 open import Sessions.Syntax.Values
@@ -15,21 +14,22 @@ open import Sessions.Syntax.Expr
 open import Sessions.Semantics.Commands
 open import Sessions.Semantics.Runtime
 
+open import Relation.Unary.Separation.Construct.List Type
 open import Relation.Unary.Separation.Monad.Free Cmd δ
 
 open Reader id-morph Val Free renaming (Reader to M)
 open Monads using (Monad; str)
 open Monad reader-monad
 
-Thread : Type → Pred SCtx _
+Thread : Type → Pred RCtx _
 Thread a = Free (Val a)
 
 {-# TERMINATING #-}
 mutual
   eval⊸ : ∀ {Γ} → Exp (a ⊸ b) Γ → ∀[ Val a ⇒ⱼ M Γ [] (Val b) ]
   eval⊸ e v = do
-    clos e env ×⟨ σ₂ ⟩ v ← app (str v) (eval e) ⊎-idʳ
-    empty                ← append (cons (v ×⟨ ⊎-comm σ₂ ⟩ env))
+    (clos e env) ×⟨ σ₂ ⟩ v ← app (str v) (eval e) ⊎-idʳ
+    empty                  ← append (cons (v ×⟨ ⊎-comm σ₂ ⟩ env))
     eval e
 
   eval : Exp a Γ → ε[ M Γ [] (Val a) ]

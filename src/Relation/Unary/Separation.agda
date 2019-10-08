@@ -25,6 +25,15 @@ open import Algebra.FunctionProperties.Core
 ∥_∥ : ∀ {ℓ a} {A : Set a} {P : Pred A ℓ} {Φ} → P Φ → A
 ∥_∥ {Φ = Φ} _ = Φ
 
+Exactly : ∀ {a} {A : Set a} → A → Pred A a
+Exactly x y = y ≡ x
+
+module _ where
+  open import Data.List
+
+  Just : ∀ {a} {A : Set a} → A → Pred (List A) _
+  Just t = Exactly [ t ]
+
 record RawSep {a} (Carrier : Set a) : Set (suc a) where
 
   SPred : (ℓ : Level) → Set _
@@ -183,6 +192,11 @@ record IsSep {ℓ₁} {A} (s : RawSep {ℓ₁} A) : Set ℓ₁ where
     ≤-trans (τ₁ , Φ₁⊎τ₁=Φ₂) (τ₂ , Φ₂⊎τ₂=Φ₃) =
       let τ₃ , p , q = ⊎-assoc Φ₁⊎τ₁=Φ₂ Φ₂⊎τ₂=Φ₃ in τ₃ , p
 
+  module _ where
+    -- disjointness
+    _◆_ : _ → _ → SPred _
+    Φₗ ◆ Φᵣ = Exactly Φₗ ✴ Exactly Φᵣ
+
 record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
   field
     overlap {{ isSep }}  : IsSep sep
@@ -207,16 +221,6 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
   ε[_] : ∀ {ℓ} → Pred C ℓ → Set ℓ
   ε[ P ] = P ε
 
-  {- the box type former -}
-  module _ where
-
-    Exactly : C → SPred c
-    Exactly = flip _≡_
-
-    -- disjointness
-    _◆_ : C → C → SPred c
-    Φₗ ◆ Φᵣ = Exactly Φₗ ✴ Exactly Φᵣ
-
   {- Emptyness -}
   module _ where
   
@@ -235,45 +239,6 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
       emp  : ε[ Bigstar P ]
       cons : ∀[ P ✴ Bigstar P ⇒ Bigstar P ]
     
-  {- Inductive separating forall over a list -}
-  module _ {i ℓ} {I : Set i} where
-    open import Data.List
-    data Allstar (P : I → SPred ℓ) : List I → SPred (ℓ ⊔ c ⊔ i) where
-      nil  :            ε[ Allstar P [] ]
-      cons : ∀ {x xs} → ∀[ P x ✴ Allstar P xs ⇒ Allstar P (x ∷ xs) ]
-
-    -- not typed well..
-    infixr 5 _:⟨_⟩:_
-    pattern _:⟨_⟩:_ x p xs = cons (x ×⟨ p ⟩ xs)
-
-  module _ where
-
-    open import Data.List
-
-    -- a variant of ✴ with strict ordering
-    record _✴>_ {p q} (P : List C → Set p) (Q : List C → Set q) Φ : Set (p ⊔ q ⊔ c) where
-      inductive
-      constructor _×⟨_⟩_
-      field
-        {Φₗ Φᵣ} : List C
-
-        px  : P Φₗ
-        con : Φₗ ++ Φᵣ ≡ Φ
-        qx  : Q Φᵣ
-
-  {- Inductive separating forall over a list separating with ++; 
-     watch the green slime, use with care. -}
-  module _ {i ℓ} {I : Set i} where
-    open import Data.List
-    data Elstar (P : List I → SPred ℓ) : List I → SPred (ℓ ⊔ c ⊔ i) where
-      nil  :             ε[ Elstar P [] ]
-      cons : ∀ {xs ys zs} → xs ++ ys ≡ zs → ∀[ P xs ✴ Elstar P ys ⇒ Elstar P zs ]
-
-  module _ {i ℓ} {I : Set i} {P : I → SPred ℓ} where
-    open import Data.List
-    singleton : ∀ {x} → ∀[ P x ⇒ Allstar P [ x ] ]
-    singleton v = cons (v ×⟨ ⊎-idʳ ⟩ nil)
-
   module _ where
     ε⊎ε : ∀[ ε ⊎ ε ⇒ Emp ]
     ε⊎ε p with ⊎-id⁻ˡ p

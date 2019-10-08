@@ -8,11 +8,10 @@ open import Relation.Unary.PredicateTransformer hiding (_⊔_)
 open import Relation.Unary.Separation
 open import Relation.Unary.Separation.Morphisms
 open import Relation.Unary.Separation.Monad
-open import Relation.Unary.Separation.Construct.List
-open import Relation.Unary.Separation.Env
+open import Relation.Unary.Separation.Allstar
 
 open import Data.Product
-open import Data.List
+open import Data.List hiding (concat)
 open import Data.Unit
 
 private
@@ -56,9 +55,11 @@ module Reader {ℓ}
             let _ , τ₁ , τ₂ = ⊎-assoc (⊎-comm σ₅) (⊎-comm σ₆)
             in app (app f px (⊎-comm τ₂)) (inj env') (j-map (⊎-comm τ₁)))) (app mp env σ₄) σ₃
 
+    open import Relation.Unary.Separation.Construct.List T
+
     frame : Γ₁ ⊎ Γ₃ ≣ Γ₂ → ∀[ Reader Γ₁ ε P ⇒ Reader Γ₂ Γ₃ P ]
     app (frame sep c) (inj env) σ = do
-      let E₁ ×⟨ σ₁ ⟩ E₂ = env-split sep env
+      let E₁ ×⟨ σ₁ ⟩ E₂ = repartition sep env
       let Φ , σ₂ , σ₃   = ⊎-unassoc σ (j-map σ₁)
       (v ×⟨ σ₄ ⟩ nil) ×⟨ σ₅ ⟩ E₃ ← app (str {Q = Allstar _ _} E₂) (app c (inj E₁) σ₂) (⊎-comm σ₃)
       case ⊎-id⁻ʳ σ₄ of λ where
@@ -70,11 +71,11 @@ module Reader {ℓ}
 
     prepend : ∀[ Allstar V Γ₁ ⇒ⱼ Reader Γ₂ (Γ₁ ∙ Γ₂) Emp ]
     app (prepend env₁) (inj env₂) s with j-⊎ s
-    ... | _ , refl = return (empty ×⟨ ⊎-idˡ ⟩ (env-∙ (env₁ ×⟨ j-map⁻ s ⟩ env₂)))
+    ... | _ , refl = return (empty ×⟨ ⊎-idˡ ⟩ (concat (env₁ ×⟨ j-map⁻ s ⟩ env₂)))
 
     append : ∀[ Allstar V Γ₁ ⇒ⱼ Reader Γ₂ (Γ₂ ∙ Γ₁) Emp ]
     app (append env₁) (inj env₂) s with j-⊎ s
-    ... | _ , refl = return (empty ×⟨ ⊎-idˡ ⟩ (env-∙ (✴-swap (env₁ ×⟨ j-map⁻ s ⟩ env₂))))
+    ... | _ , refl = return (empty ×⟨ ⊎-idˡ ⟩ (concat (✴-swap (env₁ ×⟨ j-map⁻ s ⟩ env₂))))
 
     liftM : ∀[ M P ⇒ Reader Γ Γ P ]
     app (liftM mp) (inj env) σ = do
