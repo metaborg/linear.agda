@@ -43,12 +43,12 @@ module UpdateWithFailure where
   ⟰? P = ⟰ (Err P)
 
   instance ⟰?-monad : Monad ⊤ a (λ _ _ → ⟰?)
-  Monad.return ⟰?-monad px = Monad.return Update.⟰-monad (inj₂ px)
+  Monad.return ⟰?-monad px = Monad.return Update.⟰-monad (return px)
   updater (app (Monad.bind ⟰?-monad f) m σ) fr with ⊎-assoc (⊎-comm σ) fr
   ... | _ , σ₂ , σ₃ with updater m σ₂
-  ... | _ , _ , τ₁ , inj₁ _ = -, -, fr , inj₁ _
-  ... | _ , _ , τ₁ , inj₂ v with ⊎-unassoc τ₁ σ₃
+  ... | _ , _ , τ₁ , error  = -, -, fr , error
+  ... | _ , _ , τ₁ , partial (inj₂ v) with ⊎-unassoc τ₁ σ₃
   ... | _ , τ₃ , τ₄ = updater (app f v (⊎-comm τ₃)) τ₄
 
   ⟰error : ∀ P → ∀[ ⟰? P ] 
-  updater (⟰error _) fr = -, -, fr , inj₁ _
+  updater (⟰error _) fr = -, -, fr , error

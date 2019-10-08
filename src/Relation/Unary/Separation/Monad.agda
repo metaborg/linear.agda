@@ -32,15 +32,13 @@ module Monads
     _>>=_ : ∀ {Φ} {P Q i₁ i₂ i₃} → M i₁ i₂ P Φ → ∀[ P ⇒ⱼ M i₂ i₃ Q ] → M i₁ i₃ Q Φ
     mp >>= f = f =<< mp
 
+    mapM : ∀ {Φ} {P Q i₁ i₂} → M i₁ i₂ P Φ → ∀[ P ⇒ Q ] → M i₁ i₂ Q Φ
+    mapM mp f = mp >>= (return ∘ f)
+
   open Monad ⦃...⦄ public
 
   -- having the internal bind is enough to get strength
-  str : ∀  {i} {I : Set i} {i₁ i₂} {P} {M} {{ _ : Monad I a M }} (Q : Pred A a) →
-        (M i₁ i₂ P ✴ J Q) Φ → M i₁ i₂ (P ✴ Q) Φ
-  str _ (mp ×⟨ σ ⟩ inj qx) =
-    app
-      (bind (wand λ px σ' → return (px ×⟨ ⊎-comm σ' ⟩ qx)))
-      mp
-      (⊎-comm σ)
-
-  syntax str Q mp qx = mp &[ Q ] qx
+  str : ∀  {i} {I : Set i} {i₁ i₂} {P} {M} {{ _ : Monad I a M }} {Q : Pred A a} →
+        ∀[ Q ⇒ⱼ M i₁ i₂ P ─✴ M i₁ i₂ (P ✴ Q) ]
+  app (str qx) mp σ =
+    app (bind (wand λ px σ' → return (px ×⟨ ⊎-comm σ' ⟩ qx))) mp σ
