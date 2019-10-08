@@ -23,7 +23,7 @@ record Err (P : Pred A ℓ) (Φ : A) : Set ℓ where
 
 open Err public
 
-open Monads {{ bs = record { Carrier = A } }} (id-morph A)
+open Monads
 
 instance
   err-monad : Monad ⊤ ℓ (λ _ _ → Err)

@@ -8,8 +8,9 @@ open import Relation.Binary.PropositionalEquality
 open import Data.Product
 open import Function using (_∘_)
 
-record Morphism {a b} {A : Set a} {{r : RawSep A}} {u} (s₁ : IsUnitalSep r u) (s₂ : Separation b) : Set (a ⊔ suc b) where
-  open Separation s₂ using () renaming (Carrier to B)
+record Morphism {a b} (A : Set a) (B : Set b)
+  {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}}
+  {{rb}} {{bs : IsSep rb}} : Set (a ⊔ suc b) where
 
   field
     j      : A → B
@@ -17,7 +18,7 @@ record Morphism {a b} {A : Set a} {{r : RawSep A}} {u} (s₁ : IsUnitalSep r u) 
     j-⊎    : ∀ {Φ₁ Φ₂ Φ} → j Φ₁ ⊎ j Φ₂ ≣ Φ → ∃ λ Φ' → Φ ≡ j Φ'
     j-map⁻ : ∀ {Φ₁ Φ₂ Φ} → j Φ₁ ⊎ j Φ₂ ≣ j Φ → Φ₁ ⊎ Φ₂ ≣ Φ
 
-    overlap {{j-unital}} : IsUnitalSep (Separation.raw s₂) (j u) 
+    overlap {{j-unital}} : IsUnitalSep rb (j u) 
 
   instance _ = s₁
 
@@ -47,9 +48,9 @@ record Morphism {a b} {A : Set a} {{r : RawSep A}} {u} (s₁ : IsUnitalSep r u) 
   wanditⱼ : ∀ {p q} {P : Pred A p} {Q : Pred B q} → ∀[ P ⇒ⱼ Q ] → (P ─✴ⱼ Q) u
   app (wanditⱼ f) px σ rewrite ⊎-id⁻ˡ σ = f px
 
-module _ {a} (A : Set a) {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
+module _ {a} {A : Set a} {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 
-  id-morph : Morphism s₁ (record { Carrier = A })
+  instance id-morph : Morphism A A
   id-morph = record 
     { j = id
     ; j-map = id 

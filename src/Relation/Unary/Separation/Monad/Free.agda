@@ -25,7 +25,7 @@ mutual
     pure   : ∀ {P}   → ∀[ P ⇒ Free P ]
     impure : ∀ {P}   → ∀[ ∃[ Cmd ]✴ (λ c → Cont c P) ⇒ Free P ]
 
-open Monads {{ bs = record { Carrier = A } }} (id-morph A)
+open Monads
 
 instance
   monad : Monad ⊤ ℓ (λ _ _ → Free)

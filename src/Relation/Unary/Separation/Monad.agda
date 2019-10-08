@@ -9,12 +9,12 @@ open import Relation.Unary.Separation.Morphisms
 open import Relation.Binary.PropositionalEquality
 
 module Monads
-  {a b} {A : Set a} {{r}} {u}
-  {{as : IsUnitalSep {C = A} r u}} {{bs : Separation b}}
-  (j : Morphism as bs)
+  {a b} {A : Set a}  {{r}} {u}
+  {{as : IsUnitalSep {C = A} r u}}
+  {B : Set b} {{rb}} {{bs : IsSep rb}}
+  {{j : Morphism A B}}
   where
 
-  open Separation bs using () renaming (Carrier to B)
   open Morphism j
 
   RawMonad : ∀ {i} (I : Set i) → (ℓ : Level) → Set _

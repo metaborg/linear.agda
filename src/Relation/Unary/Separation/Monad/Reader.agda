@@ -26,17 +26,18 @@ module Reader {ℓ}
   {T : Set ℓ}           -- types
   {{m : MonoidalSep ℓ}} -- runtime resource
   {{s : Separation ℓ}}
-  (j : Morphism (MonoidalSep.isUnitalSep m) s)
+  (j : Morphism (MonoidalSep.Carrier m) (Separation.Carrier s))
   (V : T → Pred (MonoidalSep.Carrier m) ℓ) -- values
   (M : PT (MonoidalSep.Carrier m) (Separation.Carrier s) ℓ ℓ)
   where
 
-  open Monads j
+  open Monads {{j = j}} using (Monad; str)
+  open Morphism j public hiding (j)
   
-  module _ {{_ : Monad ⊤ ℓ (λ _ _ → M) }} where
+  module _ {{monad : Monad ⊤ ℓ (λ _ _ → M) }} where
     open MonoidalSep m using () renaming (Carrier to C)
     open Separation s using () renaming (Carrier to B)
-    open Morphism j hiding (j)
+    open Monad monad
 
     variable
       P Q R : Pred C ℓ
@@ -47,7 +48,7 @@ module Reader {ℓ}
 
     instance
       reader-monad : Monad (List T) _ Reader
-      app (Monad.return reader-monad px) e s = str _ (return px ×⟨ s ⟩ e)
+      app (Monad.return reader-monad px) (inj e) s = app (str e) (return px) (⊎-comm s)
       app (app (Monad.bind reader-monad f) mp σ₁) env σ₂ =
         let _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂ in
         app (bind (wand λ where
@@ -59,7 +60,7 @@ module Reader {ℓ}
     app (frame sep c) (inj env) σ = do
       let E₁ ×⟨ σ₁ ⟩ E₂ = env-split sep env
       let Φ , σ₂ , σ₃   = ⊎-unassoc σ (j-map σ₁)
-      (v ×⟨ σ₄ ⟩ nil) ×⟨ σ₅ ⟩ E₃ ← str (Allstar _ _) (app c (inj E₁) σ₂ ×⟨ σ₃ ⟩ inj E₂)
+      (v ×⟨ σ₄ ⟩ nil) ×⟨ σ₅ ⟩ E₃ ← app (str {Q = Allstar _ _} E₂) (app c (inj E₁) σ₂) (⊎-comm σ₃)
       case ⊎-id⁻ʳ σ₄ of λ where
         refl → return (v ×⟨ σ₅ ⟩ E₃)
 
@@ -76,5 +77,5 @@ module Reader {ℓ}
     ... | _ , refl = return (empty ×⟨ ⊎-idˡ ⟩ (env-∙ (✴-swap (env₁ ×⟨ j-map⁻ s ⟩ env₂))))
 
     liftM : ∀[ M P ⇒ Reader Γ Γ P ]
-    app (liftM mp) env σ = do
-      str _ (mp ×⟨ σ ⟩ env)
+    app (liftM mp) (inj env) σ = do
+      app (str env) mp (⊎-comm σ)

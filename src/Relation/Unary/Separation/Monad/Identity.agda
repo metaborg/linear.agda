@@ -28,7 +28,7 @@ module Identity {ℓ}
   Id P = P
 
   instance
-    id-monad : Monad (id-morph _) ⊤ ℓ (λ _ _ → Id)
+    id-monad : Monad ⊤ ℓ (λ _ _ → Id)
     Monad.return id-monad = id
     app (Monad.bind id-monad f) px = app f px
 

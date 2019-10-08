@@ -14,18 +14,17 @@ open import Sessions.Syntax.Values
 open import Sessions.Syntax.Expr
 open import Sessions.Semantics.Commands
 
--- open import Relation.Unary.Separation.Construct.List {A = SType ∞} using (ctx-has-sep)
 open import Relation.Unary.Separation.Monad.Free Cmd δ
 
-open Morphism (id-morph Endpoints)
-open Monads {{ bs = record { Carrier = Endpoints } }} (id-morph Endpoints)
-open Reader {{ s = record { Carrier = Endpoints } }} (id-morph Endpoints) Val Free renaming (Reader to M)
+open Reader {{ s = record { Carrier = SCtx } }} id-morph Val Free renaming (Reader to M)
+open Monads using (Monad; str)
+open Monad reader-monad
 
 {-# TERMINATING #-}
 mutual
   eval⊸ : ∀ {Γ} → Exp (a ⊸ b) Γ → ∀[ Val a ⇒ⱼ M Γ [] (Val b) ]
   eval⊸ e v = do
-    clos e env ×⟨ σ₂ ⟩ v ← str (Val _) (eval e ×⟨ ⊎-idˡ ⟩ (inj v))
+    clos e env ×⟨ σ₂ ⟩ v ← app (str v) (eval e) ⊎-idʳ
     empty                ← append (cons (v ×⟨ ⊎-comm σ₂ ⟩ env))
     eval e
 
@@ -44,12 +43,12 @@ mutual
     return (clos e env)
 
   eval (ap (f ×⟨ Γ≺ ⟩ e)) = do
-    v ← frame (IsSep.⊎-comm {!!} {!!}) (eval e)
+    v ← frame (⊎-comm Γ≺) (eval e)
     eval⊸ f v
 
   eval (pairs (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
     v₁ ← frame Γ≺ (eval e₁)
-    v₂⋆v₂ ← str (Val _) (eval e₂ ×⟨ ⊎-idˡ ⟩ inj v₁)
+    v₂⋆v₂ ← app (str v₁) (eval e₂) ⊎-idʳ
     return (pairs (✴-swap v₂⋆v₂))
 
   eval (letpair (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
@@ -59,21 +58,21 @@ mutual
 
   eval (send (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
     v₁ ← frame Γ≺ (eval e₁)
-    chan φ ×⟨ σ ⟩ v₁ ← str (Val _) (eval e₂ ×⟨ ⊎-idˡ ⟩ inj v₁)
+    cref φ ×⟨ σ ⟩ v₁ ← app (str v₁) (eval e₂) ⊎-idʳ
     φ' ← liftM  ⟪ send (φ ×⟨ σ ⟩ v₁) ⟫
-    return (chan φ')
+    return (cref φ')
 
   eval (recv e) = do
-    chan φ ← eval e
+    cref φ ← eval e
     φ' ×⟨ σ ⟩ v ← liftM  ⟪ receive φ ⟫
-    return (pairs (chan φ' ×⟨ σ ⟩ v))
+    return (pairs (cref φ' ×⟨ σ ⟩ v))
 
   eval (fork e) = do 
     clos e env ← eval e
     φ ← liftM ⟪ fork (clos e env) ⟫
-    return (chan φ)
+    return (cref φ)
 
   eval (terminate e) = do
-    chan φ ← eval e
+    cref φ ← eval e
     empty ← liftM ⟪ close φ ⟫
     return tt

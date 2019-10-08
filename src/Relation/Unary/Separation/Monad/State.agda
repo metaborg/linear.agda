@@ -27,23 +27,23 @@ module StateTransformer {ℓ}
   {{r : RawSep C}}
   {{s : IsUnitalSep r u}}
   (M : Pt (Market C) ℓ)
-  {{_ : Monads.Monad (id-morph _) ⊤ ℓ (λ _ _ → M) }}
+  {{_ : Monads.Monad ⊤ ℓ (λ _ _ → M) }}
   where
 
   -- we are constructing a relative monad over the market resource morphism
-  open Morphism (market C) public
+  open Morphism (market {A = C}) public
 
-  STATE : (l r : Pred (C × C) ℓ) → Pred C ℓ → Pred (Market C) ℓ
+  STATE : (l r : Pred (C × C) ℓ) → PT C (Market C) ℓ ℓ
   STATE St St' P = ● St ─✴ M ((J P) ✴ ● St')
 
-  State : Pred (C × C) ℓ → Pred C ℓ → Pred (Market C) ℓ
+  State : Pred (C × C) ℓ → PT C (Market C) ℓ ℓ
   State St = STATE St St
 
   module _ {St : Pred (C × C) ℓ} where
     instance
-      M-monad : Monad (market C) ⊤ _ (λ _ _ → State St)
-      app (Monad.return M-monad px) st σ₂ = return (inj px ×⟨ σ₂ ⟩ st )
-      app (app (Monad.bind M-monad {P = P} {Q = Q} f) m σ₁) st σ₂ with ⊎-assoc σ₁ σ₂
+      state-monad : Monad ⊤ _ (λ _ _ → State St)
+      app (Monad.return state-monad px) st σ₂ = return (inj px ×⟨ σ₂ ⟩ st )
+      app (app (Monad.bind state-monad {P = P} {Q = Q} f) m σ₁) st σ₂ with ⊎-assoc σ₁ σ₂
       ... | _ , σ₃ , σ₄ = app (bind bound) (app m st σ₄) σ₃
         where
           bound : (J P ✴ ● St ─✴ M (J Q ✴ ● St)) (demand _)
@@ -56,4 +56,4 @@ module StateMonad {ℓ}
   {{s : IsUnitalSep r u}} where
 
   open import Relation.Unary.Separation.Monad.Identity
-  open StateTransformer {C = C} Identity.Id public
+  open StateTransformer {C = C} Identity.Id {{ Identity.id-monad }} public

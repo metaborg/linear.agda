@@ -86,11 +86,11 @@ module _ {ℓ} {A : Set ℓ} {{_ : RawSep A}} where
   ●-map : ∀[ P ⇒ Q ] → ∀[ ● P ⇒ ● Q ]
   ●-map f (lift px le) = lift (f px) le
 
-module _ {a} (A : Set a) {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
+module _ {a} {A : Set a} {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 
   open Morphism
 
-  market : Morphism s₁ market-sep
+  instance market : Morphism A (Market A)
   j market                 = demand
   j-map market s           = demand s
   j-⊎ market (demand σ)    = -, refl
@@ -99,7 +99,7 @@ module _ {a} (A : Set a) {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 module _ {a} {A : Set a} {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 
   open import Relation.Unary.Separation.Construct.Product
-  open Morphism (market A)
+  open Morphism (market {A = A})
 
   data ○ {p} (P : Pred (A × A) p) : Pred (Market A) (p) where
     lift : ∀ {xs} → P (ε , xs) → ○ P (demand xs)
@@ -117,7 +117,7 @@ module _ {a} {A : Set a} {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 module _ {a} {A : Set a} {{r : RawSep A}} {u} {{ s : IsUnitalSep r u }} where
 
   open import Relation.Unary.Separation.Construct.Product
-  open Morphism (market A)
+  open Morphism (market {A = A})
 
   record _◑_ {p q} (P : Pred A p) (Q : Pred (A × A) q) (Φ : A × A) : Set (a ⊔ p ⊔ q) where
     constructor _◑⟨_⟩_
