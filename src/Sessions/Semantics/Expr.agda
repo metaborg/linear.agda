@@ -21,9 +21,6 @@ open Reader id-morph Val Free renaming (Reader to M)
 open Monads using (Monad; str)
 open Monad reader-monad
 
-Thread : Type → Pred RCtx _
-Thread a = Free (Val a)
-
 {-# TERMINATING #-}
 mutual
   eval⊸ : ∀ {Γ} → Exp (a ⊸ b) Γ → ∀[ Val a ⇒ⱼ M Γ [] (Val b) ]
@@ -72,9 +69,9 @@ mutual
     return (pairs (cref φ' ×⟨ σ ⟩ v))
 
   eval (fork e) = do 
-    clos e env ← eval e
-    φ ← liftM ⟪ fork (clos e env) ⟫
-    return (cref φ)
+    clos body env ← eval e
+    empty ← liftM ⟪ fork (app (runReader (cons (tt ×⟨ ⊎-idˡ ⟩ env))) (eval body) ⊎-idʳ) ⟫
+    return tt
 
   eval (terminate e) = do
     cref φ ← eval e

@@ -24,6 +24,7 @@ open StateTransformer {C = RCtx} Err
 private
   module _ {C : Set} {{ r : RawSep C }} {u} {{ _ : IsUnitalSep r u }} where
     open Monads.Monad (err-monad {A = C}) public
+    open Monads using (str) public
 
 module _ where
   data _⇜_ : SType → SType → Pred RCtx 0ℓ where
@@ -53,28 +54,83 @@ module _ where
   ... | _ , σ₃ , σ₄ with push (v ×⟨ ⊎-comm σ₄ ⟩ b)
   ... | b' = cons (w ×⟨ σ₃ ⟩ b')
 
+  pull : ∀[ γ ⇝ (a ¿ β) ⇒ Err (Val a ✴ γ ⇝ β) ]
+  pull emp                  = error
+  pull (cons (v ×⟨ σ ⟩ vs)) = return (v ×⟨ σ ⟩ vs)
+
   send-into : ∀[ Val a ✴ Link α (a ! β) ⇒ Link α β ]
   send-into (v ×⟨ σ ⟩ link {x ¿ β₁} refl (px ×⟨ σ₁ ⟩ emp)) rewrite ⊎-id⁻ʳ σ₁ =
     link refl ((push (v ×⟨ σ ⟩ px)) ×⟨ ⊎-idʳ ⟩ emp)
 
   recvₗ : ∀[ Link (a ¿ β) γ ⇒ Err (Val a ✴ Link β γ) ]
-  recvₗ c@(link refl (emp ×⟨ _ ⟩ _)) = error
-  recvₗ (link refl (cons (v ×⟨ σ₁ ⟩ bₗ) ×⟨ σ₂ ⟩ bᵣ)) =
-    let _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂
-    in return (v ×⟨ σ₃ ⟩ (link refl (bₗ ×⟨ σ₄ ⟩ bᵣ)))
+  recvₗ c@(link refl (bₗ ×⟨ τ ⟩ bᵣ)) = do
+    v ×⟨ σ ⟩ l ← mapM (app (str {Q = _ ⇝ _} bᵣ) (pull bₗ) (⊎-comm τ)) ✴-assocᵣ
+    return (v ×⟨ σ ⟩ link refl l)
 
   recvᵣ : ∀[ Link γ (a ¿ β) ⇒ Err (Val a ✴ Link γ β) ]
   recvᵣ l = do
     v ×⟨ σ ⟩ l' ← recvₗ (revLink l)
     return (v ×⟨ σ ⟩ revLink l')
 
-  Channels' = Allstar (uncurry Link)
+  data Recipient : SType → Set where
+    rec : Recipient (a ¿ β)
+    end : Recipient end
 
-  ⟦_⟧ : List (SType × SType) → RCtx
-  ⟦ xs ⟧ = L.map (uncurry chan) xs
+  data Channel : Runtype → Pred RCtx 0ℓ where
+    twosided : ∀[ Link α β ⇒ Channel (chan α β) ]
+    onesided : ∀[ end ⇝ β  ⇒ Channel (endp β) ]
 
-  data Channels : Pred (RCtx × RCtx) 0ℓ where
-    channels : ∀ {xs ys} → Channels' xs ys → Channels (⟦ xs ⟧ , ys)
+  Channels' = Allstar Channel
+  Channels = uncurry Channels'
 
   emptyLink : ε[ Link α (α ⁻¹) ]
   emptyLink = link refl (emp ×⟨ ⊎-∙ ⟩ emp)
+
+  emptyChannel : ε[ Channel (chan α (α ⁻¹)) ]
+  emptyChannel = twosided (link refl (emp ×⟨ ⊎-∙ ⟩ emp))
+
+  flipChan : ∀ {τ} → ∀[ Channel τ ⇒ Channel (flipped τ) ]
+  flipChan (twosided x) = twosided (revLink x)
+  flipChan (onesided x) = onesided x
+
+  {- Updating a known endpoint of a channel type -}
+  _≔ₑ_ : ∀ {τ} → End α τ → SType → Runtype
+  (endp β ∷ [] , divide lr []) ≔ₑ α = chan α β
+  (endp β ∷ [] , divide rl []) ≔ₑ α = chan β α
+  (         [] , to-left _)    ≔ₑ α = endp α
+
+  onesided-recipient : ∀ {Φ} → (end ⇝ α) Φ → Recipient α
+  onesided-recipient emp      = end
+  onesided-recipient (cons x) = rec
+
+  {- Receiving on any receiving end of a channel -}
+  chan-receive : ∀ {τ} → (e : End (a ¿ α) τ) →
+                 ∀[ Channel τ ⇒ Err (Val a ✴ Channel (e ≔ₑ α)) ]
+
+  chan-receive (._ , divide lr []) (twosided l) = do
+    v ×⟨ σ ⟩ l' ← recvₗ l
+    return (v ×⟨ σ ⟩ twosided l')
+
+  chan-receive (._ , divide rl []) (twosided l) = do
+    v ×⟨ σ ⟩ l' ← recvᵣ l
+    return (v ×⟨ σ ⟩ twosided l')
+
+  chan-receive (fst₁ , to-left []) (onesided b) = do
+    v ×⟨ σ ⟩ b' ← pull b
+    return (v ×⟨ σ ⟩ onesided b')
+
+  {- Sending on any sending end of a channel -}
+  chan-send : ∀ {τ} → (e : End (a ! α) τ) →
+              ∀[ Channel τ ⇒ Val a ─✴ Channel (e ≔ₑ α) ]
+
+  app (chan-send (_ , divide lr []) (twosided l)) v σ =
+    let l' = send-into (v ×⟨ ⊎-comm σ ⟩ revLink l)
+    in twosided (revLink l')
+
+  app (chan-send (_ , divide rl []) (twosided l)) v σ =
+    let l' = send-into (v ×⟨ ⊎-comm σ ⟩ l)
+    in twosided l'
+
+  -- cannot be onesided
+  app (chan-send (_ , to-left []  ) (onesided b)) v σ with onesided-recipient b
+  ... | ()

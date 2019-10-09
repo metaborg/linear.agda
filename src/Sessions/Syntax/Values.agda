@@ -13,14 +13,18 @@ open import Relation.Unary.Separation.Morphisms
 data Runtype : Set where
   endp : SType → Runtype
   chan : SType → SType → Runtype
+
+flipped : Runtype → Runtype
+flipped (endp x)   = endp x
+flipped (chan α β) = chan β α
   
-data SplitRuntype : Runtype → Runtype → Runtype → Set where
-  lr : ∀ {a b} → SplitRuntype (endp a) (endp b) (chan a b)
-  rl : ∀ {a b} → SplitRuntype (endp b) (endp a) (chan a b)
+data Ends : Runtype → Runtype → Runtype → Set where
+  lr : ∀ {a b} → Ends (endp a) (endp b) (chan a b)
+  rl : ∀ {a b} → Ends (endp b) (endp a) (chan a b)
 
 instance
   ≺-raw-sep : RawSep Runtype
-  RawSep._⊎_≣_ ≺-raw-sep = SplitRuntype
+  RawSep._⊎_≣_ ≺-raw-sep = Ends
 
   ≺-has-sep : IsSep ≺-raw-sep
   IsSep.⊎-comm ≺-has-sep lr = rl
@@ -30,6 +34,13 @@ instance
 
 RCtx = List Runtype
 open import Relation.Unary.Separation.Construct.ListOf Runtype public
+
+End : SType → Runtype → Set
+End α τ = [ endp α ] ≤ [ τ ]
+
+ending : ∀ {ys} → Ends (endp γ) ys (chan α β) → End γ (chan α β)
+ending lr = -, divide lr ⊎-idˡ
+ending rl = -, divide rl ⊎-idˡ
 
 mutual
   Env = Allstar Val

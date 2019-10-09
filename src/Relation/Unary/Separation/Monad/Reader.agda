@@ -80,3 +80,9 @@ module Reader {ℓ}
     liftM : ∀[ M P ⇒ Reader Γ Γ P ]
     app (liftM mp) (inj env) σ = do
       app (str env) mp (⊎-comm σ)
+
+    runReader : ∀[ Allstar V Γ ⇒ⱼ Reader Γ ε P ─✴ M P ]
+    app (runReader env) mp σ = do
+      px ×⟨ σ ⟩ nil ← app mp (inj env) (⊎-comm σ)
+      case ⊎-id⁻ʳ σ of λ where
+        refl → return px 

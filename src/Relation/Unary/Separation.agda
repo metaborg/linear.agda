@@ -250,6 +250,9 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
     -- a resource-polymorphic function is a pure wand
     wandit : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ P ⇒ Q ] → ε[ P ─✴ Q ]
     app (wandit f) p σ rewrite ⊎-id⁻ˡ σ = f p
+    
+    _⟨✴⟩_ : ∀ {p q} {P : SPred p} {Q : SPred q} → ε[ P ─✴ Q ] → ∀[ P ⇒ Q ]
+    w ⟨✴⟩ p = app w p ⊎-idˡ
 
   {- A free preorder -}
   module _ where

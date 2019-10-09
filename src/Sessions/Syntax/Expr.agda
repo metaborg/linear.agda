@@ -25,7 +25,7 @@ data Exp : Type → LCtx → Set where
   recv      : ∀ {b} → ∀[ Exp (cref (a ¿ b)) ⇒ Exp (prod (cref b) a) ]
 
   -- fork ; TODO unit
-  fork      : ∀[ Exp (cref α ⊸ b) ⇒ Exp (cref (α ⁻¹)) ]
+  fork      : ∀[ Exp (unit ⊸ unit) ⇒ Exp unit ]
 
   -- termination
   terminate : ∀[ Exp (cref end) ⇒ Exp unit ]

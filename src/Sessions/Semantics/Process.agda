@@ -35,12 +35,8 @@ open StateMonad
 open StateTransformer {C = RCtx} Err using ()
   renaming (State to State?; state-monad to state?-monad)
 
-{- Thread pools -}
-data Thread : Pred _ 0ℓ where
-  thread : ∀ {a Φ} → Thread′ a Φ → Thread Φ
-
 Pool : Pred RCtx 0ℓ
-Pool = Bigstar Thread 
+Pool = Bigstar (⋃[ a ∶ _ ] Thread a)
 
 St = Channels
 
@@ -58,22 +54,22 @@ module _ where
   liftComm : ∀ {P} → ∀[ State? Channels P ⇒ M? P ]
   liftComm = {!!}
 
-  step : ∀[ Thread ⇒ⱼ M? Thread ] 
+  step : ∀[ Thread a ⇒ⱼ M? (Thread a) ] 
 
-  step (thread (pure v))   = do
-    return (thread (pure v))
+  step (pure v)   = do
+    return (pure v)
 
-  step (thread (impure (send args@(ch ×⟨ σ ⟩ v) ×⟨ σ₁ ⟩ κ))) = do
+  step (impure (send args@(ch ×⟨ σ ⟩ v) ×⟨ σ₁ ⟩ κ)) = do
     ptr ← app (str {Q = Cont (send args) (Val _)} κ)
       (liftComm (app (send! ch) v σ ))
       (demand (⊎-comm σ₁))
     {!!}
 
-  step (thread (impure (receive x ×⟨ σ₁ ⟩ κ))) = {!!}
+  step (impure (receive x ×⟨ σ₁ ⟩ κ)) = {!!}
 
-  step (thread (impure (close x   ×⟨ σ₁ ⟩ κ))) = {!!}
+  step (impure (close x   ×⟨ σ₁ ⟩ κ)) = {!!}
 
-  step (thread (impure (fork x    ×⟨ σ₁ ⟩ κ))) = {!!}
+  step (impure (fork x    ×⟨ σ₁ ⟩ κ)) = {!!}
 
 module _ where
   open Monad (state-monad {St = St})
@@ -86,11 +82,11 @@ module _ where
   {- Select the next thread that is not done, or return the pool unchanged if none exist -}
   next : ∀[ Pool ⇒ (Pool ∪ (Thread ✴ Pool)) ]
   next emp = inj₁ emp
-  next pool@(cons (th@(thread (pure v)) ×⟨ σ ⟩ thrs)) with next thrs
+  next pool@(cons (th@(pure v) ×⟨ σ ⟩ thrs)) with next thrs
   ... | inj₁ _ = inj₁ pool
   ... | inj₂ (thr ×⟨ σ₂ ⟩ thrs') with ⊎-unassoc σ (⊎-comm σ₂)
   ... | _ , σ₃ , σ₄ = inj₂ (thr ×⟨ ⊎-comm σ₄ ⟩ cons (th ×⟨ σ₃ ⟩ thrs'))
-  next (cons pr@(thread (impure x) ×⟨ _ ⟩ _)) = inj₂ pr
+  next (cons pr@(impure x ×⟨ _ ⟩ _)) = inj₂ pr
 
   {- Run a pool of threads until all have terminated -}
   {-# NON_TERMINATING #-}
