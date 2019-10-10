@@ -118,3 +118,6 @@ module _ where
    (inj (refl ×⟨ divide lr ⊎-idˡ ⟩ refl))
       ×⟨ offerᵣ ⊎-∙ ⟩
    lift (cons (emptyChannel ×⟨ ⊎-idˡ ⟩ chs)) (⊎-∙ₗ k)) 
+
+  closeChan : ∀[ Endptr end ⇒ⱼ State Channels Emp ]
+  closeChan ptr = {!!}

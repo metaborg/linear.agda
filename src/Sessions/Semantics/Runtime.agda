@@ -1,7 +1,7 @@
 module Sessions.Semantics.Runtime where
 
 open import Prelude
-import Data.List as L
+open import Data.Maybe
 
 open import Relation.Unary hiding (Empty; _∈_)
 open import Relation.Unary.PredicateTransformer using (Pt)
@@ -64,7 +64,7 @@ module _ where
 
   recvₗ : ∀[ Link (a ¿ β) γ ⇒ Err (Val a ✴ Link β γ) ]
   recvₗ c@(link refl (bₗ ×⟨ τ ⟩ bᵣ)) = do
-    v ×⟨ σ ⟩ l ← mapM (app (str {Q = _ ⇝ _} bᵣ) (pull bₗ) (⊎-comm τ)) ✴-assocᵣ
+    v ×⟨ σ ⟩ l ← mapM (pull bₗ &⟨ τ ⟩ bᵣ) ✴-assocᵣ
     return (v ×⟨ σ ⟩ link refl l)
 
   recvᵣ : ∀[ Link γ (a ¿ β) ⇒ Err (Val a ✴ Link γ β) ]
@@ -98,6 +98,11 @@ module _ where
   (endp β ∷ [] , divide lr []) ≔ₑ α = chan α β
   (endp β ∷ [] , divide rl []) ≔ₑ α = chan β α
   (         [] , to-left _)    ≔ₑ α = endp α
+
+  {- Updating the left endpoint of a channel type -}
+  chanₗ : Maybe SType → SType → Runtype
+  chanₗ nothing β  = endp β
+  chanₗ (just α) β = chan α β
 
   onesided-recipient : ∀ {Φ} → (end ⇝ α) Φ → Recipient α
   onesided-recipient emp      = end

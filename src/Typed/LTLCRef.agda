@@ -6,14 +6,12 @@ open import Function
 open import Category.Monad
 
 open import Relation.Unary.Separation 
-open import Relation.Unary.Separation.Construct.List as L
-open import Relation.Unary.Separation.Env
+open import Relation.Unary.Separation.Allstar
 open import Relation.Unary.Separation.Morphisms
 open import Relation.Unary.Separation.Monad
 open import Relation.Unary.Separation.Monad.Reader
-open import Relation.Unary.Separation.Env
 
-open import Prelude hiding (Lift; lookup)
+open import Prelude
 
 data Ty : Set where
   nat  : Ty
@@ -25,6 +23,7 @@ data Ty : Set where
 Ctx  = List Ty
 CtxT = List Ty → List Ty
 
+open import Relation.Unary.Separation.Construct.List Ty
 open import Relation.Unary.Separation.Construct.Market
 open import Relation.Unary.Separation.Construct.Product
 
@@ -58,10 +57,6 @@ data Val : Ty → Pred ST 0ℓ where
   ref   : ∀[ Just a ⇒ Val (ref a) ]
   pair  : ∀[ Val a ✴ Val b ⇒ Val (prod a b) ]
 
-open import Relation.Unary.Separation.Monad.State.Heap Val
-open Reader (market ST) Val State
-  renaming (Reader to M)
-
 {- The 'give-it-to-me-straight' semantics -}
 
 Store : ST → ST → Set
@@ -77,7 +72,7 @@ eval₁ (lam e) env μ σ = -, -, -, μ , (clos e env) , ⊎-comm σ
 
 eval₁ (ap (f ×⟨ σ ⟩ e)) env μ σ₂ =
   let
-    env₁ ×⟨ σ₃ ⟩ env₂ = env-split σ env
+    env₁ ×⟨ σ₃ ⟩ env₂ = repartition σ env
     _ , τ₁ , τ₂ = ⊎-assoc (⊎-comm σ₃) σ₂
 
   {- Oops, store contains more stuff than used; i.e. we have a frame -}
@@ -101,7 +96,7 @@ eval₂ (lam x) env μ σ₁ σ₂ = {!!}
 
 eval₂ (pair (e₁ ×⟨ σ ⟩ e₂)) env μ σ₁ σ₂ =
   let
-    env₁ ×⟨ σ₃ ⟩ env₂ = env-split σ env
+    env₁ ×⟨ σ₃ ⟩ env₂ = repartition σ env
     _ , τ₁ , τ₂ = ⊎-assoc (⊎-comm σ₃) σ₁ -- separation between sub-env and store
     _ , τ₃ , τ₄ = ⊎-assoc (⊎-comm τ₁) σ₂ -- compute the frame
 
@@ -117,9 +112,14 @@ eval₂ (ap (f ×⟨ σ ⟩ e)) env μ σ₁ σ₂ = {!!}
 
 {- The monadic semantics -}
 
+open import Relation.Unary.Separation.Monad.State.Heap Val hiding (_⇒ⱼ_; _─✴ⱼ_)
+open Reader market Val (State Cells) renaming (Reader to M)
+open Monads.Monad reader-monad
+open Monads using (str)
+
 do-update : ∀ {a b} → ∀[ Just a ✴ (Val a ─✴ⱼ M Γ₁ Γ₂ (Val b)) ⇒ⱼ M Γ₁ Γ₂ (Just b) ]
 do-update (ptr ×⟨ σ ⟩ f) = do
-  a ×⟨ σ₁ ⟩ f ← str _ (liftM (read ptr) ×⟨ j-map σ ⟩ inj f)
+  a ×⟨ σ₁ ⟩ f ← app (str f) (liftM (read ptr)) (demand (⊎-comm σ))
   b           ← app f a (⊎-comm σ₁)
   liftM (mkref b)
 
@@ -127,7 +127,7 @@ do-update (ptr ×⟨ σ ⟩ f) = do
 mutual
   eval⊸ : ∀ {Γ} → Exp (a ⊸ b) Γ → ∀[ Val a ⇒ⱼ M Γ ε (Val b) ]
   eval⊸ e v = do
-    clos e env ×⟨ σ₂ ⟩ v ← str (Val _) (eval e ×⟨ ⊎-idˡ ⟩ (inj v))
+    clos e env ×⟨ σ₂ ⟩ v ← app (str v) (eval e) ⊎-idʳ
     empty                ← append (cons (v ×⟨ ⊎-comm σ₂ ⟩ env))
     eval e
 
@@ -147,7 +147,7 @@ mutual
 
   eval (pair (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
     v₁    ← frame Γ≺ (eval e₁)
-    v₂✴v₁ ← str (Val _) (eval e₂ ×⟨ ⊎-idˡ ⟩ inj v₁)
+    v₂✴v₁ ← app (str v₁) (eval e₂) ⊎-idʳ
     return (pair (✴-swap v₂✴v₁))
 
   eval (ap (f ×⟨ Γ≺ ⟩ e)) = do

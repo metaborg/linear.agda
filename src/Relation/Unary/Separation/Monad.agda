@@ -12,11 +12,11 @@ module Monads
   {a b} {A : Set a}  {B : Set b} {{r}} {u}
   {{as : IsUnitalSep {C = A} r u}}
   {{rb : RawSep B}}
-  {{j : Morphism A B}}
-  {{bs : IsUnitalSep rb (Morphism.j j u)}}
+  {{jm : Morphism A B}}
+  {{bs : IsUnitalSep rb (Morphism.j jm u)}}
   where
 
-  open Morphism j
+  open Morphism jm
 
   RawMonad : ∀ {i} (I : Set i) → (ℓ : Level) → Set _
   RawMonad I ℓ = (i j : I) → PT A B ℓ ℓ
@@ -39,7 +39,16 @@ module Monads
   open Monad ⦃...⦄ public
 
   -- having the internal bind is enough to get strength
-  str : ∀  {i} {I : Set i} {i₁ i₂} {P} {M} {{ _ : Monad I a M }} {Q : Pred A a} →
-        ∀[ Q ⇒ⱼ M i₁ i₂ P ─✴ M i₁ i₂ (P ✴ Q) ]
-  app (str qx) mp σ =
-    app (bind (wand λ px σ' → return (px ×⟨ ⊎-comm σ' ⟩ qx))) mp σ
+  module _ {i} {I : Set i} {i₁ i₂} {P} {M} {{ _ : Monad I a M }} where
+    str  : ∀ {Q : Pred A a} → M i₁ i₂ P Φ₁ → Φ₁ ⊎ j Φ₂ ≣ Φ → Q Φ₂ → M i₁ i₂ (P ✴ Q) Φ
+    str mp σ qx = app (bind (wand λ px σ' → return (px ×⟨ ⊎-comm σ' ⟩ qx))) mp (⊎-comm σ)
+
+    typed-str : ∀ {Φ₁ Φ₂ Φ} (Q) → M i₁ i₂ P Φ₁ → Φ₁ ⊎ j Φ₂ ≣ Φ → Q Φ₂ → M i₁ i₂ (P ✴ Q) Φ
+    typed-str Q mp σ qx = str {Q = Q} mp σ qx
+
+    syntax str mp σ qx = mp &⟨ σ ⟩ qx
+    syntax typed-str Q mp σ qx = mp &⟨ Q ∥ σ ⟩ qx
+
+    _&_ : ∀ {Q} → M i₁ i₂ P ε → ∀[ Q ⇒ⱼ M i₁ i₂ (P ✴ Q) ]
+    mp & q = mp &⟨ ⊎-idˡ ⟩ q
+

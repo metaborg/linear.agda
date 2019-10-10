@@ -6,15 +6,17 @@ open import Level
 open import Category.Monad
 
 open import Relation.Unary.PredicateTransformer using (PT; Pt)
-open import Relation.Unary.Separation.Construct.List
 open import Relation.Unary.Separation.Construct.Unit
-open import Relation.Unary.Separation.Env
+open import Relation.Unary.Separation.Allstar
 open import Relation.Unary.Separation.Monad
+open import Relation.Unary.Separation.Morphisms
 open import Relation.Unary.Separation.Monad.Reader
 
 data Ty : Set where
   nat  : Ty
   _⊸_ : (a b : Ty) → Ty
+
+open import Relation.Unary.Separation.Construct.List Ty
 
 Ctx  = List Ty
 CtxT = List Ty → List Ty
@@ -49,7 +51,9 @@ module _ {{m : MonoidalSep 0ℓ}} where
       num   : ℕ → ε[ Val nat ]
       clos  : Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Val (a ⊸ b) ]
 
-  open Reader Val
+  open ReaderMonad Val
+  open Monads.Monad reader-monad
+  open Monads using (str; _&_; typed-str)
 
   {-# TERMINATING #-}
   eval : Exp a Γ → ε[ Reader Γ ε (Val a) ]
@@ -68,14 +72,9 @@ module _ {{m : MonoidalSep 0ℓ}} where
 
   eval (ap (f ×⟨ Γ≺ ⟩ e)) = do
     v                   ← frame (⊎-comm Γ≺) (eval e)
-    clos e env ×⟨ σ ⟩ v ← str _ (eval f ×⟨ ⊎-idˡ ⟩ inj v)
-    empty ×⟨ σ ⟩ env    ← str (Allstar _ _) (append (singleton v) ×⟨ ⊎-comm σ ⟩ inj env)
-    case (⊎-id⁻ˡ σ) of λ where
-      refl → do
-        empty ← append env
-        eval e
+    clos e env ×⟨ σ ⟩ v ← eval f & v
+    empty               ← append (v :⟨ ⊎-comm σ ⟩: env)
+    eval e
 
   eval (var refl) = do
-    cons (v ×⟨ σ ⟩ nil) ← ask
-    case (⊎-id⁻ʳ σ) of λ where
-      refl → return v
+    lookup

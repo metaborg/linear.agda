@@ -2,6 +2,7 @@ module Sessions.Syntax.Values where
 
 open import Prelude hiding (both)
 open import Relation.Unary
+open import Data.Maybe
 open import Data.List.Properties using (++-isMonoid)
 import Data.List as List
 
@@ -11,6 +12,7 @@ open import Sessions.Syntax.Expr
 open import Relation.Unary.Separation.Morphisms
 
 data Runtype : Set where
+  
   endp : SType → Runtype
   chan : SType → SType → Runtype
 

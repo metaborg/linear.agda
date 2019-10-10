@@ -34,7 +34,7 @@ module StateTransformer {ℓ}
   open Morphism (market {A = C}) public
 
   STATE : (l r : Pred (C × C) ℓ) → PT C (Market C) ℓ ℓ
-  STATE St St' P = ● St ─✴ M ((J P) ✴ ● St')
+  STATE St St' P = ● St ─✴ M (J P ✴ ● St')
 
   State : Pred (C × C) ℓ → PT C (Market C) ℓ ℓ
   State St = STATE St St
