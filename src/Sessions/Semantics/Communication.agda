@@ -108,12 +108,9 @@ module _ where
         let ch' = app (chan-send e ch) v (⊎-comm σ) 
         in ✓ (empty ×⟨ ⊎-idˡ ⟩ ch')
 
-module _ where
-  open StateMonad {C = RCtx}
-
   newChan : ε[ State Channels (Endptr α ✴ Endptr (α ⁻¹)) ]
   app newChan (lift chs k) σ with ⊎-id⁻ˡ σ
-  ... | refl = (
+  ... | refl = ✓ (
    (inj (refl ×⟨ divide lr ⊎-idˡ ⟩ refl))
       ×⟨ offerᵣ ⊎-∙ ⟩
    lift (cons (emptyChannel ×⟨ ⊎-idˡ ⟩ chs)) (⊎-∙ₗ k)) 
@@ -123,8 +120,13 @@ module _ where
     let
       _ , σ₂ , σ₃ = ⊎-assoc σ k
       chs' = close'em σ₂ chs
-    in inj empty ×⟨ ⊎-idˡ ⟩ lift chs' σ₃
+    in ✓ (inj empty ×⟨ ⊎-idˡ ⟩ lift chs' σ₃)
     where
+      -- This is really cool:
+      -- The pointer, in the form of the splitting of the store, contains all the necessary information
+      -- for the shape of the underlying buffer.
+      -- Depending on the shape of the splitting, we know, just by dependent pattern matching,
+      -- whether the channel is two- or onesided
       close'em : ∀ {ds xs} → (ptr : [ endp end ] ⊎ ds ≣ xs) → ∀[ Channels' xs ⇒ Channels' ds ]
 
       close'em (divide lr ptr) (twosided (link refl (emp ×⟨ τ ⟩ bᵣ)) :⟨ σ ⟩: chs) with ⊎-id⁻ˡ ptr | ⊎-id⁻ˡ τ

@@ -33,6 +33,9 @@ module Monads
     _>>=_ : ∀ {Φ} {P Q i₁ i₂ i₃} → M i₁ i₂ P Φ → ∀[ P ⇒ⱼ M i₂ i₃ Q ] → M i₁ i₃ Q Φ
     mp >>= f = f =<< mp
 
+    mapM′ : ∀ {P Q i₁ i₂} → ∀[ (P ─✴ Q) ⇒ⱼ (M i₁ i₂ P ─✴ M i₁ i₂ Q) ]
+    mapM′ f = bind (wand λ px σ → return (app f px σ))
+
     mapM : ∀ {Φ} {P Q i₁ i₂} → M i₁ i₂ P Φ → ∀[ P ⇒ Q ] → M i₁ i₂ Q Φ
     mapM mp f = mp >>= (return ∘ f)
 

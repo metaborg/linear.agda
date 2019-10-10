@@ -19,7 +19,7 @@ mutual
   δ (close _)           = Emp
   δ (fork {α} _)        = Emp
 
-  open import Relation.Unary.Separation.Monad.Free Cmd δ
+  open import Relation.Unary.Separation.Monad.Free Cmd δ renaming (Cont to Cont')
 
   Thread : Type → Pred RCtx _
   Thread a = Free (Val a)

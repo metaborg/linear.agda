@@ -17,15 +17,15 @@ open import Sessions.Semantics.Runtime
 open import Relation.Unary.Separation.Construct.List Type
 open import Relation.Unary.Separation.Monad.Free Cmd δ
 
-open Reader id-morph Val Free renaming (Reader to M)
-open Monads using (Monad; str)
+open ReaderTransformer id-morph Val Free renaming (Reader to M)
+open Monads using (Monad; str; _&_)
 open Monad reader-monad
 
 {-# TERMINATING #-}
 mutual
   eval⊸ : ∀ {Γ} → Exp (a ⊸ b) Γ → ∀[ Val a ⇒ⱼ M Γ [] (Val b) ]
   eval⊸ e v = do
-    (clos e env) ×⟨ σ₂ ⟩ v ← app (str v) (eval e) ⊎-idʳ
+    (clos e env) ×⟨ σ₂ ⟩ v ← eval e & v
     empty                  ← append (cons (v ×⟨ ⊎-comm σ₂ ⟩ env))
     eval e
 
@@ -49,7 +49,7 @@ mutual
 
   eval (pairs (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
     v₁ ← frame Γ≺ (eval e₁)
-    v₂⋆v₂ ← app (str v₁) (eval e₂) ⊎-idʳ
+    v₂⋆v₂ ← eval e₂ & v₁
     return (pairs (✴-swap v₂⋆v₂))
 
   eval (letpair (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
@@ -59,7 +59,7 @@ mutual
 
   eval (send (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
     v₁ ← frame Γ≺ (eval e₁)
-    cref φ ×⟨ σ ⟩ v₁ ← app (str v₁) (eval e₂) ⊎-idʳ
+    cref φ ×⟨ σ ⟩ v₁ ← eval e₂ & v₁
     φ' ← liftM  ⟪ send (φ ×⟨ σ ⟩ v₁) ⟫
     return (cref φ')
 
