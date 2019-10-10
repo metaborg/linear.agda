@@ -27,8 +27,7 @@ open import Sessions.Semantics.Runtime
 
 
 {- A specification of the update we are performing -}
-_≔_ : ∀ {x} {ys} {zs} → [ endp x ] ⊎ ys ≣ zs →
-             SType → RCtx
+_≔_ : ∀ {x} {ys} {zs} → [ endp x ] ⊎ ys ≣ zs → SType → RCtx
 _≔_ {zs = x ∷ zs}         (to-right s) α  = x ∷ s ≔ α
 _≔_ {zs = chan l r ∷ zs}  (divide lr s) α = chan α r ∷ zs
 _≔_ {zs = chan l r ∷ zs}  (divide rl s) α = chan l α ∷ zs
@@ -40,7 +39,7 @@ private
   Action from to P Φ = ∀ {τ} → (end : End from τ) → (Channel τ ─✴ Err (P ✴ Channel (end ≔ₑ to))) Φ
 
 module _ where
-  open Monads.Monad {{j = id-morph {A = RCtx}}} err-monad
+  open Monads.Monad {{jm = id-morph {A = RCtx}}} err-monad
   open Monads using (str)
 
   {- Takes an endpointer and the channel list and updates it using a link action -}
@@ -53,25 +52,25 @@ module _ where
   -- the pointer points to a channel where one end is already closed
   app (act {xs = x ∷ xs} (to-left ptr) f) (ch :⟨ τ ⟩: chs) σ with ⊎-unassoc σ τ
   ... | _ , τ₁ , τ₂ = do
-    px ×⟨ τ₄ ⟩ (ch' ×⟨ τ₅ ⟩ chs) ← mapM (app (str chs) (app (f (-, to-left [])) ch τ₁) (⊎-comm τ₂)) ✴-assocᵣ
+    px ×⟨ τ₄ ⟩ (ch' ×⟨ τ₅ ⟩ chs) ← mapM (app (f (-, to-left [])) ch τ₁ &⟨ τ₂ ⟩ chs) ✴-assocᵣ
     return (emp (to-left ptr) ×⟨ ⊎-idˡ ⟩ px ×⟨ τ₄ ⟩ cons (ch' ×⟨ τ₅ ⟩ chs))
 
   -- the pointer points to the left side of a channel in the state
   app (act {xs = x ∷ xs} (divide lr ptr) f) (ch :⟨ τ ⟩: chs) σ with ⊎-unassoc σ τ
   ... | _ , τ₂ , τ₃ = do
-    px ×⟨ τ₄ ⟩ chs ← mapM (app (str chs) (app (f (ending lr)) ch τ₂) (⊎-comm τ₃)) ✴-assocᵣ
+    px ×⟨ τ₄ ⟩ chs ← mapM (app (f (ending lr)) ch τ₂ &⟨ τ₃ ⟩ chs) ✴-assocᵣ
     return (emp (divide lr ptr) ×⟨ ⊎-idˡ ⟩ px ×⟨ τ₄ ⟩ cons chs)
 
   -- the pointer points to the right side of a channel in the state
   app (act {xs = x ∷ xs} (divide rl ptr) f) (ch :⟨ τ ⟩: chs) σ with ⊎-unassoc σ τ
   ... | _ , τ₂ , τ₃ = do
-    px ×⟨ τ₄ ⟩ (ch' ×⟨ τ₅ ⟩ chs) ← mapM (app (str chs) (app (f (ending rl)) ch τ₂) (⊎-comm τ₃)) ✴-assocᵣ
+    px ×⟨ τ₄ ⟩ (ch' ×⟨ τ₅ ⟩ chs) ← mapM (app (f (ending rl)) ch τ₂ &⟨ τ₃ ⟩ chs) ✴-assocᵣ
     return (emp (divide rl ptr) ×⟨ ⊎-idˡ ⟩ px ×⟨ τ₄ ⟩ cons (ch' ×⟨ τ₅ ⟩ chs))
 
   -- the pointer points to some channel further down the list
   app (act {xs = x ∷ xs} (to-right ptr) f) (ch :⟨ τ ⟩: chs) σ with ⊎-unassoc σ (⊎-comm τ)
   ... | _ , τ₁ , τ₂ = do
-    emp ptr ×⟨ τ₃ ⟩ rhs ← mapM (app (str ch) (app (act ptr f) chs τ₁) (⊎-comm τ₂)) ✴-assocᵣ
+    emp ptr ×⟨ τ₃ ⟩ rhs ← mapM (app (act ptr f) chs τ₁ &⟨ τ₂ ⟩ ch) ✴-assocᵣ
     let px ×⟨ τ₄ ⟩ chs' = ✴-assocᵣ rhs
     return (emp (to-right ptr) ×⟨ τ₃ ⟩ (px ×⟨ τ₄ ⟩ cons (✴-swap chs')))
 
@@ -120,4 +119,24 @@ module _ where
    lift (cons (emptyChannel ×⟨ ⊎-idˡ ⟩ chs)) (⊎-∙ₗ k)) 
 
   closeChan : ∀[ Endptr end ⇒ⱼ State Channels Emp ]
-  closeChan ptr = {!!}
+  app (closeChan refl) (lift chs k) (offerᵣ σ) =
+    let
+      _ , σ₂ , σ₃ = ⊎-assoc σ k
+      chs' = close'em σ₂ chs
+    in inj empty ×⟨ ⊎-idˡ ⟩ lift chs' σ₃
+    where
+      close'em : ∀ {ds xs} → (ptr : [ endp end ] ⊎ ds ≣ xs) → ∀[ Channels' xs ⇒ Channels' ds ]
+
+      close'em (divide lr ptr) (twosided (link refl (emp ×⟨ τ ⟩ bᵣ)) :⟨ σ ⟩: chs) with ⊎-id⁻ˡ ptr | ⊎-id⁻ˡ τ
+      ... | refl | refl = cons (onesided bᵣ ×⟨ σ ⟩ chs)
+
+      close'em (divide rl ptr) (twosided (link eq (bₗ ×⟨ τ ⟩ emp)) :⟨ σ ⟩: chs) with ⊎-id⁻ˡ ptr | ⊎-id⁻ʳ τ
+      ... | refl | refl with dual-end (sym eq)
+      ... | refl = cons (onesided bₗ ×⟨ σ ⟩ chs)
+
+      close'em (to-left ptr) (cons (onesided emp ×⟨ σ ⟩ chs)) with ⊎-id⁻ˡ ptr | ⊎-id⁻ˡ σ
+      ... | refl | refl = chs
+
+      close'em (to-right ptr)  (ch :⟨ σ ⟩: chs) = 
+        let chs' = close'em ptr chs
+        in cons (ch ×⟨ σ ⟩ chs')

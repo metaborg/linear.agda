@@ -81,6 +81,11 @@ module _ where
   (a ¿ β) ⁻¹ = a ! β ⁻¹
   end ⁻¹     = end
 
+  dual-end : ∀ {α} → α ⁻¹ ≡ end → α ≡ end
+  dual-end {x ! α} ()
+  dual-end {x ¿ α} ()
+  dual-end {end} refl = refl
+
   dual-involutive : ∀ {α} → α ⁻¹ ⁻¹ ≡ α
   dual-involutive {x ! α} = cong (_!_ _) dual-involutive
   dual-involutive {x ¿ α} = cong (_¿_ _) dual-involutive
