@@ -23,7 +23,6 @@ open import Sessions.Syntax.Expr
 open import Sessions.Semantics.Commands
 open import Sessions.Semantics.Runtime
 open import Sessions.Semantics.Communication
-open import Sessions.Semantics.Expr
 
 open import Relation.Unary.Separation.Bigstar
 open import Relation.Unary.Separation.Monad.Free Cmd δ
@@ -50,10 +49,21 @@ M? : PT _ _ 0ℓ 0ℓ
 M? = State? St
 
 onPool : ∀ {P} → ∀[ (Pool ─✴ Err (P ✴ Pool)) ⇒ⱼ M? P ]
-onPool = {!!}
+app (onPool f) (lift (snd pool ×⟨ σ , σ₁ ⟩ chs) k) (offerᵣ σ₂) with resplit σ₂ σ₁ k
+... | _ , _ , τ₁ , τ₂ , τ₃ =
+  case app f pool τ₁ of λ where
+    error → error
+    (✓ (p ×⟨ σ₃ ⟩ p')) →
+      let _ , _ , τ₄ , τ₅ , τ₆ = resplit σ₃ τ₂ τ₃
+      in return (inj p ×⟨ offerᵣ τ₄ ⟩ lift (snd p' ×⟨ σ , τ₅ ⟩ chs) τ₆)
 
 onChannels : ∀ {P} → ∀[ State? Channels P ⇒ M? P ]
-onChannels = {!!}
+app (onChannels f) μ (offerᵣ σ₃) with ○≺●ᵣ μ
+... | inj pool ×⟨ offerᵣ σ₄ ⟩ chs with ⊎-assoc σ₃ (⊎-comm σ₄)
+... | _ , τ₁ , τ₂ = do
+  px ×⟨ σ₄ ⟩ ●chs ×⟨ σ₅ ⟩ inj pool ←
+    mapM (app f chs (offerᵣ τ₁) &⟨ J Pool ∥ offerₗ τ₂ ⟩ inj pool) ✴-assocᵣ
+  return (px ×⟨ σ₄ ⟩ app (○≺●ₗ pool) ●chs (⊎-comm σ₅))
 
 schedule : ∀[ Thread a ⇒ⱼ M? Emp ]
 schedule thr =
