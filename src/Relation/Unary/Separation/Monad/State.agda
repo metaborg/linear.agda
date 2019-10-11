@@ -50,6 +50,10 @@ module StateTransformer {ℓ}
           app bound (inj px ×⟨ offerᵣ σ₅ ⟩ st') (offerᵣ σ₆) with ⊎-unassoc σ₅ σ₆
           ... | _ , τ₁ , τ₂ = let mq = app f px (⊎-comm τ₁) in app mq st' (offerᵣ τ₂)
 
+    liftM : ∀ {P} → ∀[ M (J P) ⇒ State St P ]
+    app (liftM mp) μ σ =
+      app (mapM′ (wand (λ px σ → px ×⟨ ⊎-comm σ ⟩ μ))) mp (⊎-comm σ)
+
 module StateMonad {ℓ}
   {C : Set ℓ} {u}
   {{r : RawSep C}}

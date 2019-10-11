@@ -231,21 +231,14 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
 
     Emp : SPred c
     Emp = Empty ⊤
-
-  {- Big seperating conjunction over an SPred -}
-  module _ where
-
-    data Bigstar {ℓ} (P : SPred ℓ) : SPred (ℓ ⊔ c) where
-      emp  : ε[ Bigstar P ]
-      cons : ∀[ P ✴ Bigstar P ⇒ Bigstar P ]
     
   module _ where
     ε⊎ε : ∀[ ε ⊎ ε ⇒ Emp ]
     ε⊎ε p with ⊎-id⁻ˡ p
     ... | (P.refl) = empty
 
-    ⋆-idʳ : ∀ {p} {P : SPred p} → ∀[ P ⇒ P ✴ Emp ]
-    ⋆-idʳ px = px ×⟨ ⊎-idʳ ⟩ empty
+    ✴-idʳ : ∀ {p} {P : SPred p} → ∀[ P ⇒ P ✴ Emp ]
+    ✴-idʳ px = px ×⟨ ⊎-idʳ ⟩ empty
 
     -- a resource-polymorphic function is a pure wand
     wandit : ∀ {p q} {P : SPred p} {Q : SPred q} → ∀[ P ⇒ Q ] → ε[ P ─✴ Q ]

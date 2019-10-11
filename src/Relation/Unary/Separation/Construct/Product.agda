@@ -32,7 +32,15 @@ module _
   ⦃ s₁ : IsSep R₁ ⦄ ⦃ s₂ : IsSep R₂ ⦄
   where
 
-  instance postulate ×-isSep : IsSep (R₁ ×-⊎ R₂)
+  instance ×-isSep : IsSep (R₁ ×-⊎ R₂)
+  ×-isSep = record
+    { ⊎-comm  = λ where (l , r) → ⊎-comm l , ⊎-comm r
+    ; ⊎-assoc = λ where
+      (l₁  , r₁) (l₂ , r₂) →
+        let
+          _ , l₃ , l₄ = ⊎-assoc l₁ l₂
+          _ , r₃ , r₄ = ⊎-assoc r₁ r₂
+        in -, (l₃ , r₃) , l₄ , r₄ }
 
 module _
   {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂}
