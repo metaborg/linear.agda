@@ -3,7 +3,7 @@ module Sessions.Syntax.Expr where
 open import Prelude
 
 open import Sessions.Syntax.Types
-open import Relation.Unary.Separation.Construct.List Type
+open import Relation.Ternary.Separation.Construct.List Type
 
 data Exp : Type → LCtx → Set where
 

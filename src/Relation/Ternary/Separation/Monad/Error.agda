@@ -1,7 +1,7 @@
 open import Relation.Unary
-open import Relation.Unary.Separation
+open import Relation.Ternary.Separation
 
-module Relation.Unary.Separation.Monad.Error {ℓ} {A : Set ℓ}
+module Relation.Ternary.Separation.Monad.Error {ℓ} {A : Set ℓ}
   {{r : RawSep A}}
   {u} {{_ : IsUnitalSep r u}}
   where
@@ -12,8 +12,8 @@ open import Data.Unit
 open import Data.Sum
 open import Relation.Unary renaming (U to True)
 open import Relation.Unary.PredicateTransformer using (PT)
-open import Relation.Unary.Separation.Morphisms
-open import Relation.Unary.Separation.Monad
+open import Relation.Ternary.Separation.Morphisms
+open import Relation.Ternary.Separation.Monad
 open import Relation.Binary.PropositionalEquality
 
 record Err (P : Pred A ℓ) (Φ : A) : Set ℓ where

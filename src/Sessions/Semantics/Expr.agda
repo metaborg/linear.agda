@@ -4,9 +4,9 @@ open import Prelude
 open import Data.Fin
 
 open import Relation.Unary.PredicateTransformer hiding (_⊔_)
-open import Relation.Unary.Separation.Morphisms
-open import Relation.Unary.Separation.Monad
-open import Relation.Unary.Separation.Monad.Reader
+open import Relation.Ternary.Separation.Morphisms
+open import Relation.Ternary.Separation.Monad
+open import Relation.Ternary.Separation.Monad.Reader
 
 open import Sessions.Syntax.Types
 open import Sessions.Syntax.Values
@@ -14,8 +14,8 @@ open import Sessions.Syntax.Expr
 open import Sessions.Semantics.Commands
 open import Sessions.Semantics.Runtime
 
-open import Relation.Unary.Separation.Construct.List Type
-open import Relation.Unary.Separation.Monad.Free Cmd δ
+open import Relation.Ternary.Separation.Construct.List Type
+open import Relation.Ternary.Separation.Monad.Free Cmd δ
 
 open ReaderTransformer id-morph Val Free renaming (Reader to M)
 open Monads using (Monad; str; _&_)
@@ -65,8 +65,8 @@ mutual
 
   eval (recv e) = do
     cref φ ← eval e
-    φ' ×⟨ σ ⟩ v ← liftM  ⟪ receive φ ⟫
-    return (pairs (cref φ' ×⟨ σ ⟩ v))
+    v ×⟨ σ ⟩ φ' ← liftM  ⟪ receive φ ⟫
+    return (pairs (cref φ' ×⟨ ⊎-comm σ ⟩ v))
 
   eval (fork e) = do 
     clos body env ← eval e

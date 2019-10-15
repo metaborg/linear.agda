@@ -1,10 +1,10 @@
-module Relation.Unary.Separation.Morphisms where
+module Relation.Ternary.Separation.Morphisms where
 
 open import Level
 open import Function
 open import Relation.Unary
-open import Relation.Unary.Separation
 open import Relation.Binary.PropositionalEquality
+open import Relation.Ternary.Separation
 open import Data.Product
 open import Function using (_∘_)
 

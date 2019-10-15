@@ -1,13 +1,13 @@
 {- The trivial resource -}
-module Relation.Unary.Separation.Construct.Unit where
+module Relation.Ternary.Separation.Construct.Unit where
 
 open import Data.Unit
 open import Data.Product
 
 open import Relation.Unary
-open import Relation.Unary.Separation
 open import Relation.Binary hiding (_⇒_)
 open import Relation.Binary.PropositionalEquality as P
+open import Relation.Ternary.Separation
 
 open RawSep
 instance unit-raw-sep : RawSep ⊤

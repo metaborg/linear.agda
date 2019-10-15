@@ -1,12 +1,12 @@
-module Relation.Unary.Separation.Monad.Update where
+module Relation.Ternary.Separation.Monad.Update where
 
 open import Level hiding (Lift)
 open import Function using (_∘_; case_of_)
 open import Relation.Binary.PropositionalEquality using (refl)
 open import Relation.Unary
 open import Relation.Unary.PredicateTransformer hiding (_⊔_; [_])
-open import Relation.Unary.Separation
-open import Relation.Unary.Separation.Monad
+open import Relation.Ternary.Separation
+open import Relation.Ternary.Separation.Monad
 
 open import Data.Unit
 open import Data.Product

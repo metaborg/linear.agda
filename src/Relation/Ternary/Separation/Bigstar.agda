@@ -1,13 +1,13 @@
-module Relation.Unary.Separation.Bigstar where
+module Relation.Ternary.Separation.Bigstar where
 
 open import Level
 open import Data.Bool
 open import Data.Product
 open import Relation.Unary
-open import Relation.Unary.Separation
-open import Relation.Unary.Separation.Monad
-open import Relation.Unary.Separation.Monad.Error
-open import Relation.Unary.Separation.Morphisms
+open import Relation.Ternary.Separation
+open import Relation.Ternary.Separation.Monad
+open import Relation.Ternary.Separation.Monad.Error
+open import Relation.Ternary.Separation.Morphisms
 open Monads
 
 module _

@@ -6,17 +6,17 @@ open import Level
 open import Category.Monad
 
 open import Relation.Unary.PredicateTransformer using (PT; Pt)
-open import Relation.Unary.Separation.Construct.Unit
-open import Relation.Unary.Separation.Allstar
-open import Relation.Unary.Separation.Monad
-open import Relation.Unary.Separation.Morphisms
-open import Relation.Unary.Separation.Monad.Reader
+open import Relation.Ternary.Separation.Construct.Unit
+open import Relation.Ternary.Separation.Allstar
+open import Relation.Ternary.Separation.Monad
+open import Relation.Ternary.Separation.Morphisms
+open import Relation.Ternary.Separation.Monad.Reader
 
 data Ty : Set where
   nat  : Ty
   _⊸_ : (a b : Ty) → Ty
 
-open import Relation.Unary.Separation.Construct.List Ty
+open import Relation.Ternary.Separation.Construct.List Ty
 
 Ctx  = List Ty
 CtxT = List Ty → List Ty

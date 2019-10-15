@@ -1,6 +1,7 @@
-open import Relation.Unary.Separation
+{-# OPTIONS --safe #-}
+open import Relation.Ternary.Separation
 
-module Relation.Unary.Separation.Allstar
+module Relation.Ternary.Separation.Allstar
   {i} {I : Set i}
   {c} {C : Set c} {{rc : RawSep C}} {u} {{sc : IsUnitalSep rc u}}
   where
@@ -23,7 +24,7 @@ module _ {ℓ} where
   singleton : ∀ {P x} → ∀[ P x ⇒ Allstar P [ x ] ]
   singleton v = cons (v ×⟨ ⊎-idʳ ⟩ nil)
 
-  open import Relation.Unary.Separation.Construct.List I
+  open import Relation.Ternary.Separation.Construct.List I
   open import Data.List.Relation.Ternary.Interleaving.Propositional as I
 
   repartition : ∀ {P} {Σ₁ Σ₂ Σ} →

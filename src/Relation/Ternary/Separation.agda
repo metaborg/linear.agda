@@ -3,7 +3,7 @@
 -- A separation algebra.
 -- Axiomatization loosely based on
 -- "A fresh look at Separation Algebras and Share Accounting" (Dockins et al)
-module Relation.Unary.Separation where
+module Relation.Ternary.Separation where
 
 open import Function
 open import Level

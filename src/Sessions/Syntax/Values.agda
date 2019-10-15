@@ -9,10 +9,9 @@ import Data.List as List
 open import Sessions.Syntax.Types
 open import Sessions.Syntax.Expr
 
-open import Relation.Unary.Separation.Morphisms
+open import Relation.Ternary.Separation.Morphisms
 
 data Runtype : Set where
-  
   endp : SType → Runtype
   chan : SType → SType → Runtype
 
@@ -35,7 +34,7 @@ instance
   IsSep.⊎-assoc ≺-has-sep rl ()
 
 RCtx = List Runtype
-open import Relation.Unary.Separation.Construct.ListOf Runtype public
+open import Relation.Ternary.Separation.Construct.ListOf Runtype public
 
 End : SType → Runtype → Set
 End α τ = [ endp α ] ≤ [ τ ]
@@ -58,22 +57,22 @@ mutual
     pairs : ∀[ Val a ✴ Val b  ⇒ Val (prod a b) ]
     clos  : Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Val (a ⊸ b) ]
 
--- -- Almost a PRSA morphism; except that j-⊎ doesnt hold
--- module _ where
+-- Almost a PRSA morphism; except that j-⊎ doesnt hold
+module _ where
 
---   open import Data.List.Relation.Ternary.Interleaving.Propositional as I
---   import Relation.Unary.Separation.Construct.List as L
+  open import Data.List.Relation.Ternary.Interleaving.Propositional as I
+  import Relation.Ternary.Separation.Construct.List as L
 
---   endpoints = List.map endp
+  endpoints = List.map endp
 
---   from-interleaving : ∀ {xs ys zs : SCtx} → I.Interleaving xs ys zs → Split (endpoints xs) (endpoints ys) (endpoints zs)
---   from-interleaving [] = []
---   from-interleaving (consˡ σ) = to-left (from-interleaving σ)
---   from-interleaving (consʳ σ) = to-right (from-interleaving σ)
+  from-interleaving : ∀ {xs ys zs : SCtx} → I.Interleaving xs ys zs → Split (endpoints xs) (endpoints ys) (endpoints zs)
+  from-interleaving [] = []
+  from-interleaving (consˡ σ) = to-left (from-interleaving σ)
+  from-interleaving (consʳ σ) = to-right (from-interleaving σ)
 
---   to-interleaving : ∀ {xs ys zs : SCtx} → Split (endpoints xs) (endpoints ys) (endpoints zs) → I.Interleaving xs ys zs
---   to-interleaving {x₁ ∷ xs} {[]} {.x₁ ∷ zs}      (to-left σ) = consˡ (to-interleaving σ)
---   to-interleaving {x₁ ∷ xs} {x₂ ∷ ys} {.x₁ ∷ zs} (to-left σ) = consˡ (to-interleaving σ)
---   to-interleaving {x₁ ∷ xs} {x₂ ∷ ys} {.x₂ ∷ zs} (to-right σ) = consʳ (to-interleaving σ)
---   to-interleaving {[]} {x₁ ∷ ys} {.x₁ ∷ zs}      (to-right σ) = consʳ (to-interleaving σ)
---   to-interleaving {[]} {[]} {[]} [] = []
+  to-interleaving : ∀ {xs ys zs : SCtx} → Split (endpoints xs) (endpoints ys) (endpoints zs) → I.Interleaving xs ys zs
+  to-interleaving {x₁ ∷ xs} {[]} {.x₁ ∷ zs}      (to-left σ) = consˡ (to-interleaving σ)
+  to-interleaving {x₁ ∷ xs} {x₂ ∷ ys} {.x₁ ∷ zs} (to-left σ) = consˡ (to-interleaving σ)
+  to-interleaving {x₁ ∷ xs} {x₂ ∷ ys} {.x₂ ∷ zs} (to-right σ) = consʳ (to-interleaving σ)
+  to-interleaving {[]} {x₁ ∷ ys} {.x₁ ∷ zs}      (to-right σ) = consʳ (to-interleaving σ)
+  to-interleaving {[]} {[]} {[]} [] = []

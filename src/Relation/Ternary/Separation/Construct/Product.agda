@@ -1,14 +1,14 @@
-{-# OPTIONS --without-K #-}
+{-# OPTIONS --without-K --safe #-}
 
-module Relation.Unary.Separation.Construct.Product where
+module Relation.Ternary.Separation.Construct.Product where
 
 open import Level
 open import Data.Product
 
 open import Relation.Unary
-open import Relation.Unary.Separation
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality
+open import Relation.Ternary.Separation
 open import Data.Product.Relation.Binary.Pointwise.NonDependent
 
 module _ {ℓ₁ ℓ₂} {C₁ : Set ℓ₁} {C₂ : Set ℓ₂} where

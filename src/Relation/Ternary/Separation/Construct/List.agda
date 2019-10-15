@@ -1,4 +1,5 @@
-module Relation.Unary.Separation.Construct.List {a} (A : Set a) where
+{-# OPTIONS --safe #-}
+module Relation.Ternary.Separation.Construct.List {a} (A : Set a) where
 
 open import Level
 open import Data.Product
@@ -11,7 +12,7 @@ open import Data.List.Relation.Binary.Permutation.Inductive
 
 open import Relation.Binary.PropositionalEquality as P hiding ([_])
 open import Relation.Unary hiding (_∈_; _⊢_)
-open import Relation.Unary.Separation
+open import Relation.Ternary.Separation
 
 private C = List A
 

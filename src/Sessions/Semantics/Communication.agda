@@ -10,14 +10,14 @@ import Data.List as L
 
 open import Relation.Unary hiding (Empty; _∈_)
 open import Relation.Unary.PredicateTransformer using (Pt)
-open import Relation.Unary.Separation.Construct.Market
-open import Relation.Unary.Separation.Construct.Product
-open import Relation.Unary.Separation.Morphisms
-open import Relation.Unary.Separation.Monad
+open import Relation.Ternary.Separation.Construct.Market
+open import Relation.Ternary.Separation.Construct.Product
+open import Relation.Ternary.Separation.Morphisms
+open import Relation.Ternary.Separation.Monad
 
-open import Relation.Unary.Separation.Monad
-open import Relation.Unary.Separation.Monad.Error
-open import Relation.Unary.Separation.Monad.State
+open import Relation.Ternary.Separation.Monad
+open import Relation.Ternary.Separation.Monad.Error
+open import Relation.Ternary.Separation.Monad.State
 
 open import Sessions.Syntax.Types
 open import Sessions.Syntax.Values

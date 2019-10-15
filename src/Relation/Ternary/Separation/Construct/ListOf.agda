@@ -1,6 +1,6 @@
-open import Relation.Unary.Separation
+open import Relation.Ternary.Separation
 
-module Relation.Unary.Separation.Construct.ListOf 
+module Relation.Ternary.Separation.Construct.ListOf 
   {a} (A : Set a) 
   {{ r : RawSep A }}
   {{ _ : IsSep r }}
@@ -16,7 +16,7 @@ open import Data.List.Relation.Binary.Permutation.Inductive
 open import Relation.Binary.PropositionalEquality as P hiding ([_])
 open import Relation.Unary hiding (_∈_; _⊢_)
 
-open import Relation.Unary.Separation.Morphisms
+open import Relation.Ternary.Separation.Morphisms
 
 private 
   Carrier = List A

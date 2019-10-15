@@ -2,7 +2,7 @@ open import Relation.Unary hiding (_∈_)
 open import Data.List
 open import Relation.Binary.PropositionalEquality using (refl; _≡_)
 
-module Relation.Unary.Separation.Monad.State.Heap 
+module Relation.Ternary.Separation.Monad.State.Heap 
   {ℓ} {T : Set ℓ} 
   (V : T → Pred (List T) ℓ) 
   where
@@ -11,13 +11,13 @@ open import Level hiding (Lift)
 open import Function using (_∘_; case_of_)
 import Relation.Binary.HeterogeneousEquality as HEq
 open import Relation.Unary.PredicateTransformer hiding (_⊔_; [_])
-open import Relation.Unary.Separation
-open import Relation.Unary.Separation.Construct.List T
-open import Relation.Unary.Separation.Construct.Product
-open import Relation.Unary.Separation.Construct.Market
-open import Relation.Unary.Separation.Morphisms
-open import Relation.Unary.Separation.Monad
-open import Relation.Unary.Separation.Allstar
+open import Relation.Ternary.Separation
+open import Relation.Ternary.Separation.Construct.List T
+open import Relation.Ternary.Separation.Construct.Product
+open import Relation.Ternary.Separation.Construct.Market
+open import Relation.Ternary.Separation.Morphisms
+open import Relation.Ternary.Separation.Monad
+open import Relation.Ternary.Separation.Allstar
 
 open import Data.Product
 open import Data.List.Relation.Ternary.Interleaving.Propositional as I
@@ -25,7 +25,7 @@ open import Data.List.Relation.Ternary.Interleaving.Propositional as I
 Cells : Pred (List T × List T) ℓ
 Cells (Σ , Φ) = Allstar V Σ Φ
 
-open import Relation.Unary.Separation.Monad.State
+open import Relation.Ternary.Separation.Monad.State
 open StateMonad public
 open Monads using (str)
 open Monads.Monad (state-monad {St = Cells})
@@ -66,6 +66,6 @@ app (write (refl ×⟨ σ₁ ⟩ v)) (lift st σ₂) (offerᵣ σ₃) with ⊎-a
 -- A linear (strong) update on the store
 update! : ∀ {a b} → ∀[ Just a ✴ (V a ─✴ⱼ State Cells (V b)) ⇒ⱼ State Cells (Just b) ]
 update! {a} {b} (ptr ×⟨ σ ⟩ f) = do
-  a ×⟨ σ₁ ⟩ f ← app (str f) (read ptr) (demand (⊎-comm σ))
+  a ×⟨ σ₁ ⟩ f ← read ptr &⟨ demand σ ⟩ f
   b           ← app f a (⊎-comm σ₁)
   mkref b

@@ -24,9 +24,9 @@ open import Relation.Nullary.Decidable as DecM
 open import Relation.Nullary.Product
 open import Relation.Binary.PropositionalEquality as P hiding ([_])
 
-open import Relation.Unary.Separation
-open import Relation.Unary.Separation.Construct.Product
-open import Relation.Unary.Separation.Construct.List
+open import Relation.Ternary.Separation
+open import Relation.Ternary.Separation.Construct.Product
+open import Relation.Ternary.Separation.Construct.List
 
 {- Unrestricted-, Session- and Expression types-}
 module _ where

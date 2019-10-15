@@ -1,4 +1,4 @@
-module Relation.Unary.Separation.Monad.Identity where
+module Relation.Ternary.Separation.Monad.Identity where
 
 open import Level
 open import Function
@@ -6,9 +6,9 @@ open import Function using (_∘_; case_of_)
 open import Relation.Binary.PropositionalEquality
 open import Relation.Unary
 open import Relation.Unary.PredicateTransformer hiding (_⊔_)
-open import Relation.Unary.Separation
-open import Relation.Unary.Separation.Monad
-open import Relation.Unary.Separation.Morphisms
+open import Relation.Ternary.Separation
+open import Relation.Ternary.Separation.Monad
+open import Relation.Ternary.Separation.Morphisms
 
 open import Data.Unit
 open Monads

@@ -1,6 +1,6 @@
-open import Relation.Unary.Separation
+open import Relation.Ternary.Separation
 
-module Relation.Unary.Separation.Monad.CompleteUpdate
+module Relation.Ternary.Separation.Monad.CompleteUpdate
   {a} {A : Set a} {{r : RawSep A}} {u} {{ s : IsUnitalSep r u }}
   where
 
@@ -14,10 +14,10 @@ open import Relation.Unary.PredicateTransformer using (Pt)
 open import Relation.Binary hiding (_⇒_)
 open import Relation.Binary.PropositionalEquality as P
 
-open import Relation.Unary.Separation.Morphisms
-open import Relation.Unary.Separation.Monad
-open import Relation.Unary.Separation.Construct.Product
-open import Relation.Unary.Separation.Construct.Market
+open import Relation.Ternary.Separation.Morphisms
+open import Relation.Ternary.Separation.Monad
+open import Relation.Ternary.Separation.Construct.Product
+open import Relation.Ternary.Separation.Construct.Market
 
 open Monads {{ bs = record { Carrier = A × A } }} (id-morph (A × A))
 open ⟰_
@@ -36,7 +36,7 @@ module Update where
 {- updates with failure -}
 module UpdateWithFailure where
 
-  open import Relation.Unary.Separation.Monad.Error
+  open import Relation.Ternary.Separation.Monad.Error
   open import Data.Sum
 
   ⟰? : Pt (A × A) a

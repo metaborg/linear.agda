@@ -1,12 +1,12 @@
-module Relation.Unary.Separation.Monad where
+module Relation.Ternary.Separation.Monad where
 
 open import Level
 open import Function using (_∘_; case_of_)
 open import Relation.Unary
 open import Relation.Unary.PredicateTransformer hiding (_⊔_)
-open import Relation.Unary.Separation
-open import Relation.Unary.Separation.Morphisms
 open import Relation.Binary.PropositionalEquality
+open import Relation.Ternary.Separation
+open import Relation.Ternary.Separation.Morphisms
 
 module Monads
   {a b} {A : Set a}  {B : Set b} {{r}} {u}

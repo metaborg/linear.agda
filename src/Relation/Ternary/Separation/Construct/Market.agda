@@ -1,5 +1,5 @@
 -- | An implementation of the Marketoritative PCM
-module Relation.Unary.Separation.Construct.Market where
+module Relation.Ternary.Separation.Construct.Market where
 
 open import Level hiding (Lift)
 open import Data.Product
@@ -8,8 +8,8 @@ open import Relation.Unary
 open import Relation.Binary hiding (_⇒_)
 open import Relation.Binary.PropositionalEquality as P
 
-open import Relation.Unary.Separation
-open import Relation.Unary.Separation.Morphisms
+open import Relation.Ternary.Separation
+open import Relation.Ternary.Separation.Morphisms
 
 module _ {ℓ} (A : Set ℓ) where
 
@@ -98,25 +98,26 @@ module _ {a} {A : Set a} {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 
 module _ {a} {A : Set a} {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 
-  open import Relation.Unary.Separation.Construct.Product
+  open import Relation.Ternary.Separation.Construct.Product
   open Morphism (market {A = A})
 
   data ○ {p} (P : Pred (A × A) p) : Pred (Market A) (p) where
     lift : ∀ {xs} → P (ε , xs) → ○ P (demand xs)
 
-  ○≺●ₗ : ∀ {p q} {P : Pred A p} {Q : Pred (A × A) q} → ∀[ P ⇒ⱼ ● Q ─✴ ● (Π₂ P ✴ Q) ]
-  app (○≺●ₗ px) (lift qx σ₂) (offerᵣ σ₁) with ⊎-assoc (⊎-comm σ₁) σ₂
-  ... | _ , σ₃ , σ₄ = lift (snd px ×⟨ ⊎-idˡ , σ₄ ⟩ qx ) σ₃
+  module _ {p q} {P : Pred A p} {Q : Pred (A × A) q} where
+    ○≺●ₗ : ∀[ P ⇒ⱼ ● Q ─✴ ● (Π₂ P ✴ Q) ]
+    app (○≺●ₗ px) (lift qx σ₂) (offerᵣ σ₁) with ⊎-assoc (⊎-comm σ₁) σ₂
+    ... | _ , σ₃ , σ₄ = lift (snd px ×⟨ ⊎-idˡ , σ₄ ⟩ qx ) σ₃
 
-  ○≺●ᵣ : ∀ {p q} {P : Pred A p} {Q : Pred (A × A) q} → ∀[ ● (Π₂ P ✴ Q) ⇒ J P ✴ ● Q ]
-  ○≺●ᵣ (lift (snd px ×⟨ σₗ , σᵣ ⟩ qx) σ₂) with ⊎-id⁻ˡ σₗ
-  ... | refl with ⊎-unassoc σ₂ σᵣ
-  ... | _ , σ₃ , σ₄ = inj px ×⟨ offerᵣ (⊎-comm σ₃) ⟩ lift qx σ₄
+    ○≺●ᵣ : ∀[ ● (Π₂ P ✴ Q) ⇒ J P ✴ ● Q ]
+    ○≺●ᵣ (lift (snd px ×⟨ σₗ , σᵣ ⟩ qx) σ₂) with ⊎-id⁻ˡ σₗ
+    ... | refl with ⊎-unassoc σ₂ σᵣ
+    ... | _ , σ₃ , σ₄ = inj px ×⟨ offerᵣ (⊎-comm σ₃) ⟩ lift qx σ₄
 
 {- Complete with respect to a certain element -}
 module _ {a} {A : Set a} {{r : RawSep A}} {u} {{ s : IsUnitalSep r u }} where
 
-  open import Relation.Unary.Separation.Construct.Product
+  open import Relation.Ternary.Separation.Construct.Product
   open Morphism (market {A = A})
 
   record _◑_ {p q} (P : Pred A p) (Q : Pred (A × A) q) (Φ : A × A) : Set (a ⊔ p ⊔ q) where
@@ -144,7 +145,7 @@ module _ {a} {A : Set a} {{r : RawSep A}} {u} {{ s : IsUnitalSep r u }} where
 {- Completion preserving updates -}
 module _ {a} {A : Set a} {{r : RawSep A}} {u} {{ s : IsUnitalSep r u }} where
 
-  open import Relation.Unary.Separation.Construct.Product
+  open import Relation.Ternary.Separation.Construct.Product
 
   record ⟰_ {p} (P : Pred (A × A) p) (Φᵢ : A × A) : Set (a ⊔ p) where
     constructor complete

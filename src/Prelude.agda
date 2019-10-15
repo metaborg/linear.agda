@@ -14,5 +14,5 @@ open import Codata.Thunk public
 open import Relation.Unary hiding (_∈_; Empty) public
 open import Relation.Binary.PropositionalEquality hiding ([_]) public
 
-open import Relation.Unary.Separation public
-open import Relation.Unary.Separation.Allstar public
+open import Relation.Ternary.Separation public
+open import Relation.Ternary.Separation.Allstar public

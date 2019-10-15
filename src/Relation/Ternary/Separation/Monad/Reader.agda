@@ -1,14 +1,14 @@
-module Relation.Unary.Separation.Monad.Reader where
+module Relation.Ternary.Separation.Monad.Reader where
 
 open import Level
 open import Function using (_∘_; case_of_)
 open import Relation.Binary.PropositionalEquality using (refl)
 open import Relation.Unary
 open import Relation.Unary.PredicateTransformer using (PT)
-open import Relation.Unary.Separation
-open import Relation.Unary.Separation.Morphisms
-open import Relation.Unary.Separation.Monad
-open import Relation.Unary.Separation.Allstar
+open import Relation.Ternary.Separation
+open import Relation.Ternary.Separation.Morphisms
+open import Relation.Ternary.Separation.Monad
+open import Relation.Ternary.Separation.Allstar
 
 open import Data.Product
 open import Data.List hiding (concat; lookup)
@@ -36,7 +36,7 @@ module ReaderTransformer {ℓ}
 
   open Morphism j hiding (j) public
   open Monads {{jm = j}} using (Monad; str; typed-str)
-  open import Relation.Unary.Separation.Construct.List T
+  open import Relation.Ternary.Separation.Construct.List T
 
   module _ where
     open Monad monad
@@ -105,5 +105,5 @@ module ReaderMonad {ℓ}
   (V : T → Pred C ℓ)
   where
 
-  open import Relation.Unary.Separation.Monad.Identity
+  open import Relation.Ternary.Separation.Monad.Identity
   open ReaderTransformer id-morph V Identity.Id {{ monad = Identity.id-monad }} public
