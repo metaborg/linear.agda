@@ -19,11 +19,6 @@ module Identity {ℓ}
   {{us : IsUnitalSep r u}}
  where
 
-  private
-    instance
-      c-sep : Separation ℓ
-      c-sep = record { Carrier = C }
-
   Id : ∀ {ℓ} → Pt C ℓ
   Id P = P
 

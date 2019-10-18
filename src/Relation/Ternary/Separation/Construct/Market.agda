@@ -92,9 +92,8 @@ module _ {a} {A : Set a} {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 
   instance market : Morphism A (Market A)
   j market                 = demand
-  j-map market s           = demand s
-  j-⊎ market (demand σ)    = -, refl
-  j-map⁻ market (demand σ) = σ
+  j-⊎ market s             = demand s
+  j-⊎⁻ market (demand σ)   = -, refl , σ
 
 module _ {a} {A : Set a} {{r : RawSep A}} {u} {{s₁ : IsUnitalSep r u}} where
 

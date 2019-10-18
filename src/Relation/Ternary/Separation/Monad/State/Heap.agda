@@ -64,8 +64,9 @@ app (write (refl ×⟨ σ₁ ⟩ v)) (lift st σ₂) (offerᵣ σ₃) with ⊎-a
   in inj (refl ×⟨ consˡ ⊎-idˡ ⟩ vb) ×⟨ offerᵣ (consˡ κ₄) ⟩ lift (cons (v ×⟨ κ₁ ⟩ st')) (⊎-∙ₗ (⊎-comm κ₃))
 
 -- A linear (strong) update on the store
-update! : ∀ {a b} → ∀[ Just a ✴ (V a ─✴ⱼ State Cells (V b)) ⇒ⱼ State Cells (Just b) ]
-update! {a} {b} (ptr ×⟨ σ ⟩ f) = do
-  a ×⟨ σ₁ ⟩ f ← read ptr &⟨ demand σ ⟩ f
-  b           ← app f a (⊎-comm σ₁)
-  mkref b
+update! : ∀ {a b} → ∀[ Just a ⇒ⱼ (V a ─✴ⱼ State Cells (V b)) ─✴ State Cells (Just b) ]
+app (update! ptr) f σ = do
+  a ×⟨ σ₁ ⟩ f ← read ptr &⟨ {!σ!} ⟩ f
+  {!!}
+  -- b           ← app f a (⊎-comm σ₁)
+  -- mkref b

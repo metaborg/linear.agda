@@ -53,14 +53,14 @@ module ReaderTransformer {ℓ}
       app (app (Monad.bind reader-monad f) mp σ₁) env σ₂ =
         let _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂ in
         app (bind (wand λ where
-          (px ×⟨ σ₅ ⟩ env') σ₆ →
-            let _ , τ₁ , τ₂ = ⊎-assoc (⊎-comm σ₅) (⊎-comm σ₆)
-            in app (app f px (⊎-comm τ₂)) (inj env') (j-map (⊎-comm τ₁)))) (app mp env σ₄) σ₃
+          (inj (px ×⟨ σ₅ ⟩ env')) σ₆ →
+            let _ , τ₁ , τ₂ = ⊎-unassoc σ₆ (j-⊎ σ₅) in
+            app (app f (inj px) τ₁) (inj env') τ₂)) (app mp env σ₄) σ₃
 
     frame : Γ₁ ⊎ Γ₃ ≣ Γ₂ → ∀[ Reader Γ₁ ε P ⇒ Reader Γ₂ Γ₃ P ]
     app (frame sep c) (inj env) σ = do
       let E₁ ×⟨ σ₁ ⟩ E₂ = repartition sep env
-      let Φ , σ₂ , σ₃   = ⊎-unassoc σ (j-map σ₁)
+      let Φ , σ₂ , σ₃   = ⊎-unassoc σ (j-⊎ σ₁)
       (v ×⟨ σ₄ ⟩ nil) ×⟨ σ₅ ⟩ E₃ ← app c (inj E₁) σ₂ &⟨ Allstar _ _ ∥ σ₃ ⟩ E₂
       case ⊎-id⁻ʳ σ₄ of λ where
         refl → return (v ×⟨ σ₅ ⟩ E₃)
@@ -70,12 +70,12 @@ module ReaderTransformer {ℓ}
     ... | refl = return (env ×⟨ ⊎-idʳ ⟩ nil)
 
     prepend : ∀[ Allstar V Γ₁ ⇒ⱼ Reader Γ₂ (Γ₁ ∙ Γ₂) Emp ]
-    app (prepend env₁) (inj env₂) s with j-⊎ s
-    ... | _ , refl = return (empty ×⟨ ⊎-idˡ ⟩ (concat (env₁ ×⟨ j-map⁻ s ⟩ env₂)))
+    app (prepend env₁) (inj env₂) s with j-⊎⁻ s
+    ... | _ , refl , s' = return (empty ×⟨ ⊎-idˡ ⟩ (concat (env₁ ×⟨ s' ⟩ env₂)))
 
     append : ∀[ Allstar V Γ₁ ⇒ⱼ Reader Γ₂ (Γ₂ ∙ Γ₁) Emp ]
-    app (append env₁) (inj env₂) s with j-⊎ s
-    ... | _ , refl = return (empty ×⟨ ⊎-idˡ ⟩ (concat (✴-swap (env₁ ×⟨ j-map⁻ s ⟩ env₂))))
+    app (append env₁) (inj env₂) s with j-⊎⁻ s
+    ... | _ , refl , s' = return (empty ×⟨ ⊎-idˡ ⟩ (concat (✴-swap (env₁ ×⟨ s' ⟩ env₂))))
   
     liftM : ∀[ M P ⇒ Reader Γ Γ P ]
     app (liftM mp) (inj env) σ = do

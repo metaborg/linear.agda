@@ -43,12 +43,12 @@ module StateTransformer {ℓ}
     instance
       state-monad : Monad ⊤ _ (λ _ _ → State St)
       app (Monad.return state-monad px) st σ₂ = return (inj px ×⟨ σ₂ ⟩ st )
-      app (app (Monad.bind state-monad {P = P} {Q = Q} f) m σ₁) st σ₂ with ⊎-assoc σ₁ σ₂
+      app (app (Monad.bind state-monad {P = P} {Q = Q} f) m σ₁@(demand _)) st@(lift _ _) σ₂@(offerᵣ σ₅) with ⊎-assoc σ₁ σ₂
       ... | _ , σ₃ , σ₄ = app (bind bound) (app m st σ₄) σ₃
         where
-          bound : (J P ✴ ● St ─✴ M (J Q ✴ ● St)) (demand _)
+          bound : ((J P ✴ ● St) ─✴ M (J Q ✴ ● St)) (demand _)
           app bound (inj px ×⟨ offerᵣ σ₅ ⟩ st') (offerᵣ σ₆) with ⊎-unassoc σ₅ σ₆
-          ... | _ , τ₁ , τ₂ = let mq = app f px (⊎-comm τ₁) in app mq st' (offerᵣ τ₂)
+          ... | _ , τ₁ , τ₂ = let mq = app f px (demand (⊎-comm τ₁)) in app mq st' (offerᵣ τ₂)
 
     liftM : ∀ {P} → ∀[ M (J P) ⇒ State St P ]
     app (liftM mp) μ σ =

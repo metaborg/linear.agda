@@ -74,13 +74,17 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
 
   -- | Separating implication / magic is what you wand
 
-  infixr 8 _─✴_
-  record _─✴_ {p q} (P : SPred p) (Q : SPred q) (Φᵢ : Carrier) : Set (p ⊔ q ⊔ a) where
+  infixr 8 _─✴[_]_
+  record _─✴[_]_ {b p q} {A : Set b} (P : Pred A p) (j : A → Carrier) (Q : SPred q) (Φᵢ : Carrier) : Set (p ⊔ q ⊔ a ⊔ b) where
     constructor wand
     field
-      app : ∀ {Φₚ} → P Φₚ → ∀ {Φ} → Φᵢ ⊎ Φₚ ≣ Φ → Q Φ
+      app : ∀ {Φₚ} → P Φₚ → ∀ {Φ} → Φᵢ ⊎ j Φₚ ≣ Φ → Q Φ
 
-  open _─✴_ public
+  open _─✴[_]_ public
+
+  infixr 8 _─✴_ 
+  _─✴_ : ∀ {p q} (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
+  _─✴_ = _─✴[ id ]_
 
   -- | The update modality
 

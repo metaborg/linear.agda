@@ -47,28 +47,12 @@ module _ where
       prod  : Type → Type → Type
       _⊸_   : Type → Type → Type
 
-{- Contexts -}
-module _ where
-
   LCtx = List Type   -- linear
-  SCtx = List SType  -- sessions
-
   variable
     Γ Γ' Γ₁ Γ₂ Γ₃ Γ₄ : LCtx
 
-{- Separation of contexts -}
-module _ {t} {T : Set t} where
-
-  private
-    Ctx : Set t
-    Ctx = List T
-
-  LPred : (p : Level) → Set (t ⊔ Level.suc p)
-  LPred p = Ctx → Set p
-
 {- Some conventions -}
 variable
-  u v w   : UType
   a b c   : Type
   α β γ   : SType
 
@@ -90,34 +74,3 @@ module _ where
   dual-involutive {x ! α} = cong (_!_ _) dual-involutive
   dual-involutive {x ¿ α} = cong (_¿_ _) dual-involutive
   dual-involutive {end} = refl
-
-{- Subset of unrestricted types -}
-module _ where
-
-  li : UType → Type
-  li unit = unit
-  li (prod a b) = prod (li a) (li b)
-
-  -- IsUnr : Type → Set
-  -- IsUnr a = ∃ λ u → li u ≡ a
-
-  -- isUnr? : Decidable IsUnr
-  -- isUnr? unit = yes (unit , P.refl)
-  -- isUnr? (cref x) = no λ where
-  --   (unit , ())
-  --   (prod _ _ , ())
-  -- isUnr? (prod a₁ a₂) = DecM.map′
-  --   (λ where ((u , P.refl) , (v , P.refl)) → prod u v , P.refl)
-  --   (λ where
-  --     (unit , ())
-  --     (prod a b , P.refl) → (a , P.refl) , (b , P.refl))
-  --       ((isUnr? a₁) ×-dec (isUnr? a₂))
-  -- isUnr? (a₁ ⊸ a₂) = no λ where
-  --   (unit , ())
-  --   (prod _ _ , ())
-
-  CtxTf = LCtx → LCtx
-
-  infixr 20 _◂_
-  _◂_ : Type → CtxTf → CtxTf
-  (a ◂ f) Δ = a ∷ f Δ

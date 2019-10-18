@@ -99,19 +99,6 @@ module _ where
   (endp β ∷ [] , divide rl []) ≔ₑ α = chan β α
   (         [] , to-left _)    ≔ₑ α = endp α
 
-  {- Updating or closing a known endpoint of a channel type -}
-  endp? : Maybe SType → Maybe Runtype
-  endp? = May.map endp
-
-  chan? : Maybe SType → Maybe SType → Maybe Runtype
-  chan? (just α) β? = maybe (just ∘ chan α) (just (endp α)) β?
-  chan? nothing  β? = endp? β?
-
-  _≔?_ : ∀ {τ} → End α τ → Maybe SType → Maybe Runtype
-  (endp β ∷ [] , divide lr []) ≔? α = chan? α (just β)
-  (endp β ∷ [] , divide rl []) ≔? α = chan? (just β) α
-  (         [] , to-left _)    ≔? α = endp? α
-
   onesided-recipient : ∀ {Φ} → (end ⇝ α) Φ → Recipient α
   onesided-recipient emp      = end
   onesided-recipient (cons x) = rec
