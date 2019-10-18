@@ -79,7 +79,7 @@ module _ where
   open Monads.Monad (state-monad {St = Channels})
 
   {- Updating a single link based on a pointer to one of its endpoints -}
-  operate : ∀ {P} → ∀[ Action α β P ⇒ Endptr α ─✴ⱼ State (Channels) (P ✴ Endptr β) ]
+  operate : ∀ {P} → ∀[ Action α β P ⇒ Endptr α ─✴ State (Channels) (P ✴ Endptr β) ]
   app (app (operate f) refl σ₁) (lift chs k) (offerᵣ σ₂) with ⊎-assoc σ₂ k
   ... | _ , σ₃ , σ₄ with ⊎-assoc (⊎-comm σ₁) σ₃
   ... | _ , σ₅ , σ₆ with ⊎-unassoc σ₆ (⊎-comm σ₄)
@@ -93,11 +93,11 @@ module _ where
     partial (inj₂ (inj (px ×⟨ ⊎-comm τ₃ ⟩ refl) ×⟨ offerᵣ eureka ⟩ lift chs' (⊎-comm τ₅)))
 
   {- Getting a value from a ready-to-receive endpoint -}
-  receive? : ∀[ Endptr (a ¿ β) ⇒ⱼ State Channels (Val a ✴ Endptr β) ]
+  receive? : ∀[ Endptr (a ¿ β) ⇒ State Channels (Val a ✴ Endptr β) ]
   receive? ptr = app (operate (λ end → wandit (chan-receive end))) ptr ⊎-idˡ
 
   {- Putting a value in a ready-to-send endpoint -}
-  send! : ∀[ Endptr (a ! β) ⇒ Val a ─✴ⱼ State Channels (Endptr β) ]
+  send! : ∀[ Endptr (a ! β) ⇒ Val a ─✴ State Channels (Endptr β) ]
   app (send! {a = a} ptr) v σ = do
     empty ×⟨ σ ⟩ ptr ← app (operate sender) ptr (⊎-comm σ)
     case ⊎-id⁻ˡ σ of λ where
@@ -115,7 +115,7 @@ module _ where
       ×⟨ offerᵣ ⊎-∙ ⟩
    lift (cons (emptyChannel ×⟨ ⊎-idˡ ⟩ chs)) (⊎-∙ₗ k)) 
 
-  closeChan : ∀[ Endptr end ⇒ⱼ State Channels Emp ]
+  closeChan : ∀[ Endptr end ⇒ State Channels Emp ]
   app (closeChan refl) (lift chs k) (offerᵣ σ) =
     let
       _ , σ₂ , σ₃ = ⊎-assoc σ k

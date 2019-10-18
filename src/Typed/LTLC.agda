@@ -11,6 +11,7 @@ open import Relation.Ternary.Separation.Allstar
 open import Relation.Ternary.Separation.Monad
 open import Relation.Ternary.Separation.Morphisms
 open import Relation.Ternary.Separation.Monad.Reader
+open import Relation.Ternary.Separation.Monad.Delay
 
 data Ty : Set where
   nat  : Ty
@@ -51,30 +52,38 @@ module _ {{m : MonoidalSep 0ℓ}} where
       num   : ℕ → ε[ Val nat ]
       clos  : Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Val (a ⊸ b) ]
 
-  open ReaderMonad Val
-  open Monads.Monad reader-monad
+  module _ {i : Size} where
+    open ReaderTransformer id-morph Val (Delay i) public
+    open Monads.Monad reader-monad public
+
+  M : Size → (Γ₁ Γ₂ : Ctx) → CPred → CPred
+  M i = Reader {i}
+
   open Monads using (str; _&_; typed-str)
 
-  {-# TERMINATING #-}
-  eval : Exp a Γ → ε[ Reader Γ ε (Val a) ]
+  mutual
+    eval : ∀ {i} → Exp a Γ → ε[ M i Γ ε (Val a) ]
 
-  eval (num n) = do
-    return (num n)
+    eval (num n) = do
+      return (num n)
 
-  eval (add (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
-    (num n₁) ← frame Γ≺ (eval e₁)
-    (num n₂) ← eval e₂
-    return (num (n₁ + n₂))
+    eval (add (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
+      (num n₁) ← frame Γ≺ (►eval e₁)
+      (num n₂) ← ►eval e₂
+      return (num (n₁ + n₂))
 
-  eval (lam e) = do
-    env ← ask
-    return (clos e env)
+    eval (lam e) = do
+      env ← ask
+      return (clos e env)
 
-  eval (ap (f ×⟨ Γ≺ ⟩ e)) = do
-    v                   ← frame (⊎-comm Γ≺) (eval e)
-    clos e env ×⟨ σ ⟩ v ← eval f & v
-    empty               ← append (v :⟨ ⊎-comm σ ⟩: env)
-    eval e
+    eval (ap (f ×⟨ Γ≺ ⟩ e)) = do
+      v                   ← frame (⊎-comm Γ≺) (►eval e)
+      clos e env ×⟨ σ ⟩ v ← ►eval f & v
+      empty               ← append (v :⟨ ⊎-comm σ ⟩: env)
+      ►eval e
 
-  eval (var refl) = do
-    lookup
+    eval (var refl) = do
+      lookup
+
+    ►eval : ∀ {i} → Exp a Γ → ε[ M i Γ ε (Val a) ]
+    app (►eval e) E σ = later (λ where .force → app (eval e) E σ)

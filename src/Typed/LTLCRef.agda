@@ -2,6 +2,7 @@ module Typed.LTLCRef where
 
 open import Data.List.Relation.Ternary.Interleaving.Propositional
 open import Relation.Unary hiding (_∈_)
+open import Relation.Unary.PredicateTransformer using (Pt)
 open import Function
 open import Category.Monad
 
@@ -31,20 +32,26 @@ infixr 20 _◂_
 _◂_ : Ty → CtxT → CtxT
 (x ◂ f) Γ = x ∷ f Γ
 
-variable a b : Ty
+variable a b c : Ty
 variable ℓv  : Level
 variable τ   : Set ℓv
 variable Γ Γ₁ Γ₂ Γ₃ : List τ
 
 data Exp : Ty → Ctx → Set where
+  -- linear λ calculus
   num   : ℕ → ε[ Exp nat ]
+  var   : ∀[ Just a ⇒ Exp a ]
   lam   : ∀[ (a ◂ id ⊢ Exp b) ⇒ Exp (a ⊸ b) ]
   ap    : ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
-  var   : ∀[ Just a ⇒ Exp a ]
+
+  -- products
+  pair    : ∀[ Exp a ✴ Exp b ⇒ Exp (prod a b) ]
+  letpair : ∀[ Exp (prod a b) ✴ (λ Γ → a ∷ b ∷ Γ) ⊢ Exp c ⇒ Exp c ]
+
+  -- state
   ref   : ∀[ Exp a ⇒ Exp (ref a) ]
   deref : ∀[ Exp (ref a) ⇒ Exp a ]
   asgn  : ∀[ Exp (ref a) ✴ Exp (a ⊸ b) ⇒ Exp (ref b) ]
-  pair  : ∀[ Exp a ✴ Exp b ⇒ Exp (prod a b) ]
 
 -- store types
 ST = List Ty
@@ -112,59 +119,74 @@ Store = Allstar Val
 
 {- The monadic semantics -}
 
-open import Relation.Ternary.Separation.Monad.State.Heap Val hiding (_⇒ⱼ_; _─✴ⱼ_; liftM)
-open ReaderTransformer market Val (State Cells)
-  renaming (Reader to M)
-open Monads.Monad reader-monad
-open Monads using (_&_; str; typed-str)
+module _ {i : Size} where
+  open import Relation.Ternary.Separation.Monad.Delay public
+  open import Relation.Ternary.Separation.Monad.State.Heap Val
+  open HeapOps (Delay i) {{ monad = delay-monad }}
+    using (State; state-monad; mkref; read; write; Cells)
+    public
+  open ReaderTransformer id-morph Val (State Cells)
+    {{ monad = state-monad }}
+    renaming (Reader to M'; reader-monad to monad)
+    public
+  open Monads.Monad monad public
+  open Monads using (_&_; str; typed-str) public
 
-do-update : ∀ {a b} → ∀[ Just a ✴ (Val a ─✴ⱼ M Γ₁ Γ₂ (Val b)) ⇒ⱼ M Γ₁ Γ₂ (Just b) ]
+M : Size → (Γ₁ Γ₂ : Ctx) → Pt ST 0ℓ
+M i = M' {i}
+
+do-update : ∀ {i a b} → ∀[ Just a ✴ (Val a ─✴ M i Γ₁ Γ₂ (Val b)) ⇒ M i Γ₁ Γ₂ (Just b) ]
 do-update (ptr ×⟨ σ ⟩ f) = do
-  a ×⟨ σ₁ ⟩ f ← liftM (read ptr) &⟨ demand σ ⟩ f
+  a ×⟨ σ₁ ⟩ f ← liftM (read ptr) &⟨ σ ⟩ f
   b           ← app f a (⊎-comm σ₁)
   liftM (mkref b)
 
-{-# TERMINATING #-}
 mutual
-  eval⊸ : ∀ {Γ} → Exp (a ⊸ b) Γ → ∀[ Val a ⇒ⱼ M Γ ε (Val b) ]
+  eval⊸ : ∀ {i Γ} → Exp (a ⊸ b) Γ → ∀[ Val a ⇒ M i Γ ε (Val b) ]
   eval⊸ e v = do
-    clos e env ×⟨ σ₂ ⟩ v ← eval e & v
+    clos e env ×⟨ σ₂ ⟩ v ← ►eval e & v
     empty                ← append (cons (v ×⟨ ⊎-comm σ₂ ⟩ env))
-    eval e
+    ►eval e
 
-  eval : ∀ {Γ} → Exp a Γ → ε[ M Γ ε (Val a) ]
+  eval : ∀ {i Γ} → Exp a Γ → ε[ M i Γ ε (Val a) ]
 
   eval (num n) = do
     return (num n)
 
   eval (var refl) = do
-    (v :⟨ σ ⟩: nil) ← ask
-    case ⊎-id⁻ʳ σ of λ where
-      refl → return v
+    lookup
 
   eval (lam e) = do
     env ← ask
     return (clos e env)
 
   eval (pair (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
-    v₁    ← frame Γ≺ (eval e₁)
-    v₂✴v₁ ← eval e₂ & v₁
+    v₁    ← frame Γ≺ (►eval e₁)
+    v₂✴v₁ ← ►eval e₂ & v₁
     return (pair (✴-swap v₂✴v₁))
 
+  eval (letpair (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
+    pair (v₁ ×⟨ σ ⟩ v₂) ← frame Γ≺ (►eval e₁)
+    empty               ← prepend (cons (v₁ ×⟨ σ ⟩ (singleton v₂)))
+    ►eval e₂
+
   eval (ap (f ×⟨ Γ≺ ⟩ e)) = do
-    v ← frame (⊎-comm Γ≺) (eval e)
+    v ← frame (⊎-comm Γ≺) (►eval e)
     eval⊸ f v
 
   eval (ref e) = do
-    v ← eval e
+    v ← ►eval e
     r ← liftM (mkref v)
     return (ref r)
 
   eval (deref e) = do
-    ref r ← eval e
+    ref r ← ►eval e
     liftM (read r)
 
   eval (asgn (e₁ ×⟨ σ ⟩ e₂)) = do
-    ref ra ← frame σ (eval e₁)
+    ref ra ← frame σ (►eval e₁)
     rb ← do-update (ra ×⟨ ⊎-idʳ ⟩ (wandit (eval⊸ e₂)))
     return (ref rb)
+
+  ►eval : ∀ {i Γ} → Exp a Γ → ε[ M i Γ ε (Val a) ]
+  app (app (►eval e) env σ) μ σ' = later (λ where .force → app (app (eval e) env σ) μ σ')

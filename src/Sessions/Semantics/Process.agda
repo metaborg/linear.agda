@@ -48,7 +48,7 @@ M = State St
 M? : PT _ _ 0ℓ 0ℓ
 M? = State? St
 
-onPool : ∀ {P} → ∀[ (Pool ─✴ Err (P ✴ Pool)) ⇒ⱼ M? P ]
+onPool : ∀ {P} → ∀[ (Pool ─✴ Err (P ✴ Pool)) ⇒ M? P ]
 app (onPool f) (lift (snd pool ×⟨ σ , σ₁ ⟩ chs) k) (offerᵣ σ₂) with resplit σ₂ σ₁ k
 ... | _ , _ , τ₁ , τ₂ , τ₃ =
   case app f pool τ₁ of λ where
@@ -65,7 +65,7 @@ app (onChannels f) μ (offerᵣ σ₃) with ○≺●ᵣ μ
     mapM (app f chs (offerᵣ τ₁) &⟨ J Pool ∥ offerₗ τ₂ ⟩ inj pool) ✴-assocᵣ
   return (px ×⟨ σ₄ ⟩ app (○≺●ₗ pool) ●chs (⊎-comm σ₅))
 
-schedule : ∀[ Thread a ⇒ⱼ M Emp ]
+schedule : ∀[ Thread a ⇒ M Emp ]
 schedule thr = {!!}
   -- onPool
   --   (wand (λ p σ →
@@ -80,7 +80,7 @@ pop = onPool (
 
 module _ where
 
-  handle : ∀ {Φ} → (c : Cmd Φ) → M? (δ c) (j Φ)
+  handle : ∀ {Φ} → (c : Cmd Φ) → M? (δ c) Φ
   handle (fork thr)           = liftState (schedule thr)
   handle (mkchan α)           = onChannels newChan
   handle (send (ch ×⟨ σ ⟩ v)) = onChannels (app (send! ch) v σ)

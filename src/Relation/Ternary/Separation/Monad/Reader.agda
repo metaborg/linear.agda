@@ -53,9 +53,9 @@ module ReaderTransformer {ℓ}
       app (app (Monad.bind reader-monad f) mp σ₁) env σ₂ =
         let _ , σ₃ , σ₄ = ⊎-assoc σ₁ σ₂ in
         app (bind (wand λ where
-          (inj (px ×⟨ σ₅ ⟩ env')) σ₆ →
+          (px ×⟨ σ₅ ⟩ env') σ₆ →
             let _ , τ₁ , τ₂ = ⊎-unassoc σ₆ (j-⊎ σ₅) in
-            app (app f (inj px) τ₁) (inj env') τ₂)) (app mp env σ₄) σ₃
+            app (app f px τ₁) (inj env') τ₂)) (app mp env σ₄) σ₃
 
     frame : Γ₁ ⊎ Γ₃ ≣ Γ₂ → ∀[ Reader Γ₁ ε P ⇒ Reader Γ₂ Γ₃ P ]
     app (frame sep c) (inj env) σ = do

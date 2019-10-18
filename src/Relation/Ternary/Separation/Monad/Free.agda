@@ -58,7 +58,7 @@ module _ {B : Set ℓ} {M : PT A B ℓ ℓ} {P : Pred A ℓ}
   step : (cmd : ∀ {Φ} → (c : Cmd Φ) → M (δ c) (j Φ)) → ∀[ Free P ⇒ⱼ M (Free P) ]
   step cmd (pure px) = return (pure px)
   step cmd (impure (c ×⟨ σ ⟩ κ)) = do
-    r ×⟨ σ ⟩ κ ← cmd c &⟨ Cont c P ∥ j-map σ ⟩ κ
+    r ×⟨ σ ⟩ κ ← cmd c &⟨ Cont c P ∥ j-⊎ σ ⟩ κ
     return (app κ r (⊎-comm σ))
 
   -- A fueled generic interpreter for command trees in Free
