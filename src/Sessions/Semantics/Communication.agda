@@ -1,4 +1,4 @@
-module Sessions.Semantics.Communication where
+module Sessions.Semantics.Communication {E : Set} (delay : E) where
 
 open import Prelude
 open import Data.Maybe
@@ -23,8 +23,7 @@ open import Sessions.Syntax.Types
 open import Sessions.Syntax.Values
 open import Sessions.Syntax.Expr
 open import Sessions.Semantics.Commands
-open import Sessions.Semantics.Runtime
-
+open import Sessions.Semantics.Runtime delay
 
 {- A specification of the update we are performing -}
 _≔_ : ∀ {x} {ys} {zs} → [ endp x ] ⊎ ys ≣ zs → SType → RCtx
@@ -36,7 +35,7 @@ _≔_ {zs = .(endp _) ∷ zs} (to-left s) α   = endp α ∷ zs
 {- Type of actions on a link -}
 private
   Action : ∀ (from to : SType) → Pt RCtx 0ℓ
-  Action from to P Φ = ∀ {τ} → (end : End from τ) → (Channel τ ─✴ Err (P ✴ Channel (end ≔ₑ to))) Φ
+  Action from to P Φ = ∀ {τ} → (end : End from τ) → (Channel τ ─✴ Except (P ✴ Channel (end ≔ₑ to))) Φ
 
 module _ where
   open Monads.Monad {{jm = id-morph {A = RCtx}}} err-monad
@@ -47,7 +46,7 @@ module _ where
         (ptr : [ endp α ] ⊎ ds ≣ xs) →
         ∀[ Action α β P
            ⇒ Channels' xs
-           ─✴ Err (Empty ([ endp β ] ⊎ ds ≣ (ptr ≔ β)) ✴ P ✴ Channels' (ptr ≔ β)) ]
+           ─✴ Except (Empty ([ endp β ] ⊎ ds ≣ (ptr ≔ β)) ✴ P ✴ Channels' (ptr ≔ β)) ]
 
   -- the pointer points to a channel where one end is already closed
   app (act {xs = x ∷ xs} (to-left ptr) f) (ch :⟨ τ ⟩: chs) σ with ⊎-unassoc σ τ
@@ -75,7 +74,7 @@ module _ where
     return (emp (to-right ptr) ×⟨ τ₃ ⟩ (px ×⟨ τ₄ ⟩ cons (✴-swap chs')))
 
 module _ where
-  open StateTransformer {C = RCtx} Err
+  open StateTransformer {C = RCtx} Except
   open Monads.Monad (state-monad {St = Channels})
 
   {- Updating a single link based on a pointer to one of its endpoints -}
@@ -84,7 +83,7 @@ module _ where
   ... | _ , σ₃ , σ₄ with ⊎-assoc (⊎-comm σ₁) σ₃
   ... | _ , σ₅ , σ₆ with ⊎-unassoc σ₆ (⊎-comm σ₄)
   ... | _ , σ₇ , σ₈ with app (act σ₅ f) chs σ₇
-  ... | error = error
+  ... | error _ = error delay
   ... | partial (inj₂ (emp ptr' ×⟨ σ ⟩ (px ×⟨ τ ⟩ chs'))) with ⊎-id⁻ˡ σ
   ... | refl with ⊎-unassoc ptr' σ₈
   ... | _ , τ₁ , τ₂ with ⊎-unassoc τ₁ τ

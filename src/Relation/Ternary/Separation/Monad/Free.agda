@@ -27,10 +27,10 @@ mutual
 module _ {u} {{_ : IsUnitalSep r u}} where
   open Monads
   instance
-    monad : Monad ⊤ ℓ (λ _ _ → Free)
-    Monad.return monad = pure
-    app (Monad.bind monad f) (pure x) σ = app f x σ
-    app (Monad.bind monad f) (impure (cmd ×⟨ σ₁ ⟩ κ)) σ =
+    free-monad : Monad ⊤ ℓ (λ _ _ → Free)
+    Monad.return free-monad = pure
+    app (Monad.bind free-monad f) (pure x) σ = app f x σ
+    app (Monad.bind free-monad f) (impure (cmd ×⟨ σ₁ ⟩ κ)) σ =
       let _ , σ₂ , σ₃ = ⊎-assoc σ₁ (⊎-comm σ) in
       impure (cmd ×⟨ σ₂ ⟩ wand λ resp σ₄ →
         let _ , τ₁ , τ₂ = ⊎-assoc (⊎-comm σ₃) σ₄ in

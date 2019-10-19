@@ -22,6 +22,7 @@ mutual
   δ (close _)           = Emp
 
   open import Relation.Ternary.Separation.Monad.Free Cmd δ renaming (Cont to Cont')
+  open import Relation.Ternary.Separation.Monad.Error
 
   Thread : Type → Pred RCtx _
-  Thread a = Free (Val a)
+  Thread a = ExceptTrans.Except Free Error (Val a)

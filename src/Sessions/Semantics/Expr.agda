@@ -15,65 +15,78 @@ open import Sessions.Semantics.Commands
 open import Sessions.Semantics.Runtime
 
 open import Relation.Ternary.Separation.Construct.List Type
-open import Relation.Ternary.Separation.Monad.Free Cmd δ
+open import Relation.Ternary.Separation.Monad.Free Cmd δ 
+  hiding (⟪_⟫)
+open import Relation.Ternary.Separation.Monad.Error
 
-open ReaderTransformer id-morph Val Free renaming (Reader to M)
+open ErrorTrans Free {{monad = free-monad}} renaming (Err to ErrFree) public
+open ReaderTransformer id-morph Val ErrFree {{err-monad}}
+  renaming (Reader to M)
 open Monads using (Monad; str; _&_)
 open Monad reader-monad
 
-{-# TERMINATING #-}
 mutual
-  eval⊸ : ∀ {Γ} → Exp (a ⊸ b) Γ → ∀[ Val a ⇒ⱼ M Γ [] (Val b) ]
-  eval⊸ e v = do
-    (clos e env) ×⟨ σ₂ ⟩ v ← eval e & v
+  eval⊸ : ∀ {Γ} → ℕ → Exp (a ⊸ b) Γ → ∀[ Val a ⇒ⱼ M Γ [] (Val b) ]
+  eval⊸ n e v = do
+    (clos e env) ×⟨ σ₂ ⟩ v ← ►eval n e & v
     empty                  ← append (cons (v ×⟨ ⊎-comm σ₂ ⟩ env))
-    eval e
+    ►eval n e
 
-  eval : Exp a Γ → ε[ M Γ [] (Val a) ]
+  ►eval : ℕ → Exp a Γ → ε[ M Γ [] (Val a) ]
+  app (►eval zero    e) _ _ = partial (pure (inj₁ tt))
+  ►eval (suc n) e = eval n e 
 
-  eval unit = do
+  ⟪_⟫ : ∀ {Γ Φ} → (c : Cmd Φ) → M Γ Γ (δ c) Φ
+  app (⟪_⟫ c) (inj E) σ = 
+    partial (impure (c ×⟨ σ ⟩ 
+      wand λ r σ' → pure (inj₂ (r ×⟨ ⊎-comm σ' ⟩ E))))
+
+  eval : ℕ → Exp a Γ → ε[ M Γ [] (Val a) ]
+
+  eval n unit = do
     return tt
 
-  eval (var refl) = do
+  eval n (var refl) = do
     (v :⟨ σ ⟩: nil) ← ask
     case ⊎-id⁻ʳ σ of λ where
       refl → return v
 
-  eval (lam a e) = do
+  eval n (lam a e) = do
     env ← ask
     return (clos e env)
 
-  eval (ap (f ×⟨ Γ≺ ⟩ e)) = do
-    v ← frame (⊎-comm Γ≺) (eval e)
-    eval⊸ f v
+  eval n (ap (f ×⟨ Γ≺ ⟩ e)) = do
+    v ← frame (⊎-comm Γ≺) (►eval n e)
+    eval⊸ n f v
 
-  eval (pairs (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
-    v₁ ← frame Γ≺ (eval e₁)
-    v₂⋆v₂ ← eval e₂ & v₁
+  eval n (pairs (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
+    v₁ ← frame Γ≺ (►eval n e₁)
+    v₂⋆v₂ ← ►eval n e₂ & v₁
     return (pairs (✴-swap v₂⋆v₂))
 
-  eval (letpair (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
-    pairs (v₁ ×⟨ σ ⟩ v₂) ← frame Γ≺ (eval e₁)
+  eval n (letpair (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
+    pairs (v₁ ×⟨ σ ⟩ v₂) ← frame Γ≺ (►eval n e₁)
     empty ← prepend (cons (v₁ ×⟨ σ ⟩ singleton v₂))
-    eval e₂
+    ►eval n e₂
 
-  eval (send (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
-    v₁ ← frame Γ≺ (eval e₁)
-    cref φ ×⟨ σ ⟩ v₁ ← eval e₂ & v₁
-    φ' ← liftM  ⟪ send (φ ×⟨ σ ⟩ v₁) ⟫
+  eval n (send (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
+    v₁ ← frame Γ≺ (►eval n e₁)
+    cref φ ×⟨ σ ⟩ v₁ ← ►eval n e₂ & v₁
+    φ' ← ⟪ send (φ ×⟨ σ ⟩ v₁) ⟫
     return (cref φ')
 
-  eval (recv e) = do
-    cref φ ← eval e
-    v ×⟨ σ ⟩ φ' ← liftM  ⟪ receive φ ⟫
+  eval n (recv e) = do
+    cref φ ← ►eval n e
+    v ×⟨ σ ⟩ φ' ← ⟪ receive φ ⟫
     return (pairs (cref φ' ×⟨ ⊎-comm σ ⟩ v))
 
-  eval (fork e) = do 
-    clos body env ← eval e
-    empty ← liftM ⟪ fork (app (runReader (cons (tt ×⟨ ⊎-idˡ ⟩ env))) (eval body) ⊎-idʳ) ⟫
+  eval n (fork e) = do 
+    clos body env ← ►eval n e
+    empty ←
+      ⟪ fork (app (runReader (cons (tt ×⟨ ⊎-idˡ ⟩ env))) (►eval n body) ⊎-idʳ) ⟫
     return tt
 
-  eval (terminate e) = do
-    cref φ ← eval e
-    empty ← liftM ⟪ close φ ⟫
+  eval n (terminate e) = do
+    cref φ ← ►eval n e
+    empty ← ⟪ close φ ⟫
     return tt

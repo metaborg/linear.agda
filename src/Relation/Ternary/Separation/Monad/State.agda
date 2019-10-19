@@ -50,9 +50,9 @@ module StateTransformer {ℓ}
           app bound (inj px ×⟨ offerᵣ σ₅ ⟩ st') (offerᵣ σ₆) with ⊎-unassoc σ₅ σ₆
           ... | _ , τ₁ , τ₂ = let mq = app f px (⊎-comm τ₁) in app mq st' (offerᵣ τ₂)
 
-    -- liftM : ∀ {Φ P} → M P (demand Φ) → State St (P ∘ demand) Φ
-    -- app (liftM mp) μ σ =
-    --   app (mapM′ (wand (λ px σ → {!inj px!} ×⟨ ⊎-comm σ ⟩ μ))) mp (⊎-comm σ)
+    liftM : ∀ {Φ P} → M P (demand Φ) → State St (P ∘ demand) Φ
+    app (liftM mp) (lift μ k) σ@(offerᵣ _) =
+      app (mapM′ (wand λ where px σ@(offerₗ _) → inj px ×⟨ ⊎-comm σ ⟩ (lift μ k))) mp (⊎-comm σ)
 
 module StateMonad {ℓ}
   {C : Set ℓ} {u}
@@ -74,21 +74,26 @@ module StateWithErr {ℓ}
   {C : Set ℓ} {u}
   {{r : RawSep C}}
   {{s : IsUnitalSep r u}}
-  (St : Pred (C × C) ℓ) where
+  (St : Pred (C × C) ℓ)
+  (Exc : Set ℓ) where
 
   open import Relation.Ternary.Separation.Monad.Error
-  open StateTransformer {C = C} Err {{ err-monad }} public using ()
+  open ExceptMonad {A = Market C} Exc
+  open StateTransformer {C = C} Except {{ monad = err-monad }} public using ()
     renaming (State to State?; state-monad to state?-monad) public
 
   open import Data.Sum
   open StateMonad
 
-  recoverWith : ∀ {P} → ∀[ State St P ⇒ State? St P ⇒ State St P ]
+  recoverWith : ∀ {P} → ∀[ (⋂[ _ ∶ Exc ] State St P) ⇒ State? St P ⇒ State St P ]
   app (recoverWith mq mp) μ σ with app mp μ σ
-  ... | error = app mq μ σ
-  ... | ✓ px  = px
+  ... | error e = app (mq e) μ σ
+  ... | ✓ px    = px
 
   try : ∀ {P} → ε[ State? St P ] → ε[ State St (Emp ∪ P) ]
   app (try mp?) st σ with app mp? st σ
-  ... | error                  = inj (inj₁ empty) ×⟨ σ ⟩ st
+  ... | error e                = inj (inj₁ empty) ×⟨ σ ⟩ st
   ... | ✓ (inj px ×⟨ σ' ⟩ st') = inj (inj₂ px) ×⟨ σ' ⟩ st'
+
+  raise : ∀ {P} → Exc → ∀[ State? St P ]
+  app (raise {P} e) μ σ = partial (inj₁ e)
