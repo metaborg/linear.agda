@@ -8,7 +8,7 @@ open import Sessions.Syntax.Values
 
 mutual
   data Cmd : Pred RCtx 0ℓ where
-    fork    :             ∀[ Thread unit ⇒ Cmd ]
+    fork    :             ∀[ Comp unit ⇒ Cmd ]
     mkchan  : ∀ α       → ε[ Cmd ]
     send    : ∀ {a α}   → ∀[ (Endptr (a ! α) ✴ Val a) ⇒ Cmd ]
     receive : ∀ {a α}   → ∀[ Endptr (a ¿ α) ⇒ Cmd ]
@@ -24,5 +24,5 @@ mutual
   open import Relation.Ternary.Separation.Monad.Free Cmd δ renaming (Cont to Cont')
   open import Relation.Ternary.Separation.Monad.Error
 
-  Thread : Type → Pred RCtx _
-  Thread a = ExceptTrans.Except Free Error (Val a)
+  Comp : Type → Pred RCtx _
+  Comp a = ErrorT Free (Val a)

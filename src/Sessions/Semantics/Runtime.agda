@@ -19,14 +19,13 @@ open import Relation.Ternary.Separation.Monad
 open import Relation.Ternary.Separation.Monad.Error
 open import Relation.Ternary.Separation.Monad.State
 
-module _ {A : Set} {{ r : RawSep A }} {u} {{ _ : IsUnitalSep r u }} where
-  open ExceptMonad {A = A} E public
-
-open StateTransformer {C = RCtx} Except
+open StateWithErr {C = RCtx} E
+open ExceptMonad {A = RCtx} E
+open Monads.Monad {{...}}
 
 private
   module _ {C : Set} {{ r : RawSep C }} {u} {{ _ : IsUnitalSep r u }} where
-    open Monads.Monad (err-monad {A = C}) public
+    -- open Monads.Monad (err-monad {A = C}) public
     open Monads using (str) public
 
 module _ where
@@ -57,7 +56,7 @@ module _ where
   ... | _ , σ₃ , σ₄ with push (v ×⟨ ⊎-comm σ₄ ⟩ b)
   ... | b' = cons (w ×⟨ σ₃ ⟩ b')
 
-  pull : ∀[ γ ⇝ (a ¿ β) ⇒ Except (Val a ✴ γ ⇝ β) ]
+  pull : ∀[ γ ⇝ (a ¿ β) ⇒ Except E (Val a ✴ γ ⇝ β) ]
   pull emp                  = error delay
   pull (cons (v ×⟨ σ ⟩ vs)) = return (v ×⟨ σ ⟩ vs)
 
@@ -65,12 +64,12 @@ module _ where
   send-into (v ×⟨ σ ⟩ link {x ¿ β₁} refl (px ×⟨ σ₁ ⟩ emp)) rewrite ⊎-id⁻ʳ σ₁ =
     link refl ((push (v ×⟨ σ ⟩ px)) ×⟨ ⊎-idʳ ⟩ emp)
 
-  recvₗ : ∀[ Link (a ¿ β) γ ⇒ Except (Val a ✴ Link β γ) ]
+  recvₗ : ∀[ Link (a ¿ β) γ ⇒ Except E (Val a ✴ Link β γ) ]
   recvₗ c@(link refl (bₗ ×⟨ τ ⟩ bᵣ)) = do
     v ×⟨ σ ⟩ l ← mapM (pull bₗ &⟨ τ ⟩ bᵣ) ✴-assocᵣ
     return (v ×⟨ σ ⟩ link refl l)
 
-  recvᵣ : ∀[ Link γ (a ¿ β) ⇒ Except (Val a ✴ Link γ β) ]
+  recvᵣ : ∀[ Link γ (a ¿ β) ⇒ Except E (Val a ✴ Link γ β) ]
   recvᵣ l = do
     v ×⟨ σ ⟩ l' ← recvₗ (revLink l)
     return (v ×⟨ σ ⟩ revLink l')
@@ -108,7 +107,7 @@ module _ where
 
   {- Receiving on any receiving end of a channel -}
   chan-receive : ∀ {τ} → (e : End (a ¿ α) τ) →
-                 ∀[ Channel τ ⇒ Except (Val a ✴ Channel (e ≔ₑ α)) ]
+                 ∀[ Channel τ ⇒ Except E (Val a ✴ Channel (e ≔ₑ α)) ]
 
   chan-receive (._ , divide lr []) (twosided l) = do
     v ×⟨ σ ⟩ l' ← recvₗ l

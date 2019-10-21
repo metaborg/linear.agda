@@ -29,8 +29,6 @@ open import Relation.Ternary.Separation.Monad.Free Cmd δ
 open import Relation.Ternary.Separation.Monad.State
 open import Relation.Ternary.Separation.Monad.Error
 
-open StateMonad
-
 open Monads using (Monad; str; typed-str)
 open Monad {{...}}
 
@@ -41,20 +39,19 @@ data Exc : Set where
 open import Sessions.Semantics.Runtime delay
 open import Sessions.Semantics.Communication delay
 
+data Thread : Pred RCtx 0ℓ where
+  forked :         ∀[ Comp unit ⇒ Thread ]
+  main   : ∀ {a} → ∀[ Comp a ⇒ Thread ] 
+
 Pool : Pred RCtx 0ℓ
-Pool = Bigstar (⋃[ a ∶ _ ] Thread a)
+Pool = Bigstar Thread
 
 St = Π₂ Pool ✴ Channels
 
-open StateWithErr St Exc
+open ExceptMonad {A = RCtx} Exc
+open StateWithErr {C = RCtx} Exc
 
-M : PT _ _ 0ℓ 0ℓ
-M = State St
-
-M? : PT _ _ 0ℓ 0ℓ
-M? = State? St
-
-onPool : ∀ {P} → ∀[ (Pool ─✴ Except (P ✴ Pool)) ⇒ M? P ]
+onPool : ∀ {P} → ∀[ (Pool ─✴ Except Exc (P ✴ Pool)) ⇒ State? St P ]
 app (onPool f) (lift (snd pool ×⟨ σ , σ₁ ⟩ chs) k) (offerᵣ σ₂) with resplit σ₂ σ₁ k
 ... | _ , _ , τ₁ , τ₂ , τ₃ =
   case app f pool τ₁ of λ where
@@ -63,7 +60,7 @@ app (onPool f) (lift (snd pool ×⟨ σ , σ₁ ⟩ chs) k) (offerᵣ σ₂) wit
       let _ , _ , τ₄ , τ₅ , τ₆ = resplit σ₃ τ₂ τ₃
       in return (inj p ×⟨ offerᵣ τ₄ ⟩ lift (snd p' ×⟨ σ , τ₅ ⟩ chs) τ₆)
 
-onChannels : ∀ {P} → ∀[ State? Channels P ⇒ M? P ]
+onChannels : ∀ {P} → ∀[ State? Channels P ⇒ State? St P ]
 app (onChannels f) μ (offerᵣ σ₃) with ○≺●ᵣ μ
 ... | inj pool ×⟨ offerᵣ σ₄ ⟩ chs with ⊎-assoc σ₃ (⊎-comm σ₄)
 ... | _ , τ₁ , τ₂ = do
@@ -71,40 +68,62 @@ app (onChannels f) μ (offerᵣ σ₃) with ○≺●ᵣ μ
     mapM (app f chs (offerᵣ τ₁) &⟨ J Pool ∥ offerₗ τ₂ ⟩ inj pool) ✴-assocᵣ
   return (px ×⟨ σ₄ ⟩ app (○≺●ₗ pool) ●chs (⊎-comm σ₅))
 
-schedule : ∀[ Thread a ⇒ M? Emp ]
-schedule thr = {!!}
-  -- onPool
-  --   (wand (λ p σ →
-  --     return (empty ×⟨ ⊎-idˡ ⟩ app (append (-, thr)) p σ)))
+schedule : ∀[ Thread ⇒ State? St Emp ]
+schedule thr =
+  onPool (wand λ pool σ → return (empty ×⟨ ⊎-idˡ ⟩ (app (append thr) pool σ)))
 
 {- Select the next thread that is not done -}
-pop : ε[ M? (Emp ∪ (⋃[ a ∶ _ ] Thread a)) ]
-pop = {!!} -- onPool (
-  -- wandit (λ p → mapExc ? (find (λ where
-  --   (_ , partial (pure _)) → false
-  --   (_ , partial (impure _)) → true) p)))
+pop : ε[ State? St (Emp ∪ Thread) ]
+pop = 
+  onPool (wandit (λ pool →
+    case (find isImpure pool) of λ where
+      (error e)              → return (inj₁ empty ×⟨ ⊎-idˡ ⟩ pool) 
+      (✓ (thr ×⟨ σ ⟩ pool')) → return (inj₂ thr ×⟨ σ ⟩ pool')))
+  where
+    isImpure : ∀ {Φ} → Thread Φ → Bool
+    isImpure = λ where
+      (main   (partial (pure _)))   → false
+      (forked (partial (pure _)))   → false
+      (main   (partial (impure _))) → true
+      (forked (partial (impure _))) → true
 
 module _ where
 
-  handle : ∀ {Φ} → (c : Cmd Φ) → M? (δ c) Φ
-  handle (fork thr)           = schedule thr
+  handle : ∀ {Φ} → (c : Cmd Φ) → State? St (δ c) Φ
+  handle (fork thr)           = schedule (forked thr)
   handle (mkchan α)           = onChannels newChan
   handle (send (ch ×⟨ σ ⟩ v)) = onChannels (app (send! ch) v σ)
   handle (receive ch)         = onChannels (receive? ch)
   handle (close ch)           = onChannels (closeChan ch)
 
-  step' : ∀[ Thread a ⇒ M? (Thread a) ]
-  app (step' (ExceptTrans.partial e)) μ σ with app (step handle e) μ σ
-  ... | ExceptTrans.partial r = partial {!!}
+  -- Stepping on main thread and forked threads is slightly different,
+  -- because we clean up the results of forked of threads.
+  -- We choose to escalate out-of-fuel errors in threads immediately.
+  step' : ∀[ Thread ⇒ State? St Emp ]
+  step' (main (partial c)) = do
+    c'@(impure _) ← step handle c
+      where
+        (pure (inj₁ e))   → raise outOfFuel
+        v@(pure (inj₂ _)) → schedule (main (partial v))
+    schedule (main (partial c'))
+  step' (forked (partial c)) = do
+    c'@(impure _) ← step handle c
+      where
+        (pure (inj₁ e))  → raise outOfFuel
+        (pure (inj₂ tt)) → return empty
+    schedule (forked (partial c'))
 
   -- Run a pool of threads in round-robing fashion
   -- until all have terminated, or fuel runs out
-  run : ℕ → ε[ M? Emp ] 
+  run : ℕ → ε[ State? St Emp ] 
   run zero    = raise outOfFuel
   run (suc n) = do
-    inj₂ (_ , thr) ← pop
-      -- if we cannot pop a thread, we're done
+    inj₂ thr ← pop
+      -- if we cannot pop a thunked thread, we're done
       where inj₁ empty → return empty
-    thr'  ← step' thr 
-    empty ← schedule thr'
+
+    -- otherwise we take a step
+    empty ← step' thr 
+
+    -- rinse and repeat
     run n

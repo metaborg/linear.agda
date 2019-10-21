@@ -9,7 +9,6 @@ open import Relation.Ternary.Separation.Monad
 open import Relation.Ternary.Separation.Monad.Error
 open import Relation.Ternary.Separation.Morphisms
 open Monads
-open ErrorMonad
 
 module _
   {a p} {A : Set a} (P : Pred A p)
@@ -26,13 +25,13 @@ module _
   [_] : ∀[ P ⇒ Bigstar P ]
   [ px ] = cons (px ×⟨ ⊎-idʳ ⟩ emp)
 
-  head : ∀[ Bigstar P ⇒ Err (P ✴ Bigstar P) ]
+  head : ∀[ Bigstar P ⇒ Error (P ✴ Bigstar P) ]
   head emp = error err
   head pool@(cons (px ×⟨ σ ⟩ pxs)) = do
     th₂ ×⟨ σ ⟩ pool' ×⟨ σ₂ ⟩ th₁ ← mapM (head pxs &⟨ ⊎-comm σ ⟩ px) ✴-assocᵣ
     return (th₂ ×⟨ σ ⟩ cons (th₁ ×⟨ ⊎-comm σ₂ ⟩ pool'))
 
-  find : (∀ {Φ} → P Φ → Bool) → ∀[ Bigstar P ⇒ Err (P ✴ Bigstar P) ]
+  find : (∀ {Φ} → P Φ → Bool) → ∀[ Bigstar P ⇒ Error (P ✴ Bigstar P) ]
   find f emp = error err
   find f (cons (px ×⟨ σ ⟩ pxs)) =
     if f px

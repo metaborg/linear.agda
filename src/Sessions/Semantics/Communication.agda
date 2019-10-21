@@ -35,10 +35,11 @@ _≔_ {zs = .(endp _) ∷ zs} (to-left s) α   = endp α ∷ zs
 {- Type of actions on a link -}
 private
   Action : ∀ (from to : SType) → Pt RCtx 0ℓ
-  Action from to P Φ = ∀ {τ} → (end : End from τ) → (Channel τ ─✴ Except (P ✴ Channel (end ≔ₑ to))) Φ
+  Action from to P Φ = ∀ {τ} → (end : End from τ) → (Channel τ ─✴ Except E (P ✴ Channel (end ≔ₑ to))) Φ
 
 module _ where
-  open Monads.Monad {{jm = id-morph {A = RCtx}}} err-monad
+  open ExceptMonad {A = RCtx} E
+  open Monads.Monad except-monad
   open Monads using (str)
 
   {- Takes an endpointer and the channel list and updates it using a link action -}
@@ -46,7 +47,7 @@ module _ where
         (ptr : [ endp α ] ⊎ ds ≣ xs) →
         ∀[ Action α β P
            ⇒ Channels' xs
-           ─✴ Except (Empty ([ endp β ] ⊎ ds ≣ (ptr ≔ β)) ✴ P ✴ Channels' (ptr ≔ β)) ]
+           ─✴ Except E (Empty ([ endp β ] ⊎ ds ≣ (ptr ≔ β)) ✴ P ✴ Channels' (ptr ≔ β)) ]
 
   -- the pointer points to a channel where one end is already closed
   app (act {xs = x ∷ xs} (to-left ptr) f) (ch :⟨ τ ⟩: chs) σ with ⊎-unassoc σ τ
@@ -74,11 +75,11 @@ module _ where
     return (emp (to-right ptr) ×⟨ τ₃ ⟩ (px ×⟨ τ₄ ⟩ cons (✴-swap chs')))
 
 module _ where
-  open StateTransformer {C = RCtx} Except
-  open Monads.Monad (state-monad {St = Channels})
+  open StateWithErr {C = RCtx} E
+  open Monads.Monad {{...}}
 
   {- Updating a single link based on a pointer to one of its endpoints -}
-  operate : ∀ {P} → ∀[ Action α β P ⇒ Endptr α ─✴ State (Channels) (P ✴ Endptr β) ]
+  operate : ∀ {P} → ∀[ Action α β P ⇒ Endptr α ─✴ State? Channels (P ✴ Endptr β) ]
   app (app (operate f) refl σ₁) (lift chs k) (offerᵣ σ₂) with ⊎-assoc σ₂ k
   ... | _ , σ₃ , σ₄ with ⊎-assoc (⊎-comm σ₁) σ₃
   ... | _ , σ₅ , σ₆ with ⊎-unassoc σ₆ (⊎-comm σ₄)
@@ -92,11 +93,11 @@ module _ where
     partial (inj₂ (inj (px ×⟨ ⊎-comm τ₃ ⟩ refl) ×⟨ offerᵣ eureka ⟩ lift chs' (⊎-comm τ₅)))
 
   {- Getting a value from a ready-to-receive endpoint -}
-  receive? : ∀[ Endptr (a ¿ β) ⇒ State Channels (Val a ✴ Endptr β) ]
+  receive? : ∀[ Endptr (a ¿ β) ⇒ State? Channels (Val a ✴ Endptr β) ]
   receive? ptr = app (operate (λ end → wandit (chan-receive end))) ptr ⊎-idˡ
 
   {- Putting a value in a ready-to-send endpoint -}
-  send! : ∀[ Endptr (a ! β) ⇒ Val a ─✴ State Channels (Endptr β) ]
+  send! : ∀[ Endptr (a ! β) ⇒ Val a ─✴ State? Channels (Endptr β) ]
   app (send! {a = a} ptr) v σ = do
     empty ×⟨ σ ⟩ ptr ← app (operate sender) ptr (⊎-comm σ)
     case ⊎-id⁻ˡ σ of λ where
@@ -107,14 +108,14 @@ module _ where
         let ch' = app (chan-send e ch) v (⊎-comm σ) 
         in ✓ (empty ×⟨ ⊎-idˡ ⟩ ch')
 
-  newChan : ε[ State Channels (Endptr α ✴ Endptr (α ⁻¹)) ]
+  newChan : ε[ State? Channels (Endptr α ✴ Endptr (α ⁻¹)) ]
   app newChan (lift chs k) σ with ⊎-id⁻ˡ σ
   ... | refl = ✓ (
    (inj (refl ×⟨ divide lr ⊎-idˡ ⟩ refl))
       ×⟨ offerᵣ ⊎-∙ ⟩
    lift (cons (emptyChannel ×⟨ ⊎-idˡ ⟩ chs)) (⊎-∙ₗ k)) 
 
-  closeChan : ∀[ Endptr end ⇒ State Channels Emp ]
+  closeChan : ∀[ Endptr end ⇒ State? Channels Emp ]
   app (closeChan refl) (lift chs k) (offerᵣ σ) =
     let
       _ , σ₂ , σ₃ = ⊎-assoc σ k
