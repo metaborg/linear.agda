@@ -19,3 +19,9 @@ The code is organized as follows:
 
 The code has been type-checked using Agda 2.6.0.1.
 The standard library version that was used is included in `lib/`.
+
+[Agda](https://agda.readthedocs.io/en/latest/) is usually developed in Emacs.
+It is highly recommended to use Agda's 
+[emacs mode](https://agda.readthedocs.io/en/latest/tools/emacs-mode.html) to typecheck the code.
+This does not only provide type-sensitive highlighting, but also allows you to navigate the
+code by jumping to definitions.
