@@ -121,14 +121,18 @@ Store = Allstar Val
 
 module _ {i : Size} where
   open import Relation.Ternary.Separation.Monad.Delay public
+  open import Relation.Ternary.Separation.Monad.State
   open import Relation.Ternary.Separation.Monad.State.Heap Val
+
   open HeapOps (Delay i) {{ monad = delay-monad }}
-    using (State; state-monad; mkref; read; write; Cells)
+    using (state-monad; mkref; read; write; Cells)
     public
-  open ReaderTransformer id-morph Val (State Cells)
+
+  open ReaderTransformer id-morph Val (StateT (Delay i) Cells)
     {{ monad = state-monad }}
     renaming (Reader to M'; reader-monad to monad)
     public
+
   open Monads.Monad monad public
   open Monads using (_&_; str; typed-str) public
 

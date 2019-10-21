@@ -68,6 +68,12 @@ module ExceptMonad (Exc : Set ℓ) where
   open import Relation.Ternary.Separation.Monad.Identity
   open ExceptTrans Identity.Id {{ Identity.id-monad }} Exc public
 
+module ErrorTrans (M : Pt A ℓ) {{monad : Monads.Monad ⊤ ℓ (λ _ _ → M) }} where
+  open import Relation.Ternary.Separation.Monad.Identity
+  open ExceptTrans M {{ monad }} Err public
+    renaming (except-monad to error-monad)
+
 module ErrorMonad where
   open import Relation.Ternary.Separation.Monad.Identity
   open ExceptTrans Identity.Id {{ Identity.id-monad }} Err public
+    renaming (except-monad to error-monad)

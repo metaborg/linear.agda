@@ -80,9 +80,9 @@ module StateWithErr {ℓ}
   State? : ∀ (S : Pred (C × C) ℓ) → Pt C ℓ
   State? = StateT (Except Exc)
 
-  recoverWith : ∀ {S P} {M : Pt (Market C) ℓ} {{monad : Monads.Monad ⊤ ℓ (λ _ _ → M) }}
-                → ∀[ (⋂[ _ ∶ Exc ] StateT M S P) ⇒ State? S P ⇒ StateT M S P ]
-  app (recoverWith mq mp) μ σ with app mp μ σ
+  _orElse_ : ∀ {S P} {M : Pt (Market C) ℓ} {{monad : Monads.Monad ⊤ ℓ (λ _ _ → M) }}
+                → ∀[ State? S P ⇒ (⋂[ _ ∶ Exc ] StateT M S P) ⇒ StateT M S P ]
+  app (mp orElse mq) μ σ with app mp μ σ
   ... | error e = app (mq e) μ σ
   ... | ✓ px    = return px
 

@@ -48,7 +48,7 @@ module HeapOps
   -- Creating a reference to a new cell, filled with a given value.
   -- Note that in the market monoid this is pure!
   -- Because we get a reference that consumes the freshly created resource.
-  mkref : ∀ {a} → ∀[ V a ⇒ State Cells (Just a) ]
+  mkref : ∀ {a} → ∀[ V a ⇒ StateT M Cells (Just a) ]
   app (mkref v) (lift st σ₁) (offerᵣ σ₂) =
     let _ , τ₁ , τ₂ = ⊎-assoc (⊎-comm σ₂) σ₁
     in return (
@@ -58,14 +58,14 @@ module HeapOps
 
   -- A linear read on a store: you lose the reference.
   -- This is pure, because with the reference being lost, the cell is destroyed: no resources leak.
-  read : ∀ {a} → ∀[ Just a ⇒ State Cells (V a) ]
+  read : ∀ {a} → ∀[ Just a ⇒ StateT M Cells (V a) ]
   app (read refl) (lift st σ₁) (offerᵣ σ₂) with ⊎-assoc σ₂ σ₁
   ... | _ , σ₃ , σ₄ with repartition σ₃ st
   ... | cons (v ×⟨ σ₅ ⟩ nil) ×⟨ σ₆ ⟩ st' with ⊎-id⁻ʳ σ₅ | ⊎-assoc (⊎-comm σ₆) (⊎-comm σ₄)
   ... | refl | _ , τ₁ , τ₂ = return (inj v ×⟨ offerᵣ τ₂ ⟩ lift st' (⊎-comm τ₁))
 
   -- Writing into a cell, returning the current contents
-  write : ∀ {a b} → ∀[ Just b ✴ (V a) ⇒ State Cells (Just a ✴ V b) ]
+  write : ∀ {a b} → ∀[ Just b ✴ (V a) ⇒ StateT M Cells (Just a ✴ V b) ]
   app (write (refl ×⟨ σ₁ ⟩ v)) (lift st σ₂) (offerᵣ σ₃) with ⊎-assoc (⊎-comm σ₁) σ₃
   -- first we reassociate the arguments in the order that we want to piece it back together
   ... | _ , τ₁ , τ₂ with ⊎-assoc (⊎-comm τ₁) σ₂
@@ -83,7 +83,7 @@ module HeapOps
       lift (cons (v ×⟨ κ₁ ⟩ st')) (⊎-∙ₗ (⊎-comm κ₃)))
 
   -- A linear (strong) update on the store
-  update! : ∀ {a b} → ∀[ Just a ⇒ (V a ─✴ State Cells (V b)) ─✴ State Cells (Just b) ]
+  update! : ∀ {a b} → ∀[ Just a ⇒ (V a ─✴ StateT M Cells (V b)) ─✴ StateT M Cells (Just b) ]
   app (update! ptr) f σ = do
     a ×⟨ σ₁ ⟩ f ← read ptr &⟨ σ ⟩ f
     b           ← app f a (⊎-comm σ₁)

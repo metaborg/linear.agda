@@ -19,8 +19,8 @@ open import Relation.Ternary.Separation.Monad.Free Cmd δ
   hiding (⟪_⟫)
 open import Relation.Ternary.Separation.Monad.Error
 
-open ErrorTrans Free {{monad = free-monad}} renaming (Err to ErrFree) public
-open ReaderTransformer id-morph Val ErrFree {{err-monad}}
+open ErrorTrans Free {{monad = free-monad}} public
+open ReaderTransformer id-morph Val (ErrorT Free) {{error-monad}}
   renaming (Reader to M)
 open Monads using (Monad; str; _&_)
 open Monad reader-monad
@@ -33,7 +33,7 @@ mutual
     ►eval n e
 
   ►eval : ℕ → Exp a Γ → ε[ M Γ [] (Val a) ]
-  app (►eval zero    e) _ _ = partial (pure (inj₁ tt))
+  app (►eval zero    e) _ _ = partial (pure (inj₁ err))
   ►eval (suc n) e = eval n e 
 
   ⟪_⟫ : ∀ {Γ Φ} → (c : Cmd Φ) → M Γ Γ (δ c) Φ
