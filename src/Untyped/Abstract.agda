@@ -127,7 +127,7 @@ module _ where
     eval (nat n) = do
       return (nat n)
     eval (var x) = do
-      asks (unsafeLookup (trace "resolve var" x)) 
+      asks (unsafeLookup x) 
     eval (ƛ e) = do
       asks (clos ∘ ⟨_⊢ e ⟩)
     eval (f · e) = do
@@ -176,17 +176,17 @@ module _ where
     ⦃ com-comm  : MonadComm com Chan Val ⦄ where
 
     communicate : (cmd : Comm) → com ⟦ cmd ⟧-comm
-    communicate (Comm.send c v) = trace "sending" $ M.send c v
-    communicate (Comm.recv x)   = trace "receiving" $ M.recv x
-    communicate (clos x)        = trace "closing" $ M.close x
+    communicate (Comm.send c v) = M.send c v
+    communicate (Comm.recv x)   = M.recv x
+    communicate (clos x)        = M.close x
 
   {- Interpreting threading commands -}
   module _ {thr}
     ⦃ thr-res   : MonadResumption thr Closure Chan ⦄ where
 
     threading : (cmd : Threading) → thr ⟦ cmd ⟧-thr
-    threading (Threading.fork cl) = trace "forking" $ M.fork cl
-    threading Threading.yield     = trace "yielding" $ M.yield
+    threading (Threading.fork cl) = M.fork cl
+    threading Threading.yield     = M.yield
 
   module _ {cmd}
     ⦃ cmd-comm  : MonadComm cmd Chan Val ⦄
@@ -211,5 +211,5 @@ module _ where
       (h ∷ tl) ← get
         where [] → return tt
       put tl
-      trace "atomics ↓" $ atomic h
-      trace "--------- next round ----------" robin
+      atomic h
+      robin

@@ -1,4 +1,4 @@
-module Main where
+module Untyped.Main where
 
 open import Function
 
@@ -9,17 +9,12 @@ open import Data.List
 open import Data.Sum
 open import Category.Monad
 
-open import Debug.Trace
 open import Strict
 
 open import Untyped.Monads
 open import Untyped.Abstract
 
 open M
-
--- TODOS
--- ∘ who is responsible for 'yielding'? The sequence operator of the expression monad or
---   the eval definition? Or the implementation m-comm?
 
 -- the monad in which we interpret expressions into command trees
 M : Set → Set
@@ -109,18 +104,17 @@ instance
     { recv  = λ ch → do
                 queue ← gets (unsafeLookup ch ∘ ServerState.queues)
                 case queue of λ where
-                  []       → trace "blocked" $ throw blocked
+                  []       → throw blocked
                   (x ∷ xs) → do
                     modify λ st →
-                      (trace "popped" $
-                        record st { queues = unsafeUpdate ch (ServerState.queues st) xs})
-                    trace "did receive" $ return x
+                      (record st { queues = unsafeUpdate ch (ServerState.queues st) xs})
+                    return x
     ; send  = λ ch v → do
                 ch⁻¹  ← gets (unsafeLookup ch ∘ ServerState.links)
                 queue ← gets (unsafeLookup ch⁻¹ ∘ ServerState.queues)
                 modify λ st →
                   record st { queues = unsafeUpdate ch⁻¹ (ServerState.queues st) (queue ∷ʳ v) }
-                trace "did send" $ return tt
+                return tt
     ; close = λ ch → do
                 return tt
     }
@@ -131,17 +125,17 @@ instance
     ; fork  = λ where
       ⟨ env ⊢ e ⟩ →
         do
-          (l , r) ← trace "created new channel" $ newChan
+          (l , r) ← newChan
           schedule [ thread $ eval ⦃ m-monad ⦄ e (extend (chan l) env) ]
-          return (trace "forked" r)
+          return r
     }
 
 handler : (c : Cmd) → Cont Cmd ⟦_⟧ c Val → SchedM ⊤
 handler c k s =
   let (s' , r) = handle {SchedM?} c s in
-  trace "handling" (case r of λ where
-    (exc e) → trace "reschedule" $ schedule [ thread (impure c k) ] s' -- reschedule
-    (✓ v)   → trace "schedule continuation" $ schedule [ thread (k v) ] s')
+  case r of λ where
+    (exc e) → schedule [ thread (impure c k) ] s' -- reschedule
+    (✓ v)   → schedule [ thread (k v) ] s'
 
 atomic : Thread → SchedM ⊤
 atomic (thread (Free.pure x))  = return tt
@@ -150,7 +144,7 @@ atomic (thread (impure cmd x)) = handler cmd x
 run : Exp → ℕ
 run e =
   let
-    main = trace "created main" $ thread $ eval e []
+    main = thread $ eval e []
     (s , v) = robin ⦃ s-monad ⦄ atomic (record empty { threads = [ main ]})
   in case (ServerState.threads s) of λ where
     [] → 0
@@ -167,7 +161,7 @@ example =
 import IO
 
 main = do
-  let val = trace "starting!" $ run example 
+  let val = run example 
   case val of λ where
     0 → IO.run (IO.putStrLn "done!")
     _ → IO.run (IO.putStrLn "?!")
