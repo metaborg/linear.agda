@@ -1,8 +1,6 @@
 {-# OPTIONS --safe --without-K #-}
 
--- A separation algebra.
--- Axiomatization loosely based on
--- "A fresh look at Separation Algebras and Share Accounting" (Dockins et al)
+-- Proof relevant separation algebras
 module Relation.Ternary.Separation where
 
 open import Function
