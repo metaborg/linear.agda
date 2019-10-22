@@ -29,4 +29,5 @@ data Exp : Type → LCtx → Set where
   fork      : ∀[ Exp (unit ⊸ unit) ⇒ Exp unit ]
 
   -- termination
+  letunit   : ∀[ Exp unit ✴ Exp a ⇒ Exp a ]
   terminate : ∀[ Exp (cref end) ⇒ Exp unit ]

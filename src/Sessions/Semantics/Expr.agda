@@ -22,6 +22,7 @@ open import Relation.Ternary.Separation.Monad.Error
 open ErrorTrans Free {{monad = free-monad}} public
 open ReaderTransformer id-morph Val (ErrorT Free) {{error-monad}}
   renaming (Reader to M)
+  public
 open Monads using (Monad; str; _&_)
 open Monad reader-monad
 
@@ -63,6 +64,10 @@ mutual
     v₁ ← frame Γ≺ (►eval n e₁)
     v₂⋆v₂ ← ►eval n e₂ & v₁
     return (pairs (✴-swap v₂⋆v₂))
+
+  eval n (letunit (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
+    tt ← frame Γ≺ (►eval n e₁)
+    ►eval n e₂
 
   eval n (letpair (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
     pairs (v₁ ×⟨ σ ⟩ v₂) ← frame Γ≺ (►eval n e₁)

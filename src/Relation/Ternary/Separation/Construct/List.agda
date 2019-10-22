@@ -5,7 +5,7 @@ open import Level
 open import Data.Product
 open import Data.List
 open import Data.List.Properties using (++-isMonoid)
-open import Data.List.Relation.Ternary.Interleaving.Propositional as I
+open import Data.List.Relation.Ternary.Interleaving.Propositional as I public
 open import Data.List.Relation.Ternary.Interleaving.Properties
 open import Data.List.Relation.Binary.Equality.Propositional
 open import Data.List.Relation.Binary.Permutation.Inductive

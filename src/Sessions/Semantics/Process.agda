@@ -11,7 +11,7 @@ open import Data.Bool
 open import Function
 open import Relation.Unary hiding (Empty)
 open import Relation.Unary.PredicateTransformer using (PT)
-open import Relation.Binary.PropositionalEquality
+open import Relation.Binary.PropositionalEquality hiding ([_])
 
 open import Sessions.Syntax.Types
 open import Sessions.Syntax.Values
@@ -20,6 +20,7 @@ open import Sessions.Syntax.Expr
 open import Sessions.Semantics.Commands
 
 open import Relation.Ternary.Separation
+open import Relation.Ternary.Separation.Allstar
 open import Relation.Ternary.Separation.Construct.Market
 open import Relation.Ternary.Separation.Construct.Product
 open import Relation.Ternary.Separation.Morphisms
@@ -137,3 +138,12 @@ module _ where
 
     -- rinse and repeat
     run n
+
+  start : ℕ → Thread ε → ∃ λ Φ → Except Exc (● St) Φ
+  start n thr = -, do
+    let μ = lift (snd [ thr ] ×⟨ ⊎-idʳ ⟩ nil) ⊎-idʳ
+    inj empty ×⟨ σ ⟩ μ ← app (run n) μ (offerᵣ ⊎-idˡ)
+    case ⊎-id⁻ˡ σ of λ where
+      refl → return μ
+
+    where open ExceptMonad {A = Market RCtx} Exc
