@@ -14,9 +14,11 @@ module _ where
   ex₁ =
     letpair (mkchan (unit ! end) ×⟨ ⊎-idʳ ⟩ (
     lets (fork
-      (lam unit (letpair (recv (var refl) ×⟨ consʳ (consˡ []) ⟩ letunit (letunit ((var refl) RawSep.×⟨ ⊎-∙ ⟩ (var refl)) ×⟨ consʳ ⊎-idʳ ⟩ (terminate (var refl))))))) $⟨ consʳ (consˡ []) ⟩
-    (lets
-      (send (unit ×⟨ ⊎-idˡ ⟩ (var refl))) $⟨ ⊎-comm ⊎-∙ ⟩
+      (lam unit
+        (letpair (recv (var refl) ×⟨ consʳ (consˡ []) ⟩
+          letunit (letunit (var refl ×⟨ ⊎-∙ ⟩ var refl) ×⟨ consʳ ⊎-idʳ ⟩
+            (terminate (var refl))))))) $⟨ consʳ (consˡ []) ⟩
+    (lets (send (unit ×⟨ ⊎-idˡ ⟩ var refl)) $⟨ ⊎-comm ⊎-∙ ⟩
       letunit (var refl ×⟨ consʳ ⊎-∙ ⟩ terminate (var refl)))))
 
 module _ where
