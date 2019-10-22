@@ -9,6 +9,7 @@ module _ where
   lets : ∀[ Exp a ⇒ (a ∷_) ⊢ Exp b ─✴ Exp b ]
   app (lets e₁) e₂ σ = ap (lam _ e₂ ×⟨ ⊎-comm σ ⟩ e₁)
 
+  -- The example from section 2.1 of the paper
   ex₁ : Exp unit ε
   ex₁ =
     letpair (mkchan (unit ! end) ×⟨ ⊎-idʳ ⟩ (
