@@ -7,6 +7,7 @@ open import Data.Sum
 open import Data.Product
 open import Data.Unit
 open import Data.Bool
+open import Debug.Trace
 
 open import Function
 open import Relation.Unary hiding (Empty)
@@ -102,11 +103,11 @@ dequeue =
 module _ where
 
   handle : ∀ {Φ} → (c : Cmd Φ) → State? St (δ c) Φ
-  handle (fork thr)           = enqueue (forked thr)
-  handle (mkchan α)           = onChannels newChan
-  handle (send (ch ×⟨ σ ⟩ v)) = onChannels (app (send! ch) v σ)
-  handle (receive ch)         = onChannels (receive? ch)
-  handle (close ch)           = onChannels (closeChan ch)
+  handle (fork thr)           = trace "handle:fork"   $ enqueue (forked thr)
+  handle (mkchan α)           = trace "handle:mkchan" $ onChannels newChan
+  handle (send (ch ×⟨ σ ⟩ v)) = trace "handle:send"   $ onChannels (app (send! ch) v σ)
+  handle (receive ch)         = trace "handle:recv"   $ onChannels (receive? ch)
+  handle (close ch)           = trace "handle:close"  $ onChannels (closeChan ch)
 
   step : ∀[ Thread ⇒ State? St Emp ]
   step thr@(main (partial c))   = do
@@ -134,7 +135,7 @@ module _ where
       where (inj₁ e) → return e
 
     -- otherwise we take a step
-    empty ← (step thr) orDelay thr
+    empty ← trace "run:step" (step thr) orDelay thr
 
     -- rinse and repeat
     run n
