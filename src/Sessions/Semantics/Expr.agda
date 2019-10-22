@@ -80,6 +80,10 @@ mutual
     v ×⟨ σ ⟩ φ' ← ⟪ receive φ ⟫
     return (pairs (cref φ' ×⟨ ⊎-comm σ ⟩ v))
 
+  eval n (mkchan α) = do
+    φₗ ×⟨ σ ⟩ φᵣ ← ⟪ mkchan α  ⟫
+    return (pairs (cref φₗ ×⟨ σ ⟩ cref φᵣ))
+
   eval n (fork e) = do 
     clos body env ← ►eval n e
     empty ←

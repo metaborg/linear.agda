@@ -21,6 +21,7 @@ data Exp : Type → LCtx → Set where
   letpair   : ∀[ Exp (prod a b) ✴ (λ Γ → a ∷ b ∷ Γ) ⊢ Exp c ⇒ Exp c ]
 
   -- communication
+  mkchan    : ∀ α → ε[ Exp (prod (cref α) (cref (α ⁻¹))) ]
   send      : ∀ {b} → ∀[ Exp a ✴ Exp (cref (a ! b)) ⇒ Exp (cref b) ]
   recv      : ∀ {b} → ∀[ Exp (cref (a ¿ b)) ⇒ Exp (prod (cref b) a) ]
 

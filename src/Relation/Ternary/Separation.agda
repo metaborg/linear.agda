@@ -60,7 +60,7 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
       {Φₗ Φᵣ} : Carrier
 
       px  : P Φₗ
-      sep : (Φₗ ⊎ Φᵣ) Φ
+      sep : Φₗ ⊎ Φᵣ ≣ Φ
       qx  : Q px Φᵣ
 
   infixr 9 ∃[_]✴_
@@ -83,6 +83,10 @@ record RawSep {a} (Carrier : Set a) : Set (suc a) where
   infixr 8 _─✴_ 
   _─✴_ : ∀ {p q} (P : SPred p) (Q : SPred q) → SPred (p ⊔ q ⊔ a)
   _─✴_ = _─✴[ id ]_
+
+  _$⟨_⟩_ : ∀ {p q Φ₁ Φ₂ Φ} {P : SPred p} {Q : SPred q} →
+           (P ─✴ Q) Φ₁ → Φ₁ ⊎ Φ₂ ≣ Φ → P Φ₂ → Q Φ
+  f $⟨ σ ⟩ px = app f px σ
 
   -- | The update modality
 
@@ -209,7 +213,7 @@ record IsUnitalSep {c} {C : Set c} (sep : RawSep C) un : Set (suc c) where
 
   field
     ⊎-idˡ    : ∀ {Φ} → ε ⊎ Φ ≣ Φ
-    ⊎-id⁻ˡ   : ∀ {Φ} → ∀[ (ε ⊎ Φ) ⇒ (Φ ≡_) ]
+    ⊎-id⁻ˡ   : ∀ {Φ₁ Φ₂} → ε ⊎ Φ₁ ≣ Φ₂ → Φ₁ ≡ Φ₂
 
   open IsSep isSep
 
