@@ -1,7 +1,6 @@
 module Sessions.Semantics.Runtime {E : Set} (delay : E) where
 
 open import Prelude
-open import Data.Maybe as May
 
 open import Relation.Unary hiding (Empty; _∈_)
 open import Relation.Unary.PredicateTransformer using (Pt)

@@ -1,7 +1,6 @@
 module Sessions.Semantics.Communication {E : Set} (delay : E) where
 
 open import Prelude
-open import Data.Maybe
 open import Data.List.Relation.Ternary.Interleaving
 open import Data.List.Relation.Ternary.Interleaving.Propositional
 open import Data.List.Relation.Equality.Propositional 
