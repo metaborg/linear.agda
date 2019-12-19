@@ -51,9 +51,9 @@ data Exp : Ty → Ctx → Set where
   letpair : ∀[ Exp (prod a b) ✴ (λ Γ → a ∷ b ∷ Γ) ⊢ Exp c ⇒ Exp c ]
 
   -- state
-  ref   : ∀[ Exp a ⇒ Exp (ref a) ]
-  deref : ∀[ Exp (ref a) ⇒ Exp a ]
-  asgn  : ∀[ Exp (ref a) ✴ Exp (a ⊸ b) ⇒ Exp (ref b) ]
+  ref     : ε[ Exp a ⇒ Exp (ref a) ]
+  swaps   : ∀[ Exp (ref a) ✴ Exp b ⇒ Exp (prod a (ref b)) ]
+  del     : ε[ Exp (ref unit) ⇒ Exp unit ]
 
 -- store types
 ST = List Ty
@@ -188,17 +188,15 @@ mutual
     r ← liftM (mkref v)
     return (ref r)
 
-  eval (deref e) = do
-    ref r ← ►eval e
-    liftM (read r)
+  eval (swaps (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
+    ref ra ← frame Γ≺ (►eval e₁)
+    vb ×⟨ σ₁ ⟩ ra ← ►eval e₂ & ra
+    rb ×⟨ σ₂ ⟩ va ← liftM (write (ra ×⟨ ⊎-comm σ₁ ⟩ vb))
+    return (pair (va ×⟨ (⊎-comm σ₂) ⟩ (ref rb)))
 
-  eval (asgn (e₁ ×⟨ σ ⟩ e₂)) = do
-    ref ra                ← frame σ (►eval e₁)
-    clos e env ×⟨ σ₂ ⟩ ra ← ►eval e₂ & ra
-    rb ← app (do-update ra) (wand λ v σ → do
-      empty ← append (cons (v ×⟨ ⊎-comm σ ⟩ env))
-      ►eval e) (⊎-comm σ₂)
-    return (ref rb)
+  eval (del e) = do
+    ref r ← ►eval e
+    liftM (read r) 
 
   ►eval : ∀ {i Γ} → Exp a Γ → ε[ M i Γ ε (Val a) ]
   app (app (►eval e) env σ) μ σ' = later (λ where .force → app (app (eval e) env σ) μ σ')
