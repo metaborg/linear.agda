@@ -14,8 +14,8 @@ open import Relation.Ternary.Separation.Monad.Reader
 open import Relation.Ternary.Separation.Monad.Delay
 
 data Ty : Set where
-  nat  : Ty
-  _⊸_ : (a b : Ty) → Ty
+  unit : Ty
+  _⊸_  : (a b : Ty) → Ty
 
 open import Relation.Ternary.Separation.Construct.List Ty
 
@@ -32,8 +32,11 @@ variable τ   : Set ℓv
 variable Γ Γ₁ Γ₂ Γ₃ : List τ
 
 data Exp : Ty → Ctx → Set where
-  add : ∀[ Exp nat ✴ Exp nat ⇒ Exp nat ]
-  num : ℕ → ε[ Exp nat ]
+  -- a base type
+  tt       : ε[ Exp unit ]
+  letunit  : ∀[ Exp unit ✴ Exp a ⇒ Exp a ]
+
+  -- the λ-calculus
   lam : ∀[ (a ◂ id ⊢ Exp b) ⇒ Exp (a ⊸ b) ]
   ap  : ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
   var : ∀[ Just a ⇒ Exp a ]
@@ -49,7 +52,7 @@ module _ {{m : MonoidalSep 0ℓ}} where
     Env = Allstar Val
 
     data Val : Ty → CPred where
-      num   : ℕ → ε[ Val nat ]
+      tt    : ε[ Val unit ]
       clos  : Exp b (a ∷ Γ) → ∀[ Env Γ ⇒ Val (a ⊸ b) ]
 
   module _ {i : Size} where
@@ -64,23 +67,22 @@ module _ {{m : MonoidalSep 0ℓ}} where
   mutual
     eval : ∀ {i} → Exp a Γ → ε[ M i Γ ε (Val a) ]
 
-    eval (num n) = do
-      return (num n)
+    eval tt = do
+      return tt
 
-    eval (add (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
-      (num n₁) ← frame Γ≺ (►eval e₁)
-      (num n₂) ← ►eval e₂
-      return (num (n₁ + n₂))
+    eval (letunit (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
+      tt ← frame Γ≺ (►eval e₁)
+      ►eval e₂
 
     eval (lam e) = do
       env ← ask
       return (clos e env)
 
     eval (ap (f ×⟨ Γ≺ ⟩ e)) = do
-      v                   ← frame (⊎-comm Γ≺) (►eval e)
-      clos e env ×⟨ σ ⟩ v ← ►eval f & v
-      empty               ← append (v :⟨ ⊎-comm σ ⟩: env)
-      ►eval e
+      clos body env ← frame Γ≺ (►eval f)
+      v ×⟨ σ ⟩ env  ← ►eval e & env
+      empty         ← append (v :⟨ σ ⟩: env)
+      ►eval body 
 
     eval (var refl) = do
       lookup

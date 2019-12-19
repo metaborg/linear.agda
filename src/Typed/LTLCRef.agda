@@ -15,7 +15,6 @@ open import Relation.Ternary.Separation.Monad.Reader
 open import Prelude
 
 data Ty : Set where
-  nat  : Ty
   unit : Ty
   ref  : Ty → Ty
   prod : Ty → Ty → Ty
@@ -38,11 +37,14 @@ variable τ   : Set ℓv
 variable Γ Γ₁ Γ₂ Γ₃ : List τ
 
 data Exp : Ty → Ctx → Set where
+  -- base type
+  tt       : ε[ Exp unit ]
+  letunit  : ∀[ Exp unit ✴ Exp a ⇒ Exp a ]
+
   -- linear λ calculus
-  num   : ℕ → ε[ Exp nat ]
-  var   : ∀[ Just a ⇒ Exp a ]
-  lam   : ∀[ (a ◂ id ⊢ Exp b) ⇒ Exp (a ⊸ b) ]
-  ap    : ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
+  var      : ∀[ Just a ⇒ Exp a ]
+  lam      : ∀[ (a ◂ id ⊢ Exp b) ⇒ Exp (a ⊸ b) ]
+  ap       : ∀[ Exp (a ⊸ b) ✴ Exp a ⇒ Exp b ]
 
   -- products
   pair    : ∀[ Exp a ✴ Exp b ⇒ Exp (prod a b) ]
@@ -58,8 +60,7 @@ ST = List Ty
 
 -- values
 data Val : Ty → Pred ST 0ℓ where
-  unit  :     ε[ Val unit ]
-  num   : ℕ → ε[ Val nat  ]
+  tt    : ε[ Val unit ]
   clos  : Exp b (a ∷ Γ) → ∀[ Allstar Val Γ ⇒ Val (a ⊸ b) ]
   ref   : ∀[ Just a ⇒ Val (ref a) ]
   pair  : ∀[ Val a ✴ Val b ⇒ Val (prod a b) ]
@@ -139,9 +140,9 @@ module _ {i : Size} where
 M : Size → (Γ₁ Γ₂ : Ctx) → Pt ST 0ℓ
 M i = M' {i}
 
-do-update : ∀ {i a b} → ∀[ Just a ✴ (Val a ─✴ M i Γ₁ Γ₂ (Val b)) ⇒ M i Γ₁ Γ₂ (Just b) ]
-do-update (ptr ×⟨ σ ⟩ f) = do
-  a ×⟨ σ₁ ⟩ f ← liftM (read ptr) &⟨ σ ⟩ f
+do-update : ∀ {i a b} → ∀[ Just a ⇒ (Val a ─✴ M i Γ₁ Γ₂ (Val b)) ─✴ M i Γ₁ Γ₂ (Just b) ]
+app (do-update ptr) f σ = do
+  a ×⟨ σ₁ ⟩ f ← liftM (read ptr) &⟨ (_ ─✴ _) ∥ σ ⟩ f
   b           ← app f a (⊎-comm σ₁)
   liftM (mkref b)
 
@@ -154,8 +155,12 @@ mutual
 
   eval : ∀ {i Γ} → Exp a Γ → ε[ M i Γ ε (Val a) ]
 
-  eval (num n) = do
-    return (num n)
+  eval tt = do
+    return tt
+
+  eval (letunit (e₁ ×⟨ Γ≺ ⟩ e₂)) = do
+    tt ← frame Γ≺ (►eval e₁)
+    ►eval e₂
 
   eval (var refl) = do
     lookup
@@ -188,8 +193,11 @@ mutual
     liftM (read r)
 
   eval (asgn (e₁ ×⟨ σ ⟩ e₂)) = do
-    ref ra ← frame σ (►eval e₁)
-    rb ← do-update (ra ×⟨ ⊎-idʳ ⟩ (wandit (eval⊸ e₂)))
+    ref ra                ← frame σ (►eval e₁)
+    clos e env ×⟨ σ₂ ⟩ ra ← ►eval e₂ & ra
+    rb ← app (do-update ra) (wand λ v σ → do
+      empty ← append (cons (v ×⟨ ⊎-comm σ ⟩ env))
+      ►eval e) (⊎-comm σ₂)
     return (ref rb)
 
   ►eval : ∀ {i Γ} → Exp a Γ → ε[ M i Γ ε (Val a) ]
