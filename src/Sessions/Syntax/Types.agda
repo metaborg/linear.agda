@@ -31,10 +31,6 @@ open import Relation.Ternary.Separation.Construct.List
 {- Unrestricted-, Session- and Expression types-}
 module _ where
   mutual
-    data UType : Set where
-      unit  : UType  
-      prod  : UType → UType →  UType
-
     -- crefnel types
     infixr 10 _¿_
     data SType : Set where
@@ -47,7 +43,7 @@ module _ where
       prod  : Type → Type → Type
       _⊸_   : Type → Type → Type
 
-  LCtx = List Type   -- linear
+  LCtx = List Type   -- linear contexts
   variable
     Γ Γ' Γ₁ Γ₂ Γ₃ Γ₄ : LCtx
 

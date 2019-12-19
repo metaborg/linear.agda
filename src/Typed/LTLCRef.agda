@@ -126,7 +126,7 @@ module _ {i : Size} where
   open import Relation.Ternary.Separation.Monad.State.Heap Val
 
   open HeapOps (Delay i) {{ monad = delay-monad }}
-    using (state-monad; mkref; read; write; Cells)
+    using (state-monad; newref; read; write; Cells)
     public
 
   open ReaderTransformer id-morph Val (StateT (Delay i) Cells)
@@ -139,12 +139,6 @@ module _ {i : Size} where
 
 M : Size → (Γ₁ Γ₂ : Ctx) → Pt ST 0ℓ
 M i = M' {i}
-
-do-update : ∀ {i a b} → ∀[ Just a ⇒ (Val a ─✴ M i Γ₁ Γ₂ (Val b)) ─✴ M i Γ₁ Γ₂ (Just b) ]
-app (do-update ptr) f σ = do
-  a ×⟨ σ₁ ⟩ f ← liftM (read ptr) &⟨ (_ ─✴ _) ∥ σ ⟩ f
-  b           ← app f a (⊎-comm σ₁)
-  liftM (mkref b)
 
 mutual
   eval⊸ : ∀ {i Γ} → Exp (a ⊸ b) Γ → ∀[ Val a ⇒ M i Γ ε (Val b) ]
@@ -185,7 +179,7 @@ mutual
 
   eval (ref e) = do
     v ← ►eval e
-    r ← liftM (mkref v)
+    r ← liftM (newref v)
     return (ref r)
 
   eval (swaps (e₁ ×⟨ Γ≺ ⟩ e₂)) = do

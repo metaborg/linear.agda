@@ -11,6 +11,7 @@ data Exp : Type → LCtx → Set where
 
   -- value constructors
   unit      : ε[ Exp unit ]
+  letunit   : ∀[ Exp unit ✴ Exp a ⇒ Exp a ]
 
   -- linear function introduction and elimination
   lam       : ∀ a → ∀[ ((a ∷_) ⊢ Exp b) ⇒ Exp (a ⊸ b) ]
@@ -29,5 +30,4 @@ data Exp : Type → LCtx → Set where
   fork      : ∀[ Exp (unit ⊸ unit) ⇒ Exp unit ]
 
   -- termination
-  letunit   : ∀[ Exp unit ✴ Exp a ⇒ Exp a ]
   terminate : ∀[ Exp (cref end) ⇒ Exp unit ]

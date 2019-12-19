@@ -48,8 +48,8 @@ module HeapOps
   -- Creating a reference to a new cell, filled with a given value.
   -- Note that in the market monoid this is pure!
   -- Because we get a reference that consumes the freshly created resource.
-  mkref : ∀ {a} → ∀[ V a ⇒ StateT M Cells (Just a) ]
-  app (mkref v) (lift st σ₁) (offerᵣ σ₂) =
+  newref : ∀ {a} → ∀[ V a ⇒ StateT M Cells (Just a) ]
+  app (newref v) (lift st σ₁) (offerᵣ σ₂) =
     let _ , τ₁ , τ₂ = ⊎-assoc (⊎-comm σ₂) σ₁
     in return (
       inj refl
@@ -87,4 +87,4 @@ module HeapOps
   app (update! ptr) f σ = do
     a ×⟨ σ₁ ⟩ f ← read ptr &⟨ σ ⟩ f
     b           ← app f a (⊎-comm σ₁)
-    mkref b
+    newref b
