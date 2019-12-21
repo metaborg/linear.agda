@@ -39,6 +39,8 @@ open import Debug.Trace
 open import Data.Sum
 open import Relation.Ternary.Separation.Monad.Error
 
+-- to run the main and see the program trace,
+-- run 'make examples'
 main = run $ ♯ (putStrLn "Hello, World!")
     >> ♯ (♯ putStrLn result
     >> ♯ putStrLn "done")

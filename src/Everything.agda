@@ -17,3 +17,6 @@ import Sessions.Semantics.Commands
 import Sessions.Semantics.Expr
 import Sessions.Semantics.Communication
 import Sessions.Semantics.Process
+
+-- the paper's session-typed program example
+import Examples

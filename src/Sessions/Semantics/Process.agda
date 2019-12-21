@@ -109,13 +109,13 @@ module _ where
   handle (receive ch)         = trace "handle:recv"   $ onChannels (receive? ch)
   handle (close ch)           = trace "handle:close"  $ onChannels (closeChan ch)
 
-  step : ∀[ Thread ⇒ State? St Emp ]
+  step : ∀[ Thread ⇒ State? St Thread ]
   step thr@(main (partial c))   = do
     c' ← Free.step handle c
-    reschedule (main (partial c'))
+    return (main (partial c'))
   step (forked (partial c)) = do
     c' ← Free.step handle c
-    reschedule (forked (partial c'))
+    return (forked (partial c'))
 
   -- try the first computation; if it fails with a 'delay' exception,
   -- then queue t
@@ -135,7 +135,7 @@ module _ where
       where (inj₁ e) → return e
 
     -- otherwise we take a step
-    empty ← trace "run:step" (step thr) orDelay thr
+    empty ← trace "run:step" (do thr' ← step thr; enqueue thr') orDelay thr
 
     -- rinse and repeat
     run n
